@@ -28,12 +28,23 @@ export function KioskApp(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answered, setAnswered] = useState(0);
+  const [documentCount, setDocumentCount] = useState(0);
+  /** What the patient actually consented to. The kiosk must never offer a capture path they
+   *  declined: the backend correctly refuses it with a 403, and a 403 the patient cannot act
+   *  on is a worse experience than simply not offering the feature. */
+  const [scopes, setScopes] = useState<string[]>([]);
 
-  const apply = useCallback((response: StepResponse) => {
-    setStep(response);
-    setVoice(response.voice ?? null);
-    if (response.complete) setStage('documents');
-  }, []);
+  const canScanDocuments = scopes.includes('documents');
+
+  const apply = useCallback(
+    (response: StepResponse) => {
+      setStep(response);
+      setVoice(response.voice ?? null);
+      // Skip the document stage entirely when the patient declined that scope.
+      if (response.complete) setStage(canScanDocuments ? 'documents' : 'done');
+    },
+    [canScanDocuments],
+  );
 
   const guard = useCallback(
     async (work: () => Promise<StepResponse>) => {
@@ -61,6 +72,8 @@ export function KioskApp(): JSX.Element {
     setStep(null);
     setVoice(null);
     setAnswered(0);
+    setDocumentCount(0);
+    setScopes([]);
     setError(null);
     setStage('language');
   }
@@ -107,8 +120,9 @@ export function KioskApp(): JSX.Element {
         {stage === 'consent' && (
           <ConsentGate
             language={language}
-            onGranted={(ref) => {
+            onGranted={(ref, _ayushMode, grantedScopes) => {
               setSessionRef(ref);
+              setScopes(grantedScopes);
               setStage('interview');
             }}
             onBack={() => setStage('login')}
@@ -120,6 +134,7 @@ export function KioskApp(): JSX.Element {
             question={question}
             voice={voice}
             busy={busy}
+            voiceEnabled={scopes.includes('voice')}
             onAnswer={(value) => {
               setAnswered((n) => n + 1);
               void guard(() => api.answer(sessionRef, question.turnId, question.questionId, value));
@@ -151,14 +166,20 @@ export function KioskApp(): JSX.Element {
         )}
 
         {stage === 'documents' && sessionRef && (
-          <DocumentUpload sessionRef={sessionRef} onDone={() => setStage('done')} />
+          <DocumentUpload
+            sessionRef={sessionRef}
+            onDone={(uploaded) => {
+              setDocumentCount(uploaded);
+              setStage('done');
+            }}
+          />
         )}
 
         {stage === 'done' && (
           <DoneScreen
             language={language}
             answered={answered}
-            documents={0}
+            documents={documentCount}
             onRestart={restart}
           />
         )}

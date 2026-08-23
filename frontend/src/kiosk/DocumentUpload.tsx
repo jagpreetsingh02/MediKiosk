@@ -20,7 +20,7 @@ interface Uploaded {
 
 interface Props {
   sessionRef: string;
-  onDone: () => void;
+  onDone: (uploaded: number) => void;
 }
 
 export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
@@ -94,7 +94,12 @@ export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
       ))}
 
       <div className="kiosk-actions">
-        <button type="button" className="btn-primary" onClick={onDone} disabled={busy}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => onDone(uploads.length)}
+          disabled={busy}
+        >
           {uploads.length ? 'Done — continue' : 'I have no papers'}
         </button>
       </div>

@@ -19,6 +19,10 @@ interface Props {
   question: Question;
   voice: VoiceOutcome | null;
   busy: boolean;
+  /** Whether the patient granted the `voice` consent scope. When they did not, the
+   *  microphone is not offered at all — showing a button that 403s is worse than not
+   *  showing it, and the patient explicitly said no. */
+  voiceEnabled: boolean;
   onAnswer: (value: unknown) => void;
   onTyped: (value: string) => void;
   onSpoken: (transcript: string, confidence: number, bargeIn: boolean) => void;
@@ -29,6 +33,7 @@ export function QuestionCard({
   question,
   voice,
   busy,
+  voiceEnabled,
   onAnswer,
   onTyped,
   onSpoken,
@@ -42,6 +47,8 @@ export function QuestionCard({
   const multi = question.kind === 'multi_choice';
   const degraded = question.touchOnly || Boolean(voice?.degradedToTouch);
 
+  // Speech SYNTHESIS is always allowed: reading a question aloud captures nothing, so it
+  // needs no consent. Only recognition — the microphone — is gated.
   // Read the prompt aloud once per turn. Keyed on turnId, not questionId, so a re-presented
   // question is read again — the patient needs to hear it a second time, not be left in
   // silence wondering what happened.
@@ -146,16 +153,22 @@ export function QuestionCard({
         </div>
       )}
 
-      <VoiceButton
-        supported={speech.supported}
-        listening={speech.listening}
-        interim={speech.interim}
-        disabled={busy || degraded}
-        label="Speak my answer"
-        onStart={listen}
-        onStop={speech.stop}
-      />
-      {speech.error && <div className="kiosk-error" style={{ marginTop: 12 }}>{speech.error}</div>}
+      {voiceEnabled && (
+        <>
+          <VoiceButton
+            supported={speech.supported}
+            listening={speech.listening}
+            interim={speech.interim}
+            disabled={busy || degraded}
+            label="Speak my answer"
+            onStart={listen}
+            onStop={speech.stop}
+          />
+          {speech.error && (
+            <div className="kiosk-error" style={{ marginTop: 12 }}>{speech.error}</div>
+          )}
+        </>
+      )}
 
       <div className="kiosk-actions">
         {typed.trim() && (

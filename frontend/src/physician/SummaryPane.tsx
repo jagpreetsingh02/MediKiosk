@@ -29,9 +29,16 @@ const SECTION_TITLES: Record<string, string> = {
   gaps: 'Not covered',
 };
 
+/** Sections the surrounding UI already renders. Escalation lives in the banner at the top of
+ *  the screen, where it cannot be scrolled past; repeating it mid-summary just adds height to
+ *  the thing a physician is trying to scan quickly. It stays in the summary DATA, so the
+ *  committed document and the FHIR bundle are unaffected. */
+const RENDERED_ELSEWHERE = new Set(['red_flags']);
+
 export function SummaryPane({ lines, selectedIndex, onSelect }: Props): JSX.Element {
   const grouped: { sectionId: string; entries: { line: SummaryLine; index: number }[] }[] = [];
   lines.forEach((line, index) => {
+    if (RENDERED_ELSEWHERE.has(line.sectionId)) return;
     const last = grouped[grouped.length - 1];
     if (last && last.sectionId === line.sectionId) last.entries.push({ line, index });
     else grouped.push({ sectionId: line.sectionId, entries: [{ line, index }] });

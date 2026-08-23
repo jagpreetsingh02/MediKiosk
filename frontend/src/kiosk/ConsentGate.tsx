@@ -14,7 +14,7 @@ import { useSpeech } from '../shared/useSpeech';
 
 interface Props {
   language: string;
-  onGranted: (sessionRef: string, ayushMode: boolean) => void;
+  onGranted: (sessionRef: string, ayushMode: boolean, grantedScopes: string[]) => void;
   onBack: () => void;
 }
 
@@ -62,7 +62,7 @@ export function ConsentGate({ language, onGranted, onBack }: Props): JSX.Element
     setError(null);
     try {
       const session = await api.createSession(language, [...granted], audioPlayed);
-      onGranted(session.sessionRef, session.ayushMode);
+      onGranted(session.sessionRef, session.ayushMode, [...granted]);
     } catch (exc) {
       setError(exc instanceof ApiError ? exc.message : 'Could not start the session.');
     } finally {

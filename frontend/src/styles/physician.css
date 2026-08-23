@@ -27,18 +27,34 @@
 
 .phys-brand { font-weight: 800; letter-spacing: -0.01em; font-size: 15px; }
 .phys-top-spacer { flex: 1; }
-.phys-top kbd { background: #2c3948; }
+.phys-top kbd {
+  background: #2c3948;
+  border-color: #46586b;
+  color: #cbd7e3; /* the base rule is dark-on-light; on the dark header it vanished */
+}
 
 .phys-queue {
+  /* Every region is pinned explicitly. Without a definite COLUMN, grid auto-placement runs
+     the definite-row items (queue, side) before the fully-auto one (main) — which handed
+     column 2 to the source drawer and pushed the clinical summary into the 380px right rail.
+     Pinning all four is the fix; relying on source order is not. */
+  grid-column: 1;
   grid-row: 2 / 4;
   overflow-y: auto;
   border-right: 1px solid var(--line);
   background: var(--paper);
 }
 
-.phys-main { overflow-y: auto; padding: 18px 22px 24px; }
+.phys-main {
+  grid-column: 2;
+  grid-row: 2;
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+  min-width: 0;
+}
 
 .phys-side {
+  grid-column: 3;
   grid-row: 2 / 4;
   overflow-y: auto;
   border-left: 1px solid var(--line);
@@ -47,7 +63,8 @@
 }
 
 .phys-bottom {
-  grid-column: 2 / 3;
+  grid-column: 2;
+  grid-row: 3;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -375,6 +392,18 @@ kbd {
 }
 
 @media (max-width: 1200px) {
-  .phys { grid-template-columns: 240px 1fr; }
-  .phys-side { grid-row: auto; grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  .phys {
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: auto 1fr auto auto;
+  }
+  .phys-queue { grid-column: 1; grid-row: 2 / 4; }
+  .phys-main { grid-column: 2; grid-row: 2; }
+  .phys-bottom { grid-column: 2; grid-row: 3; }
+  .phys-side {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    max-height: 40vh;
+  }
 }
