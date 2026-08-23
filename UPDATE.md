@@ -18,7 +18,7 @@ which the session data is purged.
 | | |
 |---|---|
 | Tests | **183 passing**, `ruff` clean, `mypy` clean (74 files), `tsc` clean |
-| Backend | ~13,000 lines across 74 modules, 33 API endpoints |
+| Backend | ~13,200 lines across 75 modules, 33 API endpoints |
 | Frontend | ~2,800 lines, two surfaces, one component per file |
 | Content in YAML/JSON | ~1,700 lines — the interview, the rules, the lexicon, the consent scripts |
 | Gold evaluation | 50 development scripts + 12 held-out |
@@ -193,8 +193,8 @@ Three things turned out differently from the plan, all recorded here rather than
    without Python for exactly this reason, and they have not yet been read by a doctor.
 4. **Ingest the real NAMASTE release** through the ported pipeline, so coding coverage becomes a
    real number instead of a demo subset.
-5. **Alembic migration for a non-SQLite deployment.** `create_all()` covers the demo; production
-   needs the migration.
+5. **Exercise the Alembic migration against real Postgres.** The initial migration is
+   generated and the compose stack runs it, but it has only been validated against SQLite.
 
 ---
 
