@@ -1,0 +1,68 @@
+# Contradiction rules. DATA, so a clinician can read and extend them.
+#
+# The clinically important case is a patient DENYING something that their own paperwork
+# contradicts: "I don't take any medicines" from someone holding a prescription for metformin.
+# That is not a patient lying — it is usually that they do not consider a daily tablet to be
+# "medicine", or they have forgotten. Either way the physician must see both statements.
+#
+# The rule this file exists to enforce: **neither source is overwritten and neither wins.**
+# The system detects the conflict, records both facts, and shows them side by side. Resolving
+# it is a clinical judgement, and the system does not make clinical judgements.
+
+version: "1.0.0"
+
+# A denial is a recorded fact asserting absence. It contradicts the *presence* of entries in
+# the named group when those entries came from a different source than the denial itself.
+denials:
+  - id: CX-MED-01
+    label: "Patient reports no medicines, but a document lists one"
+    path: drug_allergy.taking_medicines
+    denies_when:
+      equals: false
+    contradicted_by_group: medications
+    entry_field: name
+    question: "Do you also take this medicine?"
+
+  - id: CX-MED-02
+    label: "Patient reports no medicines, but named one in the interview"
+    path: drug_allergy.taking_medicines
+    denies_when:
+      equals: false
+    contradicted_by_path: drug_allergy.medicines
+    question: "Earlier you said no medicines. Do you take this one?"
+
+  - id: CX-ALG-01
+    label: "Patient reports no allergy, but a document records one"
+    path: drug_allergy.has_allergy
+    denies_when:
+      equals: false
+    contradicted_by_group: allergies
+    entry_field: substance
+    question: "Have you ever reacted badly to this?"
+
+  - id: CX-PMH-01
+    label: "Patient reports no known conditions, but a document names a diagnosis"
+    path: past_medical.conditions
+    denies_when:
+      contains_value: none
+    contradicted_by_group: problems
+    entry_field: reported_term
+    question: "Has a doctor told you about this before?"
+
+  - id: CX-SURG-01
+    label: "Patient reports no operations, but a document records a procedure"
+    path: past_surgical.any
+    denies_when:
+      equals: false
+    contradicted_by_group: procedures
+    entry_field: name
+    question: "Did you have this operation?"
+
+# Two sources giving different values for the SAME field. Only raised across provenance
+# tiers: two spoken answers that differ are ordinary supersession, already handled by the
+# ledger, and surfacing those as contradictions would bury the real ones in noise.
+cross_tier_paths:
+  - chief_complaint.duration
+  - hpi.severity
+  - personal_history.tobacco
+  - personal_history.alcohol

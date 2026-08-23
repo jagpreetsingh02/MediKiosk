@@ -27,6 +27,7 @@ SECTION_ORDER: tuple[tuple[str, str], ...] = (
     ("past_medical", "Past medical history"),
     ("past_surgical", "Past surgical history"),
     ("drug_allergy", "Medicines and allergies"),
+    ("contradictions", "Requires verification — sources disagree"),
     ("documents", "Prior records"),
     ("family_history", "Family history"),
     ("personal_history", "Personal history"),
@@ -172,6 +173,8 @@ def build(
     for section_id, title in SECTION_ORDER:
         if section_id == "red_flags":
             lines = _red_flag_lines(history, escalation)
+        elif section_id == "contradictions":
+            lines = _contradiction_lines(history)
         elif section_id == "documents":
             lines = _document_lines(history)
         elif section_id == "gaps":
@@ -258,6 +261,25 @@ def _problem_lines(history: ClinicalHistory) -> list[SummaryLine]:
                 text=f"Reported: {problem.reported_term.value}{year}{suffix}",
                 fact_ids=list(problem.reported_term.fact_ids),
                 tier=problem.reported_term.tier.value if problem.reported_term.tier else None,
+            )
+        )
+    return lines
+
+
+def _contradiction_lines(history: ClinicalHistory) -> list[SummaryLine]:
+    """Both sides of every disagreement, side by side. Never a resolution."""
+    lines: list[SummaryLine] = []
+    for entry in history.contradictions:
+        patient = entry["patientSide"]
+        document = entry["documentSide"]
+        lines.append(
+            SummaryLine(
+                text=(
+                    f"{entry['label']} — patient: \u201c{patient['verbatim']}\u201d "
+                    f"vs {document['origin']}: \u201c{document['verbatim']}\u201d"
+                ),
+                fact_ids=[patient["factId"], document["factId"]],
+                emphasis="unverified",
             )
         )
     return lines

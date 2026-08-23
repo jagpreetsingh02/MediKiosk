@@ -13,7 +13,15 @@ def tap(
 ) -> None:
     """Record a tapped answer the way the kiosk would, with real selection evidence."""
     values = value if isinstance(value, list) else [value]
-    if isinstance(value, bool | int | float):
+    if isinstance(value, bool):
+        # Mirrors answers.py: the kiosk records the label the patient pressed, not "True".
+        span = utterance_span(
+            verbatim="Yes" if value else "No",
+            turn_id=turn_id,
+            question_id=question_id,
+            modality=Modality.TOUCH,
+        )
+    elif isinstance(value, int | float):
         span = utterance_span(
             verbatim=str(value),
             turn_id=turn_id,

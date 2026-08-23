@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.api import (
+    routes_demo,
     routes_dialogue,
     routes_documents,
     routes_physician,
@@ -99,6 +100,7 @@ app.include_router(routes_session.router)
 app.include_router(routes_dialogue.router)
 app.include_router(routes_documents.router)
 app.include_router(routes_physician.router)
+app.include_router(routes_demo.router)
 app.include_router(mock_idp.router)
 
 

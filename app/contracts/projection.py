@@ -15,6 +15,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from app.contracts.contradictions import detect as detect_contradictions
 from app.contracts.history import (
     Allergy,
     ClinicalHistory,
@@ -48,6 +49,10 @@ SECTION_FIELDS: dict[str, str] = {
 
 def _display_value(question: Question, value: Any, language: str) -> Any:
     """Turn option keys into the labels a physician reads. The key stays in the fact."""
+    # A boolean answer renders as the word the patient pressed. "Ever admitted: False" is
+    # Python leaking onto a clinical screen.
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
     if question.kind in ("single_choice", "duration"):
         option = question.option(str(value))
         return option.label_en if option else value
@@ -301,6 +306,9 @@ def project(
         personal_history=_section("personal_history"),
         review_of_systems=_section("review_of_systems"),
         ayush=sections.get("ayush"),
+        contradictions=[
+            c.model_dump(mode="json", by_alias=True) for c in detect_contradictions(ledger)
+        ],
         medications=medications,
         allergies=allergies,
         problems=problems,

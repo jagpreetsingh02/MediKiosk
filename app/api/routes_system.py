@@ -124,6 +124,80 @@ async def terminology_search(
     return {"term": term, **result.to_dict()}
 
 
+@router.get("/api/v1/sessions/{session_ref}/inspect", tags=["jury"])
+async def inspect_session(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """The jury drawer's data — the engineering a demo otherwise hides.
+
+    Everything here is derived live. It exists because the interesting parts of this system
+    are invisible in a screenshot: that the question order came from a state machine and not
+    a model, that 22 rules were evaluated and 2 fired, that every fact names a source span.
+    A judge should be able to see that without reading the repository.
+    """
+    import time
+
+    from app.api.deps import load_context
+    from app.audit.chain import verify_chain
+    from app.contracts.contradictions import detect
+    from app.redflags.engine import evaluate
+
+    started = time.perf_counter()
+    context = await load_context(db, session_ref)
+    facts = context.ledger.active_facts()
+    escalation = evaluate(
+        context.ledger,
+        current_priority=context.row.priority,
+        extra_values=context.state.values,
+    )
+    question = context.machine.next_question()
+    chain = await verify_chain(db)
+
+    tiers: dict[str, int] = {}
+    for fact in facts:
+        tiers[fact.tier.value] = tiers.get(fact.tier.value, 0) + 1
+
+    return {
+        "sessionRef": session_ref,
+        "stateMachine": {
+            "currentNode": question.question_id if question else "complete",
+            "currentSection": question.section_id if question else None,
+            "turnsTaken": len(context.state.turns),
+            "askable": context.machine.progress()["askable"],
+            "declined": len(context.state.declined),
+            "degradedToTouch": len(context.state.forced_touch),
+            "note": "Question order comes from data/ontology/*.yaml. No model is consulted.",
+        },
+        "facts": {
+            "active": len(facts),
+            "superseded": len(context.ledger.facts) - len(facts),
+            "byTier": tiers,
+            "withoutSource": sum(
+                1 for f in context.ledger.facts if not f.source.verbatim.strip()
+            ),
+            "absences": len(context.ledger.absences),
+        },
+        "redFlags": {
+            "rulesEvaluated": len(escalation.proposals),
+            "fired": [f.rule_id for f in escalation.flags],
+            "priority": escalation.priority.label,
+            "note": "Deterministic. An LLM may propose; these rules decide.",
+        },
+        "contradictions": len(detect(context.ledger)),
+        "consent": {
+            "scopes": sorted(context.ledger.consent_scopes),
+            "ref": context.row.consent_ref,
+        },
+        "backends": {
+            "llm": llm_registry.describe(),
+            "speech": speech_registry.describe(),
+            "ocr": settings.ocr_backend,
+        },
+        "audit": {"intact": chain.intact, "events": chain.checked},
+        "inspectLatencyMs": int((time.perf_counter() - started) * 1000),
+    }
+
+
 stub_router = APIRouter(prefix="/api/v1/stub-his", tags=["stub-his"])
 
 #: What the stub receiver has accepted, so a demo can show the push actually landing.

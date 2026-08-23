@@ -170,6 +170,29 @@ async def summary(
 
 
 @router.get(
+    "/sessions/{session_ref}/contradictions",
+    dependencies=[Depends(require_action("fact.read"))],
+)
+async def contradictions(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """Every disagreement between two sources. Both sides, never a resolution."""
+    from app.contracts.contradictions import detect
+
+    context = await load_context(db, session_ref)
+    found = detect(context.ledger)
+    return {
+        "sessionRef": session_ref,
+        "count": len(found),
+        "contradictions": [c.model_dump(mode="json", by_alias=True) for c in found],
+        "note": (
+            "Neither source has been discarded and neither has been preferred. Resolving a "
+            "clinical conflict is a clinical judgement."
+        ),
+    }
+
+
+@router.get(
     "/sessions/{session_ref}/facts/{fact_id}",
     dependencies=[Depends(require_action("fact.read"))],
 )

@@ -13,7 +13,9 @@ import {
   type Summary,
   type TimelinePeriod,
 } from '../shared/api';
+import { JuryDrawer } from '../shared/JuryDrawer';
 import { CommitBar } from './CommitBar';
+import { ContradictionPanel } from './ContradictionPanel';
 import { QueueList } from './QueueList';
 import { RedFlagBanner } from './RedFlagBanner';
 import { SourcePanel } from './SourcePanel';
@@ -22,7 +24,7 @@ import { SummaryPane } from './SummaryPane';
 import { TimelineView } from './TimelineView';
 import { VerificationLane, type PendingEntity } from './VerificationLane';
 
-type SidePanel = 'source' | 'timeline' | 'verify';
+type SidePanel = 'source' | 'timeline' | 'verify' | 'conflicts';
 
 export function PhysicianApp(): JSX.Element {
   const [role, setRole] = useState<string | null>(null);
@@ -38,6 +40,8 @@ export function PhysicianApp(): JSX.Element {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [committed, setCommitted] = useState<{ bundleId: string; entries: number; hisStatus: string } | null>(null);
+  /** Set once, from ?session= — the demo launcher links straight to a loaded case. */
+  const [deepLink] = useState(() => new URLSearchParams(window.location.search).get('session'));
 
   const refreshQueue = useCallback(async () => {
     try {
@@ -54,6 +58,13 @@ export function PhysicianApp(): JSX.Element {
     const timer = setInterval(() => void refreshQueue(), 8000);
     return () => clearInterval(timer);
   }, [role, refreshQueue]);
+
+  // ?session=… arrives from the demo launcher. Open it without making the judge hunt the
+  // queue for a session ref they have never seen.
+  useEffect(() => {
+    if (role && deepLink && !activeRef) void open(deepLink);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, deepLink]);
 
   const open = useCallback(async (ref: string) => {
     setBusy(true);
@@ -135,6 +146,7 @@ export function PhysicianApp(): JSX.Element {
       if (event.key === 's') setPanel('source');
       if (event.key === 't') setPanel('timeline');
       if (event.key === 'v') setPanel('verify');
+      if (event.key === 'c') setPanel('conflicts');
     }
 
     window.addEventListener('keydown', onKey);
@@ -159,6 +171,7 @@ export function PhysicianApp(): JSX.Element {
   }
 
   const selectedLine = selected !== null ? summary?.lines[selected] ?? null : null;
+  const conflicts = summary?.history.contradictions ?? [];
 
   return (
     <div className="phys">
@@ -240,12 +253,35 @@ export function PhysicianApp(): JSX.Element {
             Verify <kbd>v</kbd>
             {pending.length > 0 && ` (${pending.length})`}
           </button>
+          <button
+            type="button"
+            className={`btn sm${panel === 'conflicts' ? ' primary' : ''}`}
+            onClick={() => setPanel('conflicts')}
+          >
+            Conflicts <kbd>c</kbd>
+            {conflicts.length > 0 && ` (${conflicts.length})`}
+          </button>
         </div>
 
         {panel === 'source' && (
           <SourcePanel sources={selectedLine?.sources ?? []} lineText={selectedLine?.text ?? null} />
         )}
         {panel === 'timeline' && <TimelineView periods={periods} />}
+        {panel === 'conflicts' && (
+          <ContradictionPanel
+            contradictions={conflicts}
+            onSelectFact={factId => {
+              const index = summary?.lines.findIndex(line =>
+                line.sources.some(source => source.factId === factId),
+              );
+              if (index !== undefined && index >= 0) {
+                setSelected(index);
+                setPanel('source');
+                document.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: 'center' });
+              }
+            }}
+          />
+        )}
         {panel === 'verify' && (
           <VerificationLane
             pending={pending}
@@ -274,6 +310,8 @@ export function PhysicianApp(): JSX.Element {
           />
         )}
       </aside>
+
+      <JuryDrawer sessionRef={activeRef} />
 
       <footer className="phys-bottom">
         {summary ? (

@@ -251,6 +251,10 @@ class ClinicalHistory(BaseModel):
     documents: list[DocumentRef] = Field(default_factory=list)
     red_flags: list[RedFlag] = Field(default_factory=list)
 
+    #: Two sources that disagree. Neither is discarded and neither wins; the physician
+    #: resolves it. Populated by app/contracts/contradictions.py.
+    contradictions: list[dict[str, Any]] = Field(default_factory=list)
+
     #: Slots the patient explicitly declined, kept visible so the physician knows the gap is
     #: a refusal and not an oversight.
     declined: list[str] = Field(default_factory=list)

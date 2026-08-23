@@ -152,6 +152,7 @@ export interface Summary {
 
 export interface History {
   sessionId: string;
+  contradictions: Contradiction[];
   demographics: { abhaRef: string | null; ageYears: number | null; gender: string | null; language: string };
   documents: { documentId: string; filename: string; pages: number; ocrBackend: string; meanConfidence: number; lowConfidencePages: number[] }[];
   medications: { entryId: string; name: Slot; dose: Slot; frequency: Slot; coding: Coding | null }[];
@@ -178,6 +179,71 @@ export interface Coding {
   version: string;
   code: string;
   display: string;
+}
+
+export interface DemoCase {
+  id: string;
+  title: string;
+  shows: string;
+  language: string;
+  ayush: boolean;
+  document: string | null;
+  watchFor: string[];
+}
+
+export interface DemoLoadResult {
+  case: DemoCase;
+  sessionRef: string;
+  answered: number;
+  spokenTurns: number;
+  degradedToTouch: number;
+  factsRecorded: number;
+  priority: Priority;
+  redFlags: string[];
+  contradictions: number;
+  document: { documentId: string; factsRecorded: number; needsVerification: number } | null;
+}
+
+export interface Contradiction {
+  contradictionId: string;
+  ruleId: string;
+  label: string;
+  patientSide: ContradictionSide;
+  documentSide: ContradictionSide;
+  clarifyingQuestion: string | null;
+  status: string;
+}
+
+export interface ContradictionSide {
+  factId: string;
+  path: string;
+  value: unknown;
+  tier: Tier;
+  verbatim: string;
+  confidence: number;
+  origin: string;
+}
+
+export interface Inspect {
+  sessionRef: string;
+  stateMachine: {
+    currentNode: string; currentSection: string | null; turnsTaken: number;
+    askable: number; declined: number; degradedToTouch: number; note: string;
+  };
+  facts: {
+    active: number; superseded: number; byTier: Record<string, number>;
+    withoutSource: number; absences: number;
+  };
+  redFlags: { rulesEvaluated: number; fired: string[]; priority: string; note: string };
+  contradictions: number;
+  consent: { scopes: string[]; ref: string | null };
+  backends: {
+    llm: { name: string; offline: boolean };
+    speech: { name: string; offline: boolean };
+    ocr: string;
+  };
+  audit: { intact: boolean; events: number };
+  inspectLatencyMs: number;
 }
 
 export interface QueueEntry {
@@ -337,6 +403,19 @@ export const api = {
     }),
 
   queue: () => request<{ queue: QueueEntry[]; count: number }>('/api/v1/queue'),
+  contradictions: (ref: string) =>
+    request<{ count: number; contradictions: Contradiction[]; note: string }>(
+      `/api/v1/sessions/${ref}/contradictions`,
+    ),
+
+  inspect: (ref: string) => request<Inspect>(`/api/v1/sessions/${ref}/inspect`),
+
+  demoCases: () => request<{ cases: DemoCase[]; notice: string }>('/api/v1/demo/cases'),
+  loadDemoCase: (caseId: string, sessionRef: string) =>
+    request<DemoLoadResult>(`/api/v1/demo/cases/${caseId}/load`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionRef }),
+    }),
   summary: (ref: string, prose = false) =>
     request<Summary>(`/api/v1/sessions/${ref}/summary?prose=${prose}`),
   factDetail: (ref: string, factId: string) =>

@@ -59,6 +59,7 @@ taking substance reaction tobacco alcohol diet sleep bowel occupation pregnancy 
 cardiovascular respiratory gastrointestinal neurological genitourinary musculoskeletal
 prakriti vikriti sara samhanana pramana satmya sattva ahara shakti vyayama vaya agni koshtha
 vihara nidra build backend textlayer tesseract not this is only was of the
+requires verification sources disagree vs page
 """.split()
 )
 
@@ -98,6 +99,7 @@ def _authored_vocabulary() -> frozenset[str]:
     a word into a patient's summary; excluding authored YAML does not weaken it, and
     `test_traceability_rejects_a_model_invented_word` proves the teeth are still there.
     """
+    from app.contracts.contradictions import load_rules as load_contradiction_rules
     from app.modules.dialogue.ontology import load_ontology
     from app.redflags.engine import load_rules
 
@@ -120,6 +122,9 @@ def _authored_vocabulary() -> frozenset[str]:
     for rule in load_rules().rules:
         for chunk in (rule.id, rule.label, rule.rationale):
             words.update(t.casefold() for t in _TOKEN.findall(chunk))
+    for denial in load_contradiction_rules().denials:
+        for chunk in (denial.id, denial.label, denial.question or ""):
+            words.update(t.casefold() for t in _TOKEN.findall(chunk))
     return frozenset(words)
 
 
@@ -132,6 +137,9 @@ def _supported_vocabulary(ledger: FactLedger) -> set[str]:
             fact.source.verbatim,
             fact.source.verbatim_translated or "",
             fact.path.replace(".", " ").replace("_", " "),
+            # The document id appears in a contradiction's "origin" text. It is part of the
+            # fact's own source, so it is as licensed as the verbatim is.
+            str(getattr(fact.source, "document_id", "") or ""),
         ):
             words.update(t.casefold() for t in _TOKEN.findall(chunk))
     return words
