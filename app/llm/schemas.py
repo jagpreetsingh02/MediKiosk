@@ -5,6 +5,7 @@ Note what the extraction schema demands: a `quote` for every extracted value, wh
 it is asked to produce a string that `record_fact()` will then independently verify against the
 transcript. A model that invents a quote fails the check and its extraction is dropped.
 """
+
 from __future__ import annotations
 
 from typing import Literal

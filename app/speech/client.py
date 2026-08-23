@@ -5,6 +5,7 @@ kiosk posts `{transcript, confidence}` with the answer. This backend's job is to
 same confidence policy to that transcript as to any other, so a client cannot get a
 low-confidence answer accepted merely by producing it locally.
 """
+
 from __future__ import annotations
 
 from app.core.errors import ValidationError
@@ -16,7 +17,7 @@ class ClientSpeechBackend:
 
     name = "client-webspeech"
     offline = True
-    languages = ("en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa")
+    languages: tuple[str, ...] = ("en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa")
 
     def transcribe(self, audio: bytes, *, language: str, media_type: str) -> Transcript:
         raise ValidationError(
@@ -30,12 +31,19 @@ class ClientSpeechBackend:
             raise ValidationError(f"ASR confidence {confidence} is outside [0, 1].")
         stripped = text.strip()
         return Transcript(
-            text=stripped, confidence=confidence, language=language,
-            backend=self.name, empty=not stripped,
+            text=stripped,
+            confidence=confidence,
+            language=language,
+            backend=self.name,
+            empty=not stripped,
         )
 
     def synthesise(self, text: str, *, language: str) -> Utterance:
         return Utterance(
-            audio=b"", media_type="audio/wav", text=text, language=language,
-            backend=self.name, client_fallback=True,
+            audio=b"",
+            media_type="audio/wav",
+            text=text,
+            language=language,
+            backend=self.name,
+            client_fallback=True,
         )

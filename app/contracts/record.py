@@ -15,6 +15,7 @@ Nothing in this codebase writes a clinical fact except through this function. It
 ``Fact(`` is constructed anywhere else. There is no ``force=`` parameter and no bypass. Do not
 add one — the absence is the feature.
 """
+
 from __future__ import annotations
 
 import re
@@ -28,8 +29,8 @@ from app.contracts.provenance import (
     DocumentSpan,
     Fact,
     Modality,
-    Span,
     SourceTier,
+    Span,
     UtteranceSpan,
     span_digest,
 )
@@ -123,9 +124,7 @@ class FactLedger:
         return next((f for f in self._facts if f.fact_id == fact_id), None)
 
     def at_path(self, path: str, *, active_only: bool = True) -> list[Fact]:
-        return [
-            f for f in self._facts if f.path == path and (f.active or not active_only)
-        ]
+        return [f for f in self._facts if f.path == path and (f.active or not active_only)]
 
     def paths(self) -> set[str]:
         return {f.path for f in self._facts if f.active}
@@ -254,7 +253,9 @@ def record_fact(
 
     if ledger.already_recorded(path, source):
         existing = next(
-            f for f in ledger.facts if f.path == path and span_digest(f.source) == span_digest(source)
+            f
+            for f in ledger.facts
+            if f.path == path and span_digest(f.source) == span_digest(source)
         )
         return existing
 
@@ -276,8 +277,11 @@ def record_fact(
 
     log.debug(
         "fact.recorded",
-        session=ledger.session_id, path=path, tier=tier.value,
-        confidence=round(confidence, 3), superseded=len(replaced),
+        session=ledger.session_id,
+        path=path,
+        tier=tier.value,
+        confidence=round(confidence, 3),
+        superseded=len(replaced),
     )
     return fact
 

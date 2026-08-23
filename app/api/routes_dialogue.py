@@ -5,6 +5,7 @@ Every answer route funnels into `record_fact()`. `POST /answer` handles tap and 
 routes because they have genuinely different failure modes, and collapsing them would hide
 the degradation path behind an optional field.
 """
+
 from __future__ import annotations
 
 from typing import Annotated, Any
@@ -88,8 +89,12 @@ async def answer(
 
     escalation = _escalate(context)
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="dialogue.answer", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="dialogue.answer",
+        abha_ref=context.row.abha_ref,
         consent_ref=context.row.consent_ref,
         request_summary={"questionId": question_id, "modality": modality.value},
         response_summary={"factsRecorded": len(facts), "priority": context.row.priority},
@@ -99,9 +104,7 @@ async def answer(
     await save_context(db, context)
     return {
         **result,
-        "recorded": [
-            {"factId": f.fact_id, "path": f.path, "tier": f.tier.value} for f in facts
-        ],
+        "recorded": [{"factId": f.fact_id, "path": f.path, "tier": f.tier.value} for f in facts],
         "escalation": escalation,
     }
 
@@ -145,9 +148,14 @@ async def answer_voice(
     if outcome.extraction and outcome.extraction.llm_response is not None:
         response = outcome.extraction.llm_response
         await record_ai_call(
-            db, actor=identity.actor, actor_role=identity.role, action="llm.extract",
-            model_name=response.model_name, model_version=response.model_version,
-            prompt=response.prompt, abha_ref=context.row.abha_ref,
+            db,
+            actor=identity.actor,
+            actor_role=identity.role,
+            action="llm.extract",
+            model_name=response.model_name,
+            model_version=response.model_version,
+            prompt=response.prompt,
+            abha_ref=context.row.abha_ref,
             consent_ref=context.row.consent_ref,
             response_summary={
                 "accepted": outcome.extraction.accepted,
@@ -157,15 +165,20 @@ async def answer_voice(
 
     escalation = _escalate(context)
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="dialogue.answer.voice", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="dialogue.answer.voice",
+        abha_ref=context.row.abha_ref,
         consent_ref=context.row.consent_ref,
         request_summary={
             "questionId": question_id,
             "asrConfidence": round(transcript.confidence, 3),
         },
         response_summary={
-            "accepted": outcome.accepted, "degraded": outcome.degraded_to_touch,
+            "accepted": outcome.accepted,
+            "degraded": outcome.degraded_to_touch,
         },
     )
 
@@ -212,9 +225,7 @@ async def speak(
         "language": utterance.language,
         "clientFallback": utterance.client_fallback,
         "mediaType": utterance.media_type,
-        "audioBase64": (
-            base64.b64encode(utterance.audio).decode() if utterance.audio else None
-        ),
+        "audioBase64": (base64.b64encode(utterance.audio).decode() if utterance.audio else None),
         "text": utterance.text,
     }
 

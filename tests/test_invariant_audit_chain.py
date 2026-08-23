@@ -1,4 +1,5 @@
 """Invariant 6 (audit half) — the hash chain, ported from SIH 25026 and extended for AI calls."""
+
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -17,7 +18,10 @@ from app.db.models import AuditEvent
 async def test_chain_verifies_after_appends(db_session) -> None:
     for i in range(5):
         await record(
-            db_session, actor="kiosk", actor_role="patient", purpose_of_use="TREATMENT",
+            db_session,
+            actor="kiosk",
+            actor_role="patient",
+            purpose_of_use="TREATMENT",
             action=f"dialogue.answer.{i}",
         )
     await db_session.commit()
@@ -29,7 +33,10 @@ async def test_chain_verifies_after_appends(db_session) -> None:
 async def test_tampering_with_a_row_breaks_the_chain(db_session) -> None:
     for i in range(4):
         await record(
-            db_session, actor="kiosk", actor_role="patient", purpose_of_use="TREATMENT",
+            db_session,
+            actor="kiosk",
+            actor_role="patient",
+            purpose_of_use="TREATMENT",
             action=f"action.{i}",
         )
     await db_session.commit()
@@ -47,7 +54,10 @@ async def test_tampering_with_a_row_breaks_the_chain(db_session) -> None:
 async def test_deleting_a_row_breaks_the_chain(db_session) -> None:
     for i in range(4):
         await record(
-            db_session, actor="kiosk", actor_role="patient", purpose_of_use="TREATMENT",
+            db_session,
+            actor="kiosk",
+            actor_role="patient",
+            purpose_of_use="TREATMENT",
             action=f"action.{i}",
         )
     await db_session.commit()
@@ -62,8 +72,12 @@ async def test_deleting_a_row_breaks_the_chain(db_session) -> None:
 
 async def test_ai_call_is_recorded_with_model_and_prompt_hash(db_session) -> None:
     event = await record_ai_call(
-        db_session, actor="kiosk", actor_role="patient", action="llm.extract",
-        model_name="llama-3.3-70b-versatile", model_version="2025-04",
+        db_session,
+        actor="kiosk",
+        actor_role="patient",
+        action="llm.extract",
+        model_name="llama-3.3-70b-versatile",
+        model_version="2025-04",
         prompt="Extract slots from: my chest hurts",
     )
     await db_session.commit()
@@ -76,8 +90,13 @@ async def test_ai_call_is_recorded_with_model_and_prompt_hash(db_session) -> Non
 async def test_ai_fields_are_covered_by_the_hash(db_session) -> None:
     """Changing a model name after the fact must break the chain, or the log proves nothing."""
     await record_ai_call(
-        db_session, actor="kiosk", actor_role="patient", action="llm.extract",
-        model_name="llama-3.3-70b-versatile", model_version="v1", prompt="hello",
+        db_session,
+        actor="kiosk",
+        actor_role="patient",
+        action="llm.extract",
+        model_name="llama-3.3-70b-versatile",
+        model_version="v1",
+        prompt="hello",
     )
     await db_session.commit()
     row = (await db_session.execute(select(AuditEvent))).scalars().first()

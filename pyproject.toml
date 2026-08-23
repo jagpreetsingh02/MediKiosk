@@ -24,6 +24,14 @@ extend-exclude = ["alembic/versions/*", ".venv", "frontend"]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 ignore = ["B008"]
 
+[tool.ruff.lint.per-file-ignores]
+# The fixture generators hold verbatim patient utterances and rendered document lines as
+# single string literals. Wrapping them with implicit concatenation is how a missing space
+# gets into a gold expectation, and a gold set with a typo in it is worse than a long line.
+"scripts/make_eval_scripts.py" = ["E501"]
+"scripts/make_holdout_scripts.py" = ["E501"]
+"scripts/make_document_fixtures.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true

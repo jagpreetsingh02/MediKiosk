@@ -11,6 +11,7 @@ per backend and per fixture class:
   backend pushed to a human. High is not automatically bad: on a degraded scan, pushing
   everything to a human is the *correct* behaviour.
 """
+
 from __future__ import annotations
 
 import json
@@ -19,7 +20,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.contracts.record import FactLedger
 from app.core.errors import MediKioskError
 from app.modules.dialogue.ontology import load_ontology
 from app.modules.documents.backends import get_ocr_backend
@@ -54,8 +54,10 @@ def _norm(text: str) -> str:
 
 def score_one(backend_name: str, path: Path, truth: dict) -> Score:
     variant = (
-        "degraded" if "_degraded" in path.stem
-        else "scan" if "_scan" in path.stem
+        "degraded"
+        if "_degraded" in path.stem
+        else "scan"
+        if "_scan" in path.stem
         else path.suffix.lstrip(".")
     )
     score = Score(backend=backend_name, fixture=path.stem.split("_")[0], variant=variant)
@@ -75,9 +77,7 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
     everything = confident + needs_check
     score.entities_found = len(everything)
     score.mean_confidence = round(result.mean_confidence, 4)
-    score.verification_rate = round(
-        len(needs_check) / len(everything), 4
-    ) if everything else 0.0
+    score.verification_rate = round(len(needs_check) / len(everything), 4) if everything else 0.0
 
     # --- medications ---
     want_meds = truth.get("medications", [])
@@ -90,7 +90,8 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
                 break
     score.med_recall = round(len(matched_meds) / len(want_meds), 4) if want_meds else 1.0
     dose_hits = sum(
-        1 for want, got in matched_meds
+        1
+        for want, got in matched_meds
         if _norm(want["dose"]) == _norm(str(got.detail.get("dose") or ""))
     )
     score.med_dose_accuracy = (
@@ -107,9 +108,7 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
                 matched_inv.append((want, got))
                 break
     score.inv_recall = round(len(matched_inv) / len(want_inv), 4) if want_inv else 1.0
-    flag_hits = sum(
-        1 for want, got in matched_inv if want["flag"] == got.detail.get("rangeFlag")
-    )
+    flag_hits = sum(1 for want, got in matched_inv if want["flag"] == got.detail.get("rangeFlag"))
     score.inv_flag_accuracy = (
         round(flag_hits / len(matched_inv), 4) if matched_inv else (1.0 if not want_inv else 0.0)
     )
@@ -118,8 +117,7 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
     want_dx = truth.get("diagnoses", [])
     got_dx = [e for e in everything if e.kind == "diagnosis"]
     dx_hits = sum(
-        1 for want in want_dx
-        if any(_norm(want)[:12] in _norm(got.text) for got in got_dx)
+        1 for want in want_dx if any(_norm(want)[:12] in _norm(got.text) for got in got_dx)
     )
     score.dx_recall = round(dx_hits / len(want_dx), 4) if want_dx else 1.0
 

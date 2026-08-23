@@ -18,6 +18,7 @@ Three structural guarantees, each enforced here rather than remembered:
    error, so the record of what was considered and rejected is the thing that makes a miss
    investigable afterwards.
 """
+
 from __future__ import annotations
 
 import functools
@@ -98,18 +99,17 @@ class Rule(BaseModel):
         if self.all is not None:
             return all(evaluate_condition(c, values) for c in self.all)
         if self.any is not None:
-            return any(
-                bool(clause.all)
-                and all(evaluate_condition(c, values) for c in clause.all)
-                for clause in self.any
-            )
+            for clause in self.any:
+                conditions = clause.all
+                if conditions and all(evaluate_condition(c, values) for c in conditions):
+                    return True
         return False
 
     def matching_paths(self, values: dict[str, Any]) -> list[str]:
         """Which recorded facts caused this to fire. Drives the triggering_fact_ids list."""
         clauses: list[Condition] = list(self.all or [])
         for clause in self.any or []:
-            clauses.extend(clause.all or [])
+            clauses.extend(clause.all or [])  # type: ignore[arg-type]
         return sorted({c.path for c in clauses if evaluate_condition(c, values)})
 
 
@@ -199,8 +199,10 @@ def evaluate(
         fact_ids_by_path.setdefault(fact.path, []).append(fact.fact_id)
 
     ruleset = load_rules()
-    priority = current_priority if isinstance(current_priority, Priority) else Priority.parse(
+    priority = (
         current_priority
+        if isinstance(current_priority, Priority)
+        else Priority.parse(current_priority)
     )
     flags: list[RedFlag] = []
     proposals: list[Proposal] = []
@@ -216,10 +218,13 @@ def evaluate(
         fact_ids = [fid for path in paths for fid in fact_ids_by_path.get(path, [])]
         proposals.append(
             Proposal(
-                rule_id=rule.id, proposed_by="rules", fired=fired,
+                rule_id=rule.id,
+                proposed_by="rules",
+                fired=fired,
                 level=rule.level if fired else None,
                 rationale=rule.rationale if fired else None,
-                triggering_paths=paths, triggering_fact_ids=fact_ids,
+                triggering_paths=paths,
+                triggering_fact_ids=fact_ids,
             )
         )
         if not fired:
@@ -227,8 +232,11 @@ def evaluate(
         highest_fired = max(highest_fired, rule.priority())
         flags.append(
             RedFlag(
-                rule_id=rule.id, label=rule.label, level=rule.level,  # type: ignore[arg-type]
-                rationale=rule.rationale, triggering_fact_ids=fact_ids,
+                rule_id=rule.id,
+                label=rule.label,
+                level=rule.level,  # type: ignore[arg-type]
+                rationale=rule.rationale,
+                triggering_fact_ids=fact_ids,
                 fired_at=datetime.now(UTC),
             )
         )
@@ -242,11 +250,14 @@ def evaluate(
     # ---- LLM candidates: matched to a real rule, then re-decided by that rule ----
     for candidate in llm_candidates or []:
         rule_id = str(candidate.get("rule_id", ""))
-        rule = ruleset.by_id(rule_id)
-        if rule is None:
+        candidate_rule = ruleset.by_id(rule_id)
+        if candidate_rule is None:
             proposals.append(
                 Proposal(
-                    rule_id=rule_id or "<unnamed>", proposed_by="llm", fired=False, level=None,
+                    rule_id=rule_id or "<unnamed>",
+                    proposed_by="llm",
+                    fired=False,
+                    level=None,
                     rationale=str(candidate.get("reason", ""))[:200],
                     discarded_because=(
                         "No rule with this id exists. A model cannot invent an escalation."
@@ -259,7 +270,10 @@ def evaluate(
         if any(p.rule_id == rule_id and p.fired for p in proposals):
             proposals.append(
                 Proposal(
-                    rule_id=rule_id, proposed_by="llm", fired=True, level=rule.level,
+                    rule_id=rule_id,
+                    proposed_by="llm",
+                    fired=True,
+                    level=candidate_rule.level,
                     rationale=str(candidate.get("reason", ""))[:200],
                     discarded_because="Already fired deterministically; the model agreed.",
                 )
@@ -269,7 +283,10 @@ def evaluate(
         # The model spotted something the rules did not. The rules still decide.
         proposals.append(
             Proposal(
-                rule_id=rule_id, proposed_by="llm", fired=False, level=None,
+                rule_id=rule_id,
+                proposed_by="llm",
+                fired=False,
+                level=None,
                 rationale=str(candidate.get("reason", ""))[:200],
                 discarded_because=(
                     "The rule's own conditions do not hold against the recorded facts. "

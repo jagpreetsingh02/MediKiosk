@@ -1,4 +1,5 @@
 """The physician surface: summary, click-to-source, edit, and the commit (Invariant 4)."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -51,7 +52,8 @@ async def _history_for(db, context):
             problem.unmapped = result.unmapped
 
     escalation = evaluate(
-        context.ledger, current_priority=context.row.priority,
+        context.ledger,
+        current_priority=context.row.priority,
         extra_values=context.state.values,
     )
     history.red_flags = escalation.flags
@@ -61,16 +63,23 @@ async def _history_for(db, context):
     from app.db.models import SessionDocument
 
     rows = (
-        await db.execute(
-            _select(SessionDocument).where(SessionDocument.session_id == context.row.id)
+        (
+            await db.execute(
+                _select(SessionDocument).where(SessionDocument.session_id == context.row.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     from app.contracts.history import DocumentRef
 
     history.documents = [
         DocumentRef(
-            document_id=r.document_id, filename=r.filename, pages=r.pages,
-            ocr_backend=r.ocr_backend, mean_confidence=r.mean_confidence,
+            document_id=r.document_id,
+            filename=r.filename,
+            pages=r.pages,
+            ocr_backend=r.ocr_backend,
+            mean_confidence=r.mean_confidence,
             low_confidence_pages=[1] if r.needs_verification else [],
             uploaded_at=r.uploaded_at,
         )
@@ -83,10 +92,10 @@ async def _history_for(db, context):
 async def queue(db: DbSession, identity: CurrentIdentity) -> dict[str, Any]:
     """Triage queue, highest priority first. Visible to nurses; the narrative is not."""
     rows = (
-        await db.execute(
-            select(IntakeSession).where(IntakeSession.purged_at.is_(None))
-        )
-    ).scalars().all()
+        (await db.execute(select(IntakeSession).where(IntakeSession.purged_at.is_(None))))
+        .scalars()
+        .all()
+    )
     order = {"immediate": 0, "urgent": 1, "routine": 2}
     entries = sorted(
         (
@@ -98,13 +107,15 @@ async def queue(db: DbSession, identity: CurrentIdentity) -> dict[str, Any]:
                 "ayushMode": r.ayush_mode,
                 "createdAt": r.created_at.isoformat(),
                 "waitingMinutes": int(
-                    (datetime.now(UTC) - r.created_at.replace(tzinfo=r.created_at.tzinfo or UTC))
-                    .total_seconds() // 60
+                    (
+                        datetime.now(UTC) - r.created_at.replace(tzinfo=r.created_at.tzinfo or UTC)
+                    ).total_seconds()
+                    // 60
                 ),
             }
             for r in rows
         ),
-        key=lambda e: (order.get(e["priority"], 3), e["createdAt"]),
+        key=lambda e: (order.get(str(e["priority"]), 3), str(e["createdAt"])),
     )
     return {"queue": entries, "count": len(entries)}
 
@@ -125,16 +136,24 @@ async def summary(
     for outcome in result.smoothing:
         if outcome.response is not None:
             await record_ai_call(
-                db, actor=identity.actor, actor_role=identity.role, action="llm.smooth",
+                db,
+                actor=identity.actor,
+                actor_role=identity.role,
+                action="llm.smooth",
                 model_name=outcome.response.model_name,
                 model_version=outcome.response.model_version,
-                prompt=outcome.response.prompt, abha_ref=context.row.abha_ref,
+                prompt=outcome.response.prompt,
+                abha_ref=context.row.abha_ref,
                 response_summary={"applied": outcome.applied, "section": outcome.section_id},
             )
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="summary.generate", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="summary.generate",
+        abha_ref=context.row.abha_ref,
         consent_ref=context.row.consent_ref,
         response_summary={
             "factLines": result.traceability.fact_lines,
@@ -224,15 +243,23 @@ async def edit_fact(
     )
     question = context.machine.ontology.by_path.get(path)
     fact = record_fact(
-        context.ledger, path=path, value=value, tier=SourceTier.CONFIRMED,
-        source=span, confidence=1.0,
+        context.ledger,
+        path=path,
+        value=value,
+        tier=SourceTier.CONFIRMED,
+        source=span,
+        confidence=1.0,
         provenance_note=f"physician-edit:{identity.actor}",
         known_paths=context.machine.ontology.known_paths,
         coded_value_of=question.valid_values() if question and question.options else None,
     )
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="summary.edit", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="summary.edit",
+        abha_ref=context.row.abha_ref,
         request_summary={"path": path},
     )
     await save_context(db, context)
@@ -247,14 +274,14 @@ async def commit(
     db: DbSession,
     session_ref: str,
     identity: CurrentIdentity,
-    payload: Annotated[dict, Body()] = {},
+    payload: Annotated[dict | None, Body()] = None,
 ) -> dict[str, Any]:
     """⛔ INVARIANT 4. The only route that lets anything leave the building.
 
     ABAC restricts `summary.commit` to the clinician role, and `confirmed: true` must be
     explicit in the body. A patient token cannot reach this code path at all.
     """
-    if not payload.get("confirmed"):
+    if not (payload or {}).get("confirmed"):
         raise PolicyDenied(
             "Commit requires an explicit `confirmed: true`. The summary is a draft until a "
             "physician confirms it."
@@ -265,21 +292,19 @@ async def commit(
     result = generate(history, context.ledger, escalation=escalation)
 
     stored_consent = (
-        await db.execute(
-            select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)
-        )
-    ).scalars().first()
-    allows_share = bool(
-        stored_consent and "abdm_share" in (stored_consent.scopes_granted or [])
+        (await db.execute(select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)))
+        .scalars()
+        .first()
     )
+    allows_share = bool(stored_consent and "abdm_share" in (stored_consent.scopes_granted or []))
 
     summary_text = "\n".join(
-        f"{section.title}\n"
-        + "\n".join(f"  - {line.text}" for line in section.lines)
+        f"{section.title}\n" + "\n".join(f"  - {line.text}" for line in section.lines)
         for section in result.summary.sections
     )
     bundle = build_bundle(
-        history, context.ledger,
+        history,
+        context.ledger,
         summary_text=summary_text,
         consent_ref=context.row.consent_ref or "unknown",
         committed_by=identity.actor,
@@ -310,11 +335,16 @@ async def commit(
     context.row.submitted_at = datetime.now(UTC)
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="summary.commit", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="summary.commit",
+        abha_ref=context.row.abha_ref,
         consent_ref=context.row.consent_ref,
         response_summary={
-            "hisStatus": pushed.status, "shared": allows_share,
+            "hisStatus": pushed.status,
+            "shared": allows_share,
             "entries": len(payload_json.get("entry", [])),
         },
     )
@@ -345,10 +375,14 @@ async def committed_bundle(
 ) -> dict[str, Any]:
     """The committed FHIR document. Survives the purge because a physician confirmed it."""
     row = (
-        await db.execute(
-            select(SubmittedBundle).where(SubmittedBundle.session_ref == session_ref)
+        (
+            await db.execute(
+                select(SubmittedBundle).where(SubmittedBundle.session_ref == session_ref)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if row is None:
         raise ValidationError(f"No committed bundle for {session_ref}.")
     return {

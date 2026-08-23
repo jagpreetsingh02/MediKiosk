@@ -8,6 +8,7 @@ only. Low-confidence ones are returned separately and become facts *only* when a
 `verify_entity()`. There is no code path from a handwritten scrawl to the record without a
 person in between.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -70,9 +71,7 @@ class IngestResult:
             pages=len(self.pages),
             ocr_backend=self.backend,
             mean_confidence=self.mean_confidence,
-            low_confidence_pages=sorted(
-                {int(e["page"]) for e in self.needs_verification}
-            ),
+            low_confidence_pages=sorted({int(e["page"]) for e in self.needs_verification}),
             uploaded_at=datetime.now(UTC),
         )
 
@@ -120,9 +119,14 @@ def _record_entity(
         try:
             written.append(
                 record_fact(
-                    ledger, path=path, value=value, tier=SourceTier.DOCUMENT,
-                    source=span(), confidence=entity.confidence,
-                    provenance_note=f"ocr:{backend}", known_paths=known_paths,
+                    ledger,
+                    path=path,
+                    value=value,
+                    tier=SourceTier.DOCUMENT,
+                    source=span(),
+                    confidence=entity.confidence,
+                    provenance_note=f"ocr:{backend}",
+                    known_paths=known_paths,
                     supersede=False,
                 )
             )
@@ -180,14 +184,15 @@ def ingest(
         if written:
             fact_index[position] = written[0].fact_id
 
-    timeline = order_timeline(
-        build_timeline(confident, document_id=doc_id, fact_ids=fact_index)
-    )
+    timeline = order_timeline(build_timeline(confident, document_id=doc_id, fact_ids=fact_index))
 
     log.info(
         "document.ingested",
-        document=doc_id, backend=backend.name, pages=len(ocr.pages),
-        entities=len(confident), needs_verification=len(needs_check),
+        document=doc_id,
+        backend=backend.name,
+        pages=len(ocr.pages),
+        entities=len(confident),
+        needs_verification=len(needs_check),
         facts=len(facts),
     )
 
@@ -199,9 +204,7 @@ def ingest(
         mean_confidence=ocr.mean_confidence,
         facts=facts,
         timeline=timeline,
-        needs_verification=[
-            {**e.to_dict(), "entityIndex": i} for i, e in enumerate(needs_check)
-        ],
+        needs_verification=[{**e.to_dict(), "entityIndex": i} for i, e in enumerate(needs_check)],
         entities=confident,
         ocr=ocr,
     )
@@ -235,8 +238,11 @@ def verify_entity(
         kind=raw["kind"],
         text=corrected_text or raw["text"],
         page=int(raw["page"]),
-        bbox=type(result.entities[0].bbox)(**raw["bbox"]) if result.entities
-        else __import__("app.contracts.provenance", fromlist=["BoundingBox"]).BoundingBox(**raw["bbox"]),
+        bbox=type(result.entities[0].bbox)(**raw["bbox"])
+        if result.entities
+        else __import__("app.contracts.provenance", fromlist=["BoundingBox"]).BoundingBox(
+            **raw["bbox"]
+        ),
         confidence=float(raw["confidence"]),
         handwritten=bool(raw["handwritten"]),
         source_text=raw["sourceText"],
@@ -246,7 +252,9 @@ def verify_entity(
     for fact in facts:
         log.info(
             "document.entity_verified",
-            document=result.document_id, by=verified_by, fact=fact.fact_id,
+            document=result.document_id,
+            by=verified_by,
+            fact=fact.fact_id,
             corrected=bool(corrected_text),
         )
     return facts

@@ -9,6 +9,7 @@ Left honestly unverified: this has been exercised against a recorded fixture, no
 live Dhruva endpoint, because we have no credentials. The request/response shapes follow the
 published pipeline contract. Treat the first live call as an integration test.
 """
+
 from __future__ import annotations
 
 import base64
@@ -28,7 +29,9 @@ class BhashiniSpeechBackend:
 
     name = "bhashini"
     offline = False
-    languages = ("en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa", "or", "as")
+    languages: tuple[str, ...] = (
+        "en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa", "or", "as",
+    )
 
     def __init__(self) -> None:
         if not (settings.bhashini_api_key and settings.bhashini_pipeline_id):

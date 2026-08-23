@@ -5,6 +5,7 @@ smoothing, and then `enforce()`. If traceability fails, it raises and **no summa
 returned** — a partially-verified summary is worse than none, because the physician cannot
 tell which half was checked.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

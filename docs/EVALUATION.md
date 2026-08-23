@@ -132,9 +132,9 @@ fact supports. That check is what makes prose smoothing safe to offer.
    rule evaluation, projection, summary assembly and the traceability check. It excludes the
    human, network, ASR and TTS. The honest end-to-end figure is dominated by how long a
    patient takes to answer ~30 questions, which these scripts do not model.
-4. **Extraction ran on the offline rule-based backend.** With `GROQ_API_KEY` set, `--both`
-   re-runs against the hosted model and reports the delta. That comparison is the reason the
-   offline backend exists; see "Does the LLM help?" below.
+4. **The headline table is the offline rule-based backend.** The hosted-model numbers are
+   reported separately under "Does the LLM actually help?" below, on both sets. Reproduce with
+   `LLM_BACKEND=groq python -m eval.runner --both`.
 5. **The held-out set is small (12).** A 9.5-point gap on 12 scripts has wide error bars.
    It is an indication, not a measurement.
 
@@ -164,18 +164,87 @@ does contain the word "sharp". Only a behavioural test over realistic narration 
 
 ## Does the LLM actually help?
 
-Unresolved, and deliberately measurable rather than assumed.
+**Measured, not assumed** — and the answer is more interesting than either "yes" or "no".
 
-Everything above ran on the **offline rule-based extractor** (`app/llm/offline.py`), which is
-the default so a demo never depends on a network. With `GROQ_API_KEY` set and
-`LLM_BACKEND=groq`, the same harness runs against the hosted model and prints the same table.
+Both backends were run over both sets. `openai/gpt-oss-120b` via Groq
+(`llama-3.3-70b-versatile`, named in the original brief, has been decommissioned and the API
+404s on it).
 
-The prediction worth testing, stated in advance so it cannot be retrofitted: the LLM should
-add little or nothing on `plain` and `low_literacy` scripts, where the phrase lexicon already
-covers the vocabulary, and should add real recall on `rambling` ones, where the signal is
-buried in a paragraph and no phrase list will find it. If that prediction is wrong, the
-finding is that the LLM is not needed for extraction, and that is a legitimate and reportable
-result — the deterministic path already meets every safety target.
+### Development set (n=50) — the rules win, but the comparison is rigged
+
+| Metric | Offline rules | Groq `gpt-oss-120b` |
+|---|---|---|
+| Hallucination rate | **0.0000** | **0.0000** |
+| Red-flag sensitivity | **1.0000** | 0.9333 |
+| Priority under-calls | **0** | 1 |
+| Extraction accuracy | **1.0000** | 0.8972 |
+| Median time to summary | **1 ms** | 4,510 ms |
+
+This table flatters the rules and should not be quoted on its own: **the lexicon was tuned
+against these 50 scripts and the model was not.** That is precisely the bias the held-out set
+exists to remove.
+
+### Held-out set (n=12) — the honest comparison, and the LLM wins
+
+| Metric | Offline rules | Groq `gpt-oss-120b` |
+|---|---|---|
+| Hallucination rate | **0.0000** | **0.0000** |
+| Red-flag sensitivity | **1.0000** | **1.0000** |
+| Priority under-calls | **0** | **0** |
+| Extraction accuracy | 0.9048 | **0.9524** |
+| History completeness | 0.9695 | **0.9778** |
+| Median time to summary | **1 ms** | 1,843 ms |
+
+**On phrasing neither backend has seen, the model is about 5 points better at extraction and
+about 1,800× slower, and the two are indistinguishable on every safety metric.**
+
+### What that actually means
+
+Three conclusions, and the third is the one that matters architecturally.
+
+1. **The LLM buys extraction recall on novel phrasing, and nothing else.** +4.8 points on
+   held-out extraction is real and worth having. It bought exactly zero on hallucination rate,
+   red-flag sensitivity and priority accuracy, because those are not extractor properties.
+2. **The rule extractor generalises better than expected.** 0.9048 on phrasing it was never
+   tuned for is a high floor for a phrase lexicon, and it is the reason the offline default is
+   defensible rather than a compromise. The two held-out misses are listed above.
+3. **The safety guarantees are backend-independent.** Swap the extraction engine entirely —
+   rules for a 120-billion-parameter model — and hallucination rate stays 0 and red-flag
+   sensitivity stays 1.0. That is the strongest evidence in this document that the guarantees
+   come from `record_fact()` and the rule engine rather than from anything being clever.
+
+### A prediction that was wrong, recorded because it was wrong
+
+An earlier draft of this document predicted, in advance, that the LLM would "add little or
+nothing on `plain` and `low_literacy` scripts and real recall on `rambling` ones". Measured:
+
+| Difficulty | Offline | Groq | |
+|---|---|---|---|
+| `rambling` | 1.00 | 1.00 | tied — **predicted a model win, got none** |
+| `low_literacy` | 1.00 | 0.68 | **model much worse — the opposite of the prediction** |
+| `plain` | 1.00 | 0.94 | model slightly worse |
+
+(Development-set figures, so the rule column is inflated. The direction is still informative.)
+
+The `low_literacy` result is the interesting one: on Hinglish narration the phrase lexicon
+beats the hosted model comfortably, because *gutka*, *kala pakhana* and *saans phool* are
+exactly the vocabulary a curated list captures and a general model handles inconsistently. The
+intuition that LLMs are obviously better at messy real-world speech did not survive being
+measured.
+
+### The operational finding
+
+Running the harness against Groq for the first time produced 429s, and those surfaced a
+genuine bug: **an unreachable model returned a 503 to the patient instead of degrading to
+touch.** The deterministic spine was supposed to cover exactly that case and did not. Fixed
+(`voice.py` now treats an LLM failure identically to a bad transcript) and pinned by
+`test_the_interview_completes_with_the_model_dead`, which unplugs the model and walks a
+complete interview by tap.
+
+Latency is also a deployment fact, not a footnote: 1.8–4.5 s per spoken turn against ~30
+questions is minutes of added wait per patient in a queue of thousands. For the OPD volumes in
+the problem statement, the offline path is not merely the safe default — it is the only one
+whose timing works.
 
 ## OCR backend comparison
 

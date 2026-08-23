@@ -8,6 +8,7 @@ patient-reported term, not a precondition for recording it. That ordering is wha
 Every Coding this module returns came out of ``emit_coding()``, which reads it from a loaded
 CodeSystem at a pinned version. There is no path from a string to a code.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -68,7 +69,10 @@ async def code_reported_term(
     exact = next((c for c in candidates if c.display_normalized == key), None)
     if exact is None:
         return CodingResult(
-            True, None, system, len(candidates),
+            True,
+            None,
+            system,
+            len(candidates),
             f"{len(candidates)} near match(es) found but none exact; left unmapped rather "
             "than guessing between them.",
         )
@@ -82,9 +86,7 @@ async def code_reported_term(
 async def code_dashavidha(session: AsyncSession, code: str) -> CodingResult:
     """Code a Dashavidha parameter value. The code comes from the ontology, never from an LLM."""
     try:
-        coding = await emit_coding(
-            session, DASHAVIDHA_SYSTEM, code, settings.dashavidha_version
-        )
+        coding = await emit_coding(session, DASHAVIDHA_SYSTEM, code, settings.dashavidha_version)
     except (UnknownCodeError, UnknownSystemError) as exc:
         return CodingResult(True, None, DASHAVIDHA_SYSTEM, 0, str(exc))
     return CodingResult(False, coding.model_dump(exclude_none=True), DASHAVIDHA_SYSTEM, 1)

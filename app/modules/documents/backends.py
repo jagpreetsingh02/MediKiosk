@@ -14,9 +14,9 @@ is a decision.
 Both return the same `OCRPage` shape, and both must supply a per-block confidence and bounding
 box, because Invariant 2 requires a page and a bbox for every `document`-tier fact.
 """
+
 from __future__ import annotations
 
-import re
 import shutil
 import subprocess
 import tempfile
@@ -143,8 +143,10 @@ class TextLayerOCR:
                 OCRBlock(
                     text=line,
                     bbox=BoundingBox(
-                        x=0.04, y=round(index / count, 4),
-                        width=0.92, height=round(1 / count, 4),
+                        x=0.04,
+                        y=round(index / count, 4),
+                        width=0.92,
+                        height=round(1 / count, 4),
                     ),
                     confidence=self.LAYER_CONFIDENCE,
                     handwritten=False,
@@ -210,8 +212,10 @@ class TesseractOCR:
                 for page in rendered.pages:
                     pages.append(
                         OCRPage(
-                            page=index + 1, blocks=page.blocks,
-                            width=page.width, height=page.height,
+                            page=index + 1,
+                            blocks=page.blocks,
+                            width=page.width,
+                            height=page.height,
                         )
                     )
         finally:
@@ -222,7 +226,9 @@ class TesseractOCR:
         try:
             completed = subprocess.run(
                 [str(self.binary), str(source), "stdout", "-l", "eng+hin", "tsv"],
-                check=True, capture_output=True, timeout=120,
+                check=True,
+                capture_output=True,
+                timeout=120,
             )
         except subprocess.CalledProcessError as exc:
             raise UpstreamUnavailable(
@@ -245,7 +251,9 @@ class TesseractOCR:
         word in a dosage is what sends the whole line to the verification lane, and averaging
         would hide exactly that.
         """
-        raw_lines: dict[tuple[int, int, int, int], list[tuple[str, float, tuple[int, int, int, int]]]] = {}
+        raw_lines: dict[
+            tuple[int, int, int, int], list[tuple[str, float, tuple[int, int, int, int]]]
+        ] = {}
         dimensions: dict[int, tuple[int, int]] = {}
 
         for line in tsv.splitlines()[1:]:
@@ -253,7 +261,12 @@ class TesseractOCR:
             if len(row) < 12:
                 continue
             try:
-                page, block_no, para_no, line_no = (int(row[1]), int(row[2]), int(row[3]), int(row[4]))
+                page, block_no, para_no, line_no = (
+                    int(row[1]),
+                    int(row[2]),
+                    int(row[3]),
+                    int(row[4]),
+                )
                 left, top, width, height = (int(row[6]), int(row[7]), int(row[8]), int(row[9]))
                 confidence = float(row[10]) / 100.0
             except ValueError:
@@ -282,7 +295,8 @@ class TesseractOCR:
                     text=text,
                     bbox=_normalise(
                         (min(lefts), min(tops), max(rights) - min(lefts), max(bottoms) - min(tops)),
-                        page_w, page_h,
+                        page_w,
+                        page_h,
                     ),
                     confidence=confidence,
                     handwritten=confidence < self.HANDWRITING_CONFIDENCE,

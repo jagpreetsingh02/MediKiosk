@@ -12,6 +12,7 @@ The check is on *field names and shapes*, not on prose: the patient is free to s
 told me I have diabetes", and that is recorded as reported history under ``past_medical``. The
 line is that MediKiosk never *originates* an assessment of its own.
 """
+
 from __future__ import annotations
 
 from typing import Any

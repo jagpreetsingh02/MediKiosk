@@ -10,6 +10,7 @@ the cache and the database, and it is called from three places: on submit, on TT
 short: the consent record (proving consent was given is a legal requirement), the audit chain
 (same), and any bundle a physician actually committed. Nothing else.
 """
+
 from __future__ import annotations
 
 import json
@@ -86,7 +87,9 @@ class RedisSessionStore:
 
     async def keys(self) -> list[str]:
         found = await self._redis.keys("medikiosk:session:*")
-        return [k.decode().split(":")[-1] if isinstance(k, bytes) else k.split(":")[-1] for k in found]
+        return [
+            k.decode().split(":")[-1] if isinstance(k, bytes) else k.split(":")[-1] for k in found
+        ]
 
 
 _store: SessionStore | None = None
@@ -110,7 +113,8 @@ async def get_store() -> SessionStore:
         _store = MemorySessionStore()
         log.warning(
             "session.store_fallback",
-            kind="memory", reason=str(exc)[:120],
+            kind="memory",
+            reason=str(exc)[:120],
             note="single-process only; never use this configuration in production",
         )
     return _store
@@ -147,31 +151,34 @@ class PurgeResult:
         }
 
 
-async def purge(
-    db: AsyncSession, session_ref: str, *, reason: str = "submit"
-) -> PurgeResult:
+async def purge(db: AsyncSession, session_ref: str, *, reason: str = "submit") -> PurgeResult:
     """Delete every trace of the patient's session data. Idempotent."""
     store = await get_store()
     await store.drop(session_ref)
 
     row = (
-        await db.execute(select(IntakeSession).where(IntakeSession.session_ref == session_ref))
-    ).scalars().first()
+        (await db.execute(select(IntakeSession).where(IntakeSession.session_ref == session_ref)))
+        .scalars()
+        .first()
+    )
 
     if row is None:
         return PurgeResult(session_ref, 0, 0, 0, True, reason)
 
     facts = len(
         (await db.execute(select(SessionFact.id).where(SessionFact.session_id == row.id)))
-        .scalars().all()
+        .scalars()
+        .all()
     )
     documents = len(
         (await db.execute(select(SessionDocument.id).where(SessionDocument.session_id == row.id)))
-        .scalars().all()
+        .scalars()
+        .all()
     )
     proposals = len(
         (await db.execute(select(RedFlagProposal.id).where(RedFlagProposal.session_id == row.id)))
-        .scalars().all()
+        .scalars()
+        .all()
     )
 
     await db.execute(delete(SessionFact).where(SessionFact.session_id == row.id))
@@ -186,8 +193,11 @@ async def purge(
 
     log.info(
         "session.purged",
-        session=session_ref, reason=reason, facts=facts,
-        documents=documents, proposals=proposals,
+        session=session_ref,
+        reason=reason,
+        facts=facts,
+        documents=documents,
+        proposals=proposals,
     )
     return PurgeResult(session_ref, facts, documents, proposals, True, reason)
 
@@ -196,14 +206,18 @@ async def sweep_expired(db: AsyncSession) -> list[PurgeResult]:
     """Purge every session past its TTL. Called on a timer and on startup."""
     now = datetime.now(UTC)
     rows = (
-        await db.execute(
-            select(IntakeSession).where(
-                IntakeSession.purged_at.is_(None),
-                IntakeSession.expires_at.is_not(None),
-                IntakeSession.expires_at < now,
+        (
+            await db.execute(
+                select(IntakeSession).where(
+                    IntakeSession.purged_at.is_(None),
+                    IntakeSession.expires_at.is_not(None),
+                    IntakeSession.expires_at < now,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     results = [await purge(db, row.session_ref, reason="ttl_expiry") for row in rows]
     if results:
         log.info("session.sweep", purged=len(results))
@@ -213,8 +227,10 @@ async def sweep_expired(db: AsyncSession) -> list[PurgeResult]:
 async def assert_live(db: AsyncSession, session_ref: str) -> IntakeSession:
     """Load a session, refusing an expired or purged one rather than resurrecting it."""
     row = (
-        await db.execute(select(IntakeSession).where(IntakeSession.session_ref == session_ref))
-    ).scalars().first()
+        (await db.execute(select(IntakeSession).where(IntakeSession.session_ref == session_ref)))
+        .scalars()
+        .first()
+    )
     if row is None:
         raise SessionExpired(f"Session {session_ref} does not exist.")
     if row.purged_at is not None:

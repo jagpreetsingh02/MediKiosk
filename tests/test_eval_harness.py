@@ -3,6 +3,7 @@
 A metric that is only checked when somebody remembers to run a script is not a guarantee.
 These tests make a regression in hallucination rate or red-flag sensitivity fail the build.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -27,9 +28,7 @@ def test_the_gold_set_is_the_size_it_claims() -> None:
 
 def test_gold_set_covers_every_difficulty_class() -> None:
     classes = {s.difficulty for s in load_scripts()}
-    assert classes == {
-        "emergency", "plain", "low_literacy", "rambling", "contradictory", "mixed"
-    }
+    assert classes == {"emergency", "plain", "low_literacy", "rambling", "contradictory", "mixed"}
 
 
 def test_gold_set_includes_non_english_scripts() -> None:
@@ -72,9 +71,7 @@ def test_no_forbidden_flags_fire(dev_report: Report) -> None:
 
 
 def test_every_script_completes(dev_report: Report) -> None:
-    assert not dev_report.failures(), [
-        (r.script_id, r.error) for r in dev_report.failures()
-    ]
+    assert not dev_report.failures(), [(r.script_id, r.error) for r in dev_report.failures()]
 
 
 def test_declines_are_absences_never_values(dev_report: Report) -> None:

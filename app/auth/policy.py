@@ -3,6 +3,7 @@
 Purpose-of-use is not decoration: `CLAIM` refuses candidate-tier results outright, `RESEARCH`
 and `STATISTICS` strip identifiers, `STATISTICS` is aggregate-only.
 """
+
 from __future__ import annotations
 
 import functools
@@ -80,25 +81,37 @@ def evaluate(
 
     if role_rules is None:
         return Decision(
-            allowed=False, purpose=purpose, role=role,
-            candidates_allowed=False, curated_allowed=False,
-            strip_identifiers=True, aggregate_only=False,
+            allowed=False,
+            purpose=purpose,
+            role=role,
+            candidates_allowed=False,
+            curated_allowed=False,
+            strip_identifiers=True,
+            aggregate_only=False,
             reason=f"Role {role!r} is not defined in the policy.",
         )
 
     if purpose.value not in role_rules.get("purposes", []):
         return Decision(
-            allowed=False, purpose=purpose, role=role,
-            candidates_allowed=False, curated_allowed=False,
-            strip_identifiers=True, aggregate_only=False,
+            allowed=False,
+            purpose=purpose,
+            role=role,
+            candidates_allowed=False,
+            curated_allowed=False,
+            strip_identifiers=True,
+            aggregate_only=False,
             reason=f"Role {role!r} may not act with purpose-of-use {purpose.value}.",
         )
 
     if action not in role_rules.get("actions", []):
         return Decision(
-            allowed=False, purpose=purpose, role=role,
-            candidates_allowed=False, curated_allowed=False,
-            strip_identifiers=True, aggregate_only=False,
+            allowed=False,
+            purpose=purpose,
+            role=role,
+            candidates_allowed=False,
+            curated_allowed=False,
+            strip_identifiers=True,
+            aggregate_only=False,
             reason=f"Role {role!r} may not perform action {action!r}.",
         )
 

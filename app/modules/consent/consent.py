@@ -13,6 +13,7 @@ Three properties enforced here:
   never used a computer. `grant()` records *whether the audio was actually played*, and the
   physician screen shows a consent that was granted without it having been played.
 """
+
 from __future__ import annotations
 
 import functools
@@ -125,7 +126,8 @@ class Consent:
             "revokedAt": self.revoked_at.isoformat() if self.revoked_at else None,
             "active": self.active,
             "warning": (
-                None if self.audio_explained
+                None
+                if self.audio_explained
                 else "Consent was recorded without the audio explanation being played."
             ),
         }
@@ -168,8 +170,10 @@ def grant(
     )
     log.info(
         "consent.granted",
-        session=session_ref, consent=consent.consent_ref,
-        granted=sorted(granted_set), audio=audio_explained,
+        session=session_ref,
+        consent=consent.consent_ref,
+        granted=sorted(granted_set),
+        audio=audio_explained,
     )
     return consent
 
@@ -206,7 +210,9 @@ def revoke(
     purged = _purge_scope_facts(ledger, targets)
     log.info(
         "consent.revoked",
-        session=consent.session_ref, scopes=sorted(targets), purged=purged,
+        session=consent.session_ref,
+        scopes=sorted(targets),
+        purged=purged,
         fully_revoked=consent.revoked_at is not None,
     )
     return {
@@ -220,8 +226,9 @@ def revoke(
 #: Which recorded facts each optional scope owns. Revoking a scope purges exactly these.
 _SCOPE_FACT_PREDICATES = {
     "documents": lambda fact: fact.tier.value == "document",
-    "voice": lambda fact: getattr(fact.source, "modality", None)
-    and fact.source.modality.value == "speech",
+    "voice": lambda fact: (
+        getattr(fact.source, "modality", None) and fact.source.modality.value == "speech"
+    ),
     "ayush": lambda fact: fact.path.startswith("ayush."),
 }
 
@@ -247,6 +254,4 @@ def _purge_scope_facts(ledger: FactLedger, scopes: set[str]) -> int:
 def require(consent: Consent | None, scope: str) -> None:
     """Guard for a capture endpoint. Raises rather than degrading quietly."""
     if consent is None or not consent.allows(scope):
-        raise ConsentRequired(
-            f"Consent scope {scope!r} has not been granted for this session."
-        )
+        raise ConsentRequired(f"Consent scope {scope!r} has not been granted for this session.")

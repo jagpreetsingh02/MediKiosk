@@ -11,6 +11,7 @@ one is `year`-precision and one is `exact`. The physician screen renders them di
 because "started metformin in 2019" and "started metformin on 14 March 2019" support very
 different conclusions and the difference must not be invented by a sort key.
 """
+
 from __future__ import annotations
 
 import uuid

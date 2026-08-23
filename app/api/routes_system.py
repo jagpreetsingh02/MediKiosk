@@ -1,4 +1,5 @@
 """System surface: /about, health, audit verification, terminology, and the stub HIS."""
+
 from __future__ import annotations
 
 from typing import Annotated, Any
@@ -137,9 +138,7 @@ async def receive_bundle(payload: Annotated[dict, Body()]) -> dict[str, Any]:
         "bundleId": (payload.get("identifier") or {}).get("value"),
         "type": payload.get("type"),
         "entries": len(entries),
-        "resourceTypes": sorted(
-            {e.get("resource", {}).get("resourceType", "?") for e in entries}
-        ),
+        "resourceTypes": sorted({e.get("resource", {}).get("resourceType", "?") for e in entries}),
         "fhirVersion": payload.get("_fhirVersion"),
     }
     _RECEIVED.append(record_summary)

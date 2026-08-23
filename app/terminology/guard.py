@@ -8,6 +8,7 @@ codebase (`tests/test_guard_is_the_only_emitter.py` enforces that by scanning th
 
 There is **no bypass and no force flag**. The absence of one is the feature.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

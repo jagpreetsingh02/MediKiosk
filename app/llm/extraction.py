@@ -18,6 +18,7 @@ answer, and running a model over it would add latency and a failure mode for not
 is used only for free narration, which is the case a rule genuinely cannot cover: an open-ended
 "tell me what's wrong" answer in a mix of two languages.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -143,7 +144,9 @@ def extract(
             )
             log.warning(
                 "extraction.hallucinated_quote",
-                question=question.id, path=slot.path, quote=slot.quote[:80],
+                question=question.id,
+                path=slot.path,
+                quote=slot.quote[:80],
             )
             continue
 
@@ -193,8 +196,12 @@ def extract(
             )
         except (ProvenanceError, ValidationError) as exc:
             outcome.rejected_unquoted.append(
-                {"path": slot.path, "value": slot.value, "quote": slot.quote,
-                 "recordFactRejection": str(exc)[:160]}
+                {
+                    "path": slot.path,
+                    "value": slot.value,
+                    "quote": slot.quote,
+                    "recordFactRejection": str(exc)[:160],
+                }
             )
             continue
 

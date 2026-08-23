@@ -9,6 +9,7 @@ It is a keyword-and-pattern matcher over the ontology's own option labels. It wi
 extract something the deterministic path could not, and it never invents a quote: every quote
 it emits is a slice of the input string, taken by index.
 """
+
 from __future__ import annotations
 
 import re
@@ -63,8 +64,24 @@ def _find_quote(text: str, needle: str) -> tuple[str, int] | None:
 #: and recording it as present is how a system invents a symptom nobody reported.
 #: "a heavy feeling, like pressure, not sharp" must not yield `sharp`.
 _NEGATORS = (
-    "not", "no", "never", "without", "denies", "denied", "isn't", "wasn't", "doesn't",
-    "didn't", "dont", "don't", "nahin", "nahi", "na", "bilkul nahin", "koi nahin", "illa",
+    "not",
+    "no",
+    "never",
+    "without",
+    "denies",
+    "denied",
+    "isn't",
+    "wasn't",
+    "doesn't",
+    "didn't",
+    "dont",
+    "don't",
+    "nahin",
+    "nahi",
+    "na",
+    "bilkul nahin",
+    "koi nahin",
+    "illa",
 )
 #: How far back to look. Long enough for "it is not a sharp pain", short enough that a
 #: negator in a previous clause does not suppress an unrelated later symptom.
@@ -85,7 +102,8 @@ def _is_negated(text: str, index: int) -> bool:
 def match_options(question: Question, utterance: str) -> list[tuple[str, str, float]]:
     """Return (option_value, verbatim_quote, confidence) for every option the text supports."""
     lexicon = _lexicon().get(question.id, {})
-    hits: list[tuple[str, str, float]] = []
+    # Carries the match position as a fourth element for ranking; it is dropped on the way out.
+    hits: list[tuple[str, str, float, int]] = []
 
     for option in question.options:
         phrases: list[str] = list(lexicon.get(option.value, []))
@@ -153,6 +171,7 @@ class OfflineLLM:
 def extract_offline(question: Question, utterance: str) -> dict[str, Any]:
     """Rule-based slot extraction. Returns an `ExtractionResult`-shaped dict."""
     slots: list[dict[str, Any]] = []
+    value: str | bool | int | list[str]
 
     if question.kind in ("single_choice", "duration"):
         hits = match_options(question, utterance)
@@ -178,9 +197,7 @@ def extract_offline(question: Question, utterance: str) -> dict[str, Any]:
         polarity = _polarity(utterance)
         if polarity is not None:
             value, quote = polarity
-            slots.append(
-                {"path": question.path, "value": value, "quote": quote, "confidence": 0.8}
-            )
+            slots.append({"path": question.path, "value": value, "quote": quote, "confidence": 0.8})
     elif question.kind == "scale":
         number = _first_number(utterance)
         if number is not None:
@@ -205,7 +222,10 @@ def extract_offline(question: Question, utterance: str) -> dict[str, Any]:
                 {"path": question.path, "value": stripped, "quote": stripped, "confidence": 0.9}
             )
 
-    return {"slots": slots, "unplaced": [] if slots else [utterance.strip()][: 1 if utterance.strip() else 0]}
+    return {
+        "slots": slots,
+        "unplaced": [] if slots else [utterance.strip()][: 1 if utterance.strip() else 0],
+    }
 
 
 def _span_covering(text: str, quotes: list[str]) -> str:

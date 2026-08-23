@@ -3,6 +3,7 @@
 Adapted from the SIH 25026 service (see docs/PORTED.md). The ICD/NAMASTE terminology settings
 carry across because the coding sidecar reuses the same closed-vocabulary guard.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -68,17 +69,26 @@ class Settings(BaseSettings):
 
     # --- LLM (Modules A extraction + C prose smoothing) ---
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.3-70b-versatile"
+    #: `llama-3.3-70b-versatile` (named in the original brief) was decommissioned by Groq;
+    #: the API 404s on it. Verify against GET /openai/v1/models before changing this.
+    groq_model: str = "openai/gpt-oss-120b"
+    #: Groq hosts Whisper on the same key, which gives real server-side ASR for every
+    #: language the kiosk offers — see app/speech/groq_whisper.py.
+    groq_asr_model: str = "whisper-large-v3-turbo"
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_timeout_seconds: float = 20.0
-    groq_max_retries: int = 2
+    groq_max_retries: int = 4
+    groq_retry_base_seconds: float = 1.5
+    groq_max_backoff_seconds: float = 30.0
     #: "offline" is the default so a dropped demo network changes nothing. Set to "groq"
     #: (or leave "auto" with a key present) to use the hosted model.
     llm_backend: Literal["auto", "offline", "groq"] = "auto"
     llm_temperature: float = 0.0
 
     # --- speech (Module A voice) ---
-    speech_backend: Literal["local", "bhashini", "client"] = "local"
+    #: `client` is what the shipped kiosk uses (on-device Web Speech, works offline).
+    #: `whisper` is real server-side ASR via Groq for clients that cannot recognise locally.
+    speech_backend: Literal["local", "whisper", "bhashini", "client"] = "local"
     #: Below this ASR confidence the question degrades to touch rather than guessing.
     asr_confidence_threshold: float = 0.62
     bhashini_base_url: str = "https://dhruva-api.bhashini.gov.in/services/inference"

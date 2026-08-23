@@ -14,6 +14,7 @@ Neither can change the question order, skip a question, add a question, or end t
 `tests/test_machine_is_deterministic.py` runs the whole interview with the LLM stubbed to
 raise, and asserts an identical transcript.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -74,16 +75,26 @@ class DialogueState:
 
     def to_json(self) -> dict[str, Any]:
         return {
-            "session_id": self.session_id, "language": self.language,
-            "ayush_mode": self.ayush_mode, "cursor": self.cursor,
-            "visits": self.visits, "values": self.values, "completed": self.completed,
-            "declined": self.declined, "forced_touch": self.forced_touch,
+            "session_id": self.session_id,
+            "language": self.language,
+            "ayush_mode": self.ayush_mode,
+            "cursor": self.cursor,
+            "visits": self.visits,
+            "values": self.values,
+            "completed": self.completed,
+            "declined": self.declined,
+            "forced_touch": self.forced_touch,
             "turns": [
                 {
-                    "turn_id": t.turn_id, "question_id": t.question_id, "prompt": t.prompt,
-                    "language": t.language, "translation_missing": t.translation_missing,
-                    "answered": t.answered, "raw_answer": t.raw_answer,
-                    "modality": t.modality, "skipped_reason": t.skipped_reason,
+                    "turn_id": t.turn_id,
+                    "question_id": t.question_id,
+                    "prompt": t.prompt,
+                    "language": t.language,
+                    "translation_missing": t.translation_missing,
+                    "answered": t.answered,
+                    "raw_answer": t.raw_answer,
+                    "modality": t.modality,
+                    "skipped_reason": t.skipped_reason,
                 }
                 for t in self.turns
             ],
@@ -92,9 +103,12 @@ class DialogueState:
     @classmethod
     def from_json(cls, payload: dict[str, Any]) -> DialogueState:
         state = cls(
-            session_id=payload["session_id"], language=payload.get("language", "en"),
-            ayush_mode=payload.get("ayush_mode", False), cursor=payload.get("cursor", 0),
-            visits=payload.get("visits", {}), values=payload.get("values", {}),
+            session_id=payload["session_id"],
+            language=payload.get("language", "en"),
+            ayush_mode=payload.get("ayush_mode", False),
+            cursor=payload.get("cursor", 0),
+            visits=payload.get("visits", {}),
+            values=payload.get("values", {}),
             completed=payload.get("completed", False),
             declined=payload.get("declined", []),
             forced_touch=payload.get("forced_touch", []),
@@ -128,12 +142,22 @@ class NextQuestion:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "turnId": self.turn_id, "questionId": self.question_id, "path": self.path,
-            "kind": self.kind, "prompt": self.prompt, "help": self.help,
-            "language": self.language, "translationMissing": self.translation_missing,
-            "sectionId": self.section_id, "sectionTitle": self.section_title,
-            "socrates": self.socrates, "options": self.options, "scale": self.scale,
-            "required": self.required, "touchOnly": self.touch_only, "progress": self.progress,
+            "turnId": self.turn_id,
+            "questionId": self.question_id,
+            "path": self.path,
+            "kind": self.kind,
+            "prompt": self.prompt,
+            "help": self.help,
+            "language": self.language,
+            "translationMissing": self.translation_missing,
+            "sectionId": self.section_id,
+            "sectionTitle": self.section_title,
+            "socrates": self.socrates,
+            "options": self.options,
+            "scale": self.scale,
+            "required": self.required,
+            "touchOnly": self.touch_only,
+            "progress": self.progress,
         }
 
 
@@ -208,8 +232,11 @@ class DialogueMachine:
         self.state.visits[question.id] = self.state.visits.get(question.id, 0) + 1
         self.state.turns.append(
             Turn(
-                turn_id=turn_id, question_id=question.id, prompt=prompt,
-                language=self.state.language, translation_missing=missing,
+                turn_id=turn_id,
+                question_id=question.id,
+                prompt=prompt,
+                language=self.state.language,
+                translation_missing=missing,
             )
         )
         return NextQuestion(
@@ -259,9 +286,7 @@ class DialogueMachine:
             return
         if question_id not in self.state.declined:
             self.state.declined.append(question_id)
-        self.ledger.record_absence(
-            question.path, AbsenceReason.DECLINED, question_id=question_id
-        )
+        self.ledger.record_absence(question.path, AbsenceReason.DECLINED, question_id=question_id)
 
     def force_touch(self, question_id: str) -> None:
         """ASR confidence fell below threshold. This question degrades to touch (Phase 3)."""
@@ -316,9 +341,7 @@ class DialogueMachine:
             open_qs = [
                 q for q in section.questions if q.kind != "derived" and should_ask(q, values)
             ]
-            done = sum(
-                1 for q in open_qs if q.path in answered or q.id in self.state.declined
-            )
+            done = sum(1 for q in open_qs if q.path in answered or q.id in self.state.declined)
             out.append(
                 {
                     "sectionId": section.id,

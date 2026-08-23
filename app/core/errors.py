@@ -2,6 +2,7 @@
 
 Ported from SIH 25026 `app/core/errors.py`, extended with the MediKiosk invariant errors.
 """
+
 from __future__ import annotations
 
 

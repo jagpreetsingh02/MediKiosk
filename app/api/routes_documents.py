@@ -1,7 +1,7 @@
 """Document upload, the verification lane, and the timeline."""
+
 from __future__ import annotations
 
-import json
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, File, Form, UploadFile
@@ -65,14 +65,17 @@ async def upload(
             mean_confidence=result.mean_confidence,
             needs_verification=bool(result.needs_verification),
             pages_json=result.pages,
-            entities_json=[e.to_dict() for e in result.entities]
-            + result.needs_verification,
+            entities_json=[e.to_dict() for e in result.entities] + result.needs_verification,
         )
     )
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="document.upload", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="document.upload",
+        abha_ref=context.row.abha_ref,
         consent_ref=context.row.consent_ref,
         request_summary={"backend": result.backend, "pages": len(result.pages)},
         response_summary={
@@ -85,9 +88,7 @@ async def upload(
 
 
 @router.get("/timeline")
-async def timeline(
-    db: DbSession, session_ref: str, identity: CurrentIdentity
-) -> dict[str, Any]:
+async def timeline(db: DbSession, session_ref: str, identity: CurrentIdentity) -> dict[str, Any]:
     """Chronological view across every uploaded document."""
     from sqlalchemy import select
 
@@ -97,10 +98,14 @@ async def timeline(
 
     context = await load_context(db, session_ref)
     rows = (
-        await db.execute(
-            select(SessionDocument).where(SessionDocument.session_id == context.row.id)
+        (
+            await db.execute(
+                select(SessionDocument).where(SessionDocument.session_id == context.row.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     events: list[TimelineEvent] = []
     for row in rows:
@@ -113,9 +118,13 @@ async def timeline(
             observed = payload.get("observedOn")
             entities.append(
                 ExtractedEntity(
-                    kind=payload["kind"], text=payload["text"], page=payload["page"],
-                    bbox=BoundingBox(**payload["bbox"]), confidence=payload["confidence"],
-                    handwritten=payload["handwritten"], source_text=payload["sourceText"],
+                    kind=payload["kind"],
+                    text=payload["text"],
+                    page=payload["page"],
+                    bbox=BoundingBox(**payload["bbox"]),
+                    confidence=payload["confidence"],
+                    handwritten=payload["handwritten"],
+                    source_text=payload["sourceText"],
                     detail=payload.get("detail", {}),
                     observed_on=date.fromisoformat(observed) if observed else None,
                     date_precision=payload.get("datePrecision", "unknown"),
@@ -126,9 +135,13 @@ async def timeline(
     return {
         "documents": [
             {
-                "documentId": r.document_id, "filename": r.filename, "pages": r.pages,
-                "backend": r.ocr_backend, "meanConfidence": round(r.mean_confidence, 4),
-                "needsVerification": r.needs_verification, "verifiedBy": r.verified_by,
+                "documentId": r.document_id,
+                "filename": r.filename,
+                "pages": r.pages,
+                "backend": r.ocr_backend,
+                "meanConfidence": round(r.mean_confidence, 4),
+                "needsVerification": r.needs_verification,
+                "verifiedBy": r.verified_by,
             }
             for r in rows
         ],
@@ -150,13 +163,17 @@ async def verify(
 
     context = await load_context(db, session_ref)
     row = (
-        await db.execute(
-            select(SessionDocument).where(
-                SessionDocument.session_id == context.row.id,
-                SessionDocument.document_id == document_id,
+        (
+            await db.execute(
+                select(SessionDocument).where(
+                    SessionDocument.session_id == context.row.id,
+                    SessionDocument.document_id == document_id,
+                )
             )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if row is None:
         raise ValidationError(f"No document {document_id} in this session.")
 
@@ -164,32 +181,41 @@ async def verify(
     if entity_index is None:
         raise ValidationError("entityIndex is required.")
 
-    pending = [
-        e for e in (row.entities_json or []) if e.get("entityIndex") == entity_index
-    ]
+    pending = [e for e in (row.entities_json or []) if e.get("entityIndex") == entity_index]
     if not pending:
         raise ValidationError(f"No pending entity at index {entity_index}.")
 
     result = IngestResult(
-        document_id=document_id, filename=row.filename, backend=row.ocr_backend,
-        pages=row.pages_json or [], mean_confidence=row.mean_confidence,
+        document_id=document_id,
+        filename=row.filename,
+        backend=row.ocr_backend,
+        pages=row.pages_json or [],
+        mean_confidence=row.mean_confidence,
         needs_verification=[e for e in (row.entities_json or []) if "entityIndex" in e],
     )
     facts = verify_entity(
-        context.ledger, result, entity_index=int(entity_index),
-        accepted=bool(payload.get("accepted", False)), verified_by=identity.actor,
+        context.ledger,
+        result,
+        entity_index=int(entity_index),
+        accepted=bool(payload.get("accepted", False)),
+        verified_by=identity.actor,
         known_paths=context.machine.ontology.known_paths,
         corrected_text=payload.get("correctedText"),
     )
     row.verified_by = identity.actor
     row.needs_verification = any(
-        e.get("entityIndex") != entity_index for e in (row.entities_json or [])
+        e.get("entityIndex") != entity_index
+        for e in (row.entities_json or [])
         if "entityIndex" in e
     )
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="document.verify", abha_ref=context.row.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="document.verify",
+        abha_ref=context.row.abha_ref,
         request_summary={"documentId": document_id, "accepted": payload.get("accepted")},
         response_summary={"factsRecorded": len(facts)},
     )

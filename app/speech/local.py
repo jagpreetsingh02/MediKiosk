@@ -10,6 +10,7 @@ when the venue wifi dies), and it is what the shipped kiosk actually uses.
 TTS: `say` on macOS, `espeak-ng` where present, otherwise a signal to the client to use
 `speechSynthesis`. Every path produces audible output on the machines this will be demoed on.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,7 +36,7 @@ class LocalSpeechBackend:
 
     name = "local"
     offline = True
-    languages = ("en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa")
+    languages: tuple[str, ...] = ("en", "hi", "bn", "ta", "te", "mr", "kn", "ml", "gu", "pa")
 
     def __init__(self) -> None:
         self._vosk_model = None
@@ -85,8 +86,13 @@ class LocalSpeechBackend:
         mean = sum(c for _, c in confidences) / len(confidences) if confidences else 0.0
         text = result.get("text", "").strip()
         return Transcript(
-            text=text, confidence=mean, language=language, backend=self.name,
-            duration_ms=duration_ms, word_confidences=tuple(confidences), empty=not text,
+            text=text,
+            confidence=mean,
+            language=language,
+            backend=self.name,
+            duration_ms=duration_ms,
+            word_confidences=tuple(confidences),
+            empty=not text,
         )
 
     # -------------------------------------------------------------- TTS
@@ -96,22 +102,32 @@ class LocalSpeechBackend:
             audio = self._say(text, language)
             if audio is not None:
                 return Utterance(
-                    audio=audio, media_type="audio/wav", text=text,
-                    language=language, backend=f"{self.name}:say",
+                    audio=audio,
+                    media_type="audio/wav",
+                    text=text,
+                    language=language,
+                    backend=f"{self.name}:say",
                 )
         if shutil.which("espeak-ng"):
             audio = self._espeak(text, language)
             if audio is not None:
                 return Utterance(
-                    audio=audio, media_type="audio/wav", text=text,
-                    language=language, backend=f"{self.name}:espeak-ng",
+                    audio=audio,
+                    media_type="audio/wav",
+                    text=text,
+                    language=language,
+                    backend=f"{self.name}:espeak-ng",
                 )
         # No server-side voice. The kiosk falls back to the browser's speechSynthesis, which
         # every target device has. Returning empty audio with the flag set is honest about
         # what happened; returning silence without the flag would not be.
         return Utterance(
-            audio=b"", media_type="audio/wav", text=text, language=language,
-            backend=f"{self.name}:client", client_fallback=True,
+            audio=b"",
+            media_type="audio/wav",
+            text=text,
+            language=language,
+            backend=f"{self.name}:client",
+            client_fallback=True,
         )
 
     def _say(self, text: str, language: str) -> bytes | None:
@@ -141,7 +157,9 @@ class LocalSpeechBackend:
             try:
                 subprocess.run(
                     ["espeak-ng", "-v", language, "-w", str(out), text],
-                    check=True, capture_output=True, timeout=20,
+                    check=True,
+                    capture_output=True,
+                    timeout=20,
                 )
                 return out.read_bytes()
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:

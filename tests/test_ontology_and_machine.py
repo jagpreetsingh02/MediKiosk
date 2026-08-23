@@ -1,5 +1,6 @@
 """Phase 1 — the deterministic spine. Exhaustive, because this is the part that still works
 when the demo network drops and the model is unreachable."""
+
 from __future__ import annotations
 
 import pytest
@@ -32,7 +33,8 @@ def test_every_question_is_answerable_by_tap() -> None:
     """Invariant of the kiosk: speech is never the only way to answer anything."""
     onto = load_ontology(ayush=True)
     unanswerable = [
-        q.id for q in onto.by_id.values()
+        q.id
+        for q in onto.by_id.values()
         if q.kind in ("single_choice", "multi_choice", "duration") and not q.options
     ]
     assert not unanswerable, f"questions with no tap options: {unanswerable}"
@@ -95,8 +97,12 @@ def _walk(answers: dict, *, ayush: bool = False, demographics: dict | None = Non
         if q.question_id in answers:
             value, modality = answers[q.question_id]
             record_answer(
-                machine, ledger, turn_id=q.turn_id, question_id=q.question_id,
-                value=value, modality=modality,
+                machine,
+                ledger,
+                turn_id=q.turn_id,
+                question_id=q.question_id,
+                value=value,
+                modality=modality,
             )
         else:
             machine.decline(q.question_id)
@@ -164,8 +170,14 @@ def test_full_socrates_hpi_is_walked() -> None:
     order, ledger, machine = _walk(answers)
     socrates_paths = {f.path for f in ledger.active_facts() if f.path.startswith("hpi.")}
     assert socrates_paths == {
-        "hpi.site", "hpi.onset", "hpi.character", "hpi.radiation",
-        "hpi.associated", "hpi.timing", "hpi.exacerbating", "hpi.severity",
+        "hpi.site",
+        "hpi.onset",
+        "hpi.character",
+        "hpi.radiation",
+        "hpi.associated",
+        "hpi.timing",
+        "hpi.exacerbating",
+        "hpi.severity",
     }, "all eight SOCRATES elements must be captured"
 
 
@@ -179,7 +191,9 @@ def test_radiation_is_not_asked_for_a_limb_complaint() -> None:
 
 def test_derived_vaya_is_computed_not_asked() -> None:
     order, ledger, _ = _walk(
-        MINIMAL, ayush=True, demographics={"demographics.age_years": 64},
+        MINIMAL,
+        ayush=True,
+        demographics={"demographics.age_years": 64},
     )
     assert "ayush.vaya" not in order, "a derived question must never be put to the patient"
     vaya = ledger.at_path("ayush.vaya")
@@ -199,8 +213,12 @@ def test_answer_to_an_unknown_option_is_refused(machine, ledger) -> None:
     q = machine.next_question()
     with pytest.raises(ValidationError, match="not options of this question"):
         record_answer(
-            machine, ledger, turn_id=q.turn_id, question_id=q.question_id,
-            value="not_a_real_option", modality=Modality.TOUCH,
+            machine,
+            ledger,
+            turn_id=q.turn_id,
+            question_id=q.question_id,
+            value="not_a_real_option",
+            modality=Modality.TOUCH,
         )
 
 
@@ -210,7 +228,11 @@ def test_exclusive_option_clears_the_others(machine, ledger) -> None:
         machine.decline(q.question_id)
     assert q is not None
     facts = record_answer(
-        machine, ledger, turn_id=q.turn_id, question_id="ros.resp",
-        value=["none", "cough"], modality=Modality.TOUCH,
+        machine,
+        ledger,
+        turn_id=q.turn_id,
+        question_id="ros.resp",
+        value=["none", "cough"],
+        modality=Modality.TOUCH,
     )
     assert facts[0].value == ["none"]

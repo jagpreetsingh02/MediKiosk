@@ -14,6 +14,7 @@ Barge-in is handled client-side (the kiosk stops TTS the moment the mic detects 
 recorded here only as a flag on the turn, because whether the patient interrupted the prompt
 is genuinely useful when reviewing an odd answer.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ from typing import Any
 from app.contracts.provenance import Fact, Modality
 from app.contracts.record import FactLedger
 from app.core.config import settings
+from app.core.errors import LLMContractError, UpstreamUnavailable
 from app.core.logging import get_logger
 from app.llm.extraction import ExtractionOutcome, extract
 from app.modules.dialogue.machine import DialogueMachine
@@ -30,6 +32,11 @@ from app.speech.protocol import Transcript
 log = get_logger(__name__)
 
 DEGRADE_PROMPTS: dict[str, dict[str, str]] = {
+    "service": {
+        "en": "I could not process that just now. Please tap your answer below.",
+        "hi": "मैं अभी उसे समझ नहीं सका। कृपया नीचे अपना उत्तर दबाइए।",
+        "ta": "இப்போது அதைச் செயலாக்க முடியவில்லை. கீழே உங்கள் பதிலைத் தொடவும்.",
+    },
     "unclear": {
         "en": "Sorry, I did not catch that clearly. Please tap your answer below.",
         "hi": "माफ़ कीजिए, मैं ठीक से समझ नहीं पाया। कृपया नीचे अपना उत्तर दबाइए।",
@@ -94,24 +101,36 @@ def handle_spoken_answer(
         )
         return _degrade(machine, question_id, transcript, "unclear", language)
 
-    outcome = extract(
-        question=question,
-        utterance=transcript.text,
-        ontology=machine.ontology,
-        ledger=ledger,
-        turn_id=turn_id,
-        language=language,
-        asr_confidence=transcript.confidence,
-        audio_ref=audio_ref,
-        modality=Modality.SPEECH,
-    )
+    try:
+        outcome = extract(
+            question=question,
+            utterance=transcript.text,
+            ontology=machine.ontology,
+            ledger=ledger,
+            turn_id=turn_id,
+            language=language,
+            asr_confidence=transcript.confidence,
+            audio_ref=audio_ref,
+            modality=Modality.SPEECH,
+        )
+    except (LLMContractError, UpstreamUnavailable) as exc:
+        # The model is unreachable, rate-limited, or returned something unparseable. The
+        # patient must not see a 503 — this degrades to touch exactly like a bad transcript,
+        # because from where they are standing it is the same event: the machine did not
+        # understand, and the buttons still work.
+        #
+        # This is the failure the deterministic spine exists for, and it stayed theoretical
+        # until a real Groq rate-limit produced it in the eval harness.
+        log.warning(
+            "voice.extraction_unavailable",
+            question=question_id, error=type(exc).__name__, detail=str(exc)[:160],
+        )
+        return _degrade(machine, question_id, transcript, "service", language)
 
     if not outcome.facts:
         # Heard clearly, understood nothing. Not the patient's fault and not a reason to
         # guess: fall back to touch with the same prompt as an unclear transcript.
-        return _degrade(
-            machine, question_id, transcript, "unclear", language, extraction=outcome
-        )
+        return _degrade(machine, question_id, transcript, "unclear", language, extraction=outcome)
 
     machine.mark_answered(turn_id, transcript.text, Modality.SPEECH.value)
     turn = machine.current_turn(turn_id)
@@ -121,8 +140,12 @@ def handle_spoken_answer(
         machine.state.values[fact.path] = fact.value
 
     return VoiceOutcome(
-        accepted=True, degraded_to_touch=False, reason=None,
-        transcript=transcript, facts=outcome.facts, extraction=outcome,
+        accepted=True,
+        degraded_to_touch=False,
+        reason=None,
+        transcript=transcript,
+        facts=outcome.facts,
+        extraction=outcome,
     )
 
 

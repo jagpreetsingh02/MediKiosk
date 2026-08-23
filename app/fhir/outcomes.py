@@ -1,4 +1,5 @@
 """OperationOutcome construction. FHIR endpoints never return a bare string error."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,9 +35,7 @@ def outcome_from_error(
     if exc.details:
         rendered = ", ".join(f"{k}={v!r}" for k, v in exc.details.items())
         detail = f"{detail} [{rendered}]"
-    return outcome(
-        issue(exc.issue_code, detail, severity=exc.severity, expression=expression)
-    )
+    return outcome(issue(exc.issue_code, detail, severity=exc.severity, expression=expression))
 
 
 def information(text: str) -> OperationOutcomeIssue:

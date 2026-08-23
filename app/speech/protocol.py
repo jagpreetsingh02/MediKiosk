@@ -10,6 +10,7 @@ Degradation is per-question, never sticky. A patient who is misheard once is sti
 microphone on the next question — a kiosk that silently gives up on speech after one bad turn
 has failed the person it was built for.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

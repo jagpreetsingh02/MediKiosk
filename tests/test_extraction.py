@@ -3,6 +3,7 @@
 The most important test in this file is `test_hallucinated_quote_is_rejected`. It is the one
 that makes the eval harness's "hallucination rate: 0" claim mean something.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -34,8 +35,12 @@ class StubLLM:
 
     def complete(self, *, system: str, user: str, schema_hint: str) -> LLMResponse:
         return LLMResponse(
-            text=self.text, model_name=self.name, model_version=self.version,
-            prompt=f"{system}\n{user}", offline=False, latency_ms=1,
+            text=self.text,
+            model_name=self.name,
+            model_version=self.version,
+            prompt=f"{system}\n{user}",
+            offline=False,
+            latency_ms=1,
         )
 
 
@@ -64,14 +69,20 @@ def test_offline_extractor_is_deterministic(ontology) -> None:
 
 def test_hallucinated_quote_is_rejected(monkeypatch, ontology, ledger) -> None:
     """The model claims the patient mentioned crushing pain. They did not. Nothing is recorded."""
-    _use(monkeypatch, StubLLM(
-        '{"slots": [{"path": "hpi.character", "value": "pressure", '
-        '"quote": "crushing central chest pain radiating to the arm", "confidence": 0.95}], '
-        '"unplaced": []}'
-    ))
+    _use(
+        monkeypatch,
+        StubLLM(
+            '{"slots": [{"path": "hpi.character", "value": "pressure", '
+            '"quote": "crushing central chest pain radiating to the arm", "confidence": 0.95}], '
+            '"unplaced": []}'
+        ),
+    )
     outcome = extract(
-        question=ontology.by_id["hpi.character"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
+        question=ontology.by_id["hpi.character"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
     )
     assert outcome.accepted == 0
     assert len(outcome.rejected_unquoted) == 1
@@ -79,25 +90,37 @@ def test_hallucinated_quote_is_rejected(monkeypatch, ontology, ledger) -> None:
 
 
 def test_value_outside_the_option_set_is_rejected(monkeypatch, ontology, ledger) -> None:
-    _use(monkeypatch, StubLLM(
-        '{"slots": [{"path": "hpi.site", "value": "pancreas", '
-        '"quote": "chhaati", "confidence": 0.9}], "unplaced": []}'
-    ))
+    _use(
+        monkeypatch,
+        StubLLM(
+            '{"slots": [{"path": "hpi.site", "value": "pancreas", '
+            '"quote": "chhaati", "confidence": 0.9}], "unplaced": []}'
+        ),
+    )
     outcome = extract(
-        question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
+        question=ontology.by_id["hpi.site"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
     )
     assert outcome.accepted == 0 and outcome.rejected_bad_value
 
 
 def test_unknown_path_is_rejected(monkeypatch, ontology, ledger) -> None:
-    _use(monkeypatch, StubLLM(
-        '{"slots": [{"path": "hpi.invented_field", "value": "chest", '
-        '"quote": "chhaati", "confidence": 0.9}], "unplaced": []}'
-    ))
+    _use(
+        monkeypatch,
+        StubLLM(
+            '{"slots": [{"path": "hpi.invented_field", "value": "chest", '
+            '"quote": "chhaati", "confidence": 0.9}], "unplaced": []}'
+        ),
+    )
     outcome = extract(
-        question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
+        question=ontology.by_id["hpi.site"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
     )
     assert outcome.accepted == 0 and outcome.rejected_unknown_path == ["hpi.invented_field"]
 
@@ -105,13 +128,19 @@ def test_unknown_path_is_rejected(monkeypatch, ontology, ledger) -> None:
 def test_valid_extraction_is_recorded_with_the_quote_as_its_span(
     monkeypatch, ontology, ledger
 ) -> None:
-    _use(monkeypatch, StubLLM(
-        '{"slots": [{"path": "hpi.site", "value": "chest", '
-        '"quote": "chhaati", "confidence": 0.86}], "unplaced": []}'
-    ))
+    _use(
+        monkeypatch,
+        StubLLM(
+            '{"slots": [{"path": "hpi.site", "value": "chest", '
+            '"quote": "chhaati", "confidence": 0.86}], "unplaced": []}'
+        ),
+    )
     outcome = extract(
-        question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
+        question=ontology.by_id["hpi.site"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
     )
     assert outcome.accepted == 1
     fact = outcome.facts[0]
@@ -125,8 +154,11 @@ def test_non_json_output_is_a_hard_failure(monkeypatch, ontology, ledger) -> Non
     _use(monkeypatch, StubLLM("The patient appears to have angina."))
     with pytest.raises(LLMContractError, match="not JSON"):
         extract(
-            question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-            ontology=ontology, ledger=ledger, turn_id="t1",
+            question=ontology.by_id["hpi.site"],
+            utterance=UTTERANCE,
+            ontology=ontology,
+            ledger=ledger,
+            turn_id="t1",
         )
     assert not ledger.active_facts()
 
@@ -135,26 +167,33 @@ def test_schema_violation_is_a_hard_failure(monkeypatch, ontology, ledger) -> No
     _use(monkeypatch, StubLLM('{"slots": [{"path": "hpi.site", "value": "chest"}]}'))
     with pytest.raises(LLMContractError, match="does not match"):
         extract(
-            question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-            ontology=ontology, ledger=ledger, turn_id="t1",
+            question=ontology.by_id["hpi.site"],
+            utterance=UTTERANCE,
+            ontology=ontology,
+            ledger=ledger,
+            turn_id="t1",
         )
 
 
 def test_fenced_json_is_unwrapped_not_repaired() -> None:
     response = LLMResponse(
         text='```json\n{"slots": [], "unplaced": []}\n```',
-        model_name="m", model_version="v", prompt="p", offline=False,
+        model_name="m",
+        model_version="v",
+        prompt="p",
+        offline=False,
     )
     assert parse_or_fail(response, ExtractionResult).slots == []
 
 
 def test_unplaced_narration_is_kept_not_forced_into_a_slot(monkeypatch, ontology, ledger) -> None:
-    _use(monkeypatch, StubLLM(
-        '{"slots": [], "unplaced": ["my son also had this last year"]}'
-    ))
+    _use(monkeypatch, StubLLM('{"slots": [], "unplaced": ["my son also had this last year"]}'))
     outcome = extract(
-        question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
+        question=ontology.by_id["hpi.site"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
     )
     assert outcome.unplaced == ["my son also had this last year"]
     assert not ledger.active_facts()
@@ -162,14 +201,21 @@ def test_unplaced_narration_is_kept_not_forced_into_a_slot(monkeypatch, ontology
 
 def test_asr_confidence_caps_extraction_confidence(monkeypatch, ontology, ledger) -> None:
     """A confident model reading an unreliable transcript is not a confident fact."""
-    _use(monkeypatch, StubLLM(
-        '{"slots": [{"path": "hpi.site", "value": "chest", '
-        '"quote": "chhaati", "confidence": 0.99}], "unplaced": []}'
-    ))
+    _use(
+        monkeypatch,
+        StubLLM(
+            '{"slots": [{"path": "hpi.site", "value": "chest", '
+            '"quote": "chhaati", "confidence": 0.99}], "unplaced": []}'
+        ),
+    )
     outcome = extract(
-        question=ontology.by_id["hpi.site"], utterance=UTTERANCE,
-        ontology=ontology, ledger=ledger, turn_id="t1",
-        asr_confidence=0.55, modality=Modality.SPEECH,
+        question=ontology.by_id["hpi.site"],
+        utterance=UTTERANCE,
+        ontology=ontology,
+        ledger=ledger,
+        turn_id="t1",
+        asr_confidence=0.55,
+        modality=Modality.SPEECH,
     )
     assert outcome.facts[0].confidence == pytest.approx(0.55)
 
@@ -182,7 +228,11 @@ def test_negation_is_not_read_as_affirmation(ontology) -> None:
 
 def test_low_literacy_phrasing_reaches_the_right_option(ontology) -> None:
     cases = [
-        ("hpi.character", "aisa lag raha tha jaise seene pe koi bhaari patthar rakha ho", "pressure"),
+        (
+            "hpi.character",
+            "aisa lag raha tha jaise seene pe koi bhaari patthar rakha ho",
+            "pressure",
+        ),
         ("hpi.onset", "bilkul achanak shuru hua tha", "sudden"),
         ("ph.tobacco", "main gutka khata hoon din me char paanch baar", "current_chew"),
         ("ros.gi", "kala pakhana aa raha hai teen din se", "melaena"),

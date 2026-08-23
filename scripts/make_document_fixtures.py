@@ -12,6 +12,7 @@ Three kinds, because the three exercise different code paths:
 Ground truth for every fixture is written alongside as `<name>.truth.json`, so the benchmark
 scores against something rather than against a vibe.
 """
+
 from __future__ import annotations
 
 import json

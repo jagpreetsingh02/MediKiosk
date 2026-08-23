@@ -8,6 +8,7 @@ The endpoint is a documented FHIR `POST /Bundle`, with a stub receiver in this r
 (`app/api/routes_stub_his.py`) so the whole path is exercisable end to end without a hospital
 vendor. That is the full scope: no vendor-specific integration, per the brief.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

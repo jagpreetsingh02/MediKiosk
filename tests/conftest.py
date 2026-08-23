@@ -1,4 +1,5 @@
 """Shared fixtures. Every test runs on SQLite in memory: no Docker, no network, no Redis."""
+
 from __future__ import annotations
 
 import os
@@ -23,8 +24,8 @@ def project_root() -> Path:
 async def db_session() -> AsyncIterator:
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-    from app.db.base import Base
     from app.db import models  # noqa: F401
+    from app.db.base import Base
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:

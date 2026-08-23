@@ -13,6 +13,7 @@ broken index.
 *reference*. We never write bundle contents, patient names, or any identifier beyond the ABHA
 reference the caller presented.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -31,11 +32,31 @@ GENESIS_HASH = "0" * 64
 #: Keys that must never reach an audit row, whatever a caller sends.
 FORBIDDEN_KEYS = frozenset(
     {
-        "name", "patient", "patientName", "birthDate", "address", "telecom",
-        "identifier", "entry", "resource", "contained", "photo", "gender",
+        "name",
+        "patient",
+        "patientName",
+        "birthDate",
+        "address",
+        "telecom",
+        "identifier",
+        "entry",
+        "resource",
+        "contained",
+        "photo",
+        "gender",
         # MediKiosk additions: this service handles narrative, so the blast radius is wider.
-        "verbatim", "verbatim_translated", "transcript", "utterance", "value", "text",
-        "chief_complaint", "symptom", "medication", "note", "ocr_text", "summary",
+        "verbatim",
+        "verbatim_translated",
+        "transcript",
+        "utterance",
+        "value",
+        "text",
+        "chief_complaint",
+        "symptom",
+        "medication",
+        "note",
+        "ocr_text",
+        "summary",
     }
 )
 
@@ -168,14 +189,15 @@ class ChainVerification:
 
 async def verify_chain(session: AsyncSession) -> ChainVerification:
     """Walk the chain from genesis. Reports the first index where it breaks."""
-    rows = (
-        (await session.execute(select(AuditEvent).order_by(AuditEvent.id))).scalars().all()
-    )
+    rows = (await session.execute(select(AuditEvent).order_by(AuditEvent.id))).scalars().all()
     prev = GENESIS_HASH
     for index, event in enumerate(rows):
         if event.prev_hash != prev:
             return ChainVerification(
-                intact=False, checked=index, first_broken_index=index, first_broken_id=event.id,
+                intact=False,
+                checked=index,
+                first_broken_index=index,
+                first_broken_id=event.id,
                 detail=(
                     f"Event {event.id} declares prev_hash {event.prev_hash[:12]}… but the "
                     f"previous event hashes to {prev[:12]}…: a row was inserted or removed."
@@ -184,7 +206,10 @@ async def verify_chain(session: AsyncSession) -> ChainVerification:
         expected = compute_hash(prev, row_payload(event))
         if expected != event.hash:
             return ChainVerification(
-                intact=False, checked=index, first_broken_index=index, first_broken_id=event.id,
+                intact=False,
+                checked=index,
+                first_broken_index=index,
+                first_broken_id=event.id,
                 detail=(
                     f"Event {event.id} content does not match its stored hash: the row was "
                     "modified after it was written."

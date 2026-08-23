@@ -1,0 +1,82 @@
+/* Design tokens shared by both surfaces.
+ *
+ * The two surfaces are deliberately NOT the same design. The kiosk is built for a first-time,
+ * possibly non-literate elderly patient standing at a machine: enormous targets, very high
+ * contrast, few things on screen. The physician screen is built for someone reading their
+ * fortieth history of the morning in ninety seconds: dense, keyboard-driven, monospaced
+ * numbers. Sharing a component library between those two would make both worse.
+ */
+
+:root {
+  /* --- palette ------------------------------------------------------------ */
+  --ink: #10171f;
+  --ink-2: #3c4a5a;
+  --ink-3: #6b7b8c;
+  --paper: #ffffff;
+  --paper-2: #f4f7fa;
+  --paper-3: #e6edf3;
+  --line: #cdd9e3;
+
+  --accent: #0b5fa5;
+  --accent-dark: #084a80;
+  --accent-soft: #e3f0fb;
+
+  --ok: #1a7f4b;
+  --ok-soft: #e2f5ea;
+  --warn: #a86a00;
+  --warn-soft: #fdf1dc;
+  --danger: #b3261e;
+  --danger-soft: #fde8e6;
+  --immediate: #8f1a13;
+
+  /* --- type --------------------------------------------------------------- */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
+    "Noto Sans Tamil", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* --- geometry ------------------------------------------------------------ */
+  --radius: 10px;
+  --radius-lg: 18px;
+  --shadow: 0 1px 2px rgba(16, 23, 31, 0.06), 0 4px 14px rgba(16, 23, 31, 0.07);
+  --shadow-lg: 0 8px 40px rgba(16, 23, 31, 0.16);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--paper-2);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* A permanent, unmissable reminder that the identity layer is a mock. A judge should never
+ * have to ask whether the ABHA integration is real. */
+.mock-banner {
+  background: repeating-linear-gradient(
+    45deg, #4a3000, #4a3000 12px, #5c3c00 12px, #5c3c00 24px
+  );
+  color: #ffd88a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 6px 12px;
+  flex: 0 0 auto;
+}

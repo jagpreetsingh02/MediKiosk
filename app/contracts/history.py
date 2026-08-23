@@ -12,6 +12,7 @@ Note what is absent from this module: there is no ``assessment``, ``differential
 ``tests/test_invariant_no_diagnosis.py`` fails the build if one appears. Invariant 1 is
 enforced by the *shape* of the record, not by remembering not to fill something in.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -27,10 +28,27 @@ from app.contracts.provenance import AbsenceReason, Fact, SourceTier
 #: and by `app/contracts/no_diagnosis.py` at runtime on every serialised payload.
 FORBIDDEN_CLINICAL_FIELDS = frozenset(
     {
-        "diagnosis", "diagnoses", "differential", "differential_diagnosis", "assessment",
-        "impression", "probability", "likelihood", "suspected_condition", "provisional",
-        "icd_suggestion", "disease_probability", "prognosis", "treatment", "prescription",
-        "plan", "recommendation", "advice", "therapy", "management", "specialty_referral",
+        "diagnosis",
+        "diagnoses",
+        "differential",
+        "differential_diagnosis",
+        "assessment",
+        "impression",
+        "probability",
+        "likelihood",
+        "suspected_condition",
+        "provisional",
+        "icd_suggestion",
+        "disease_probability",
+        "prognosis",
+        "treatment",
+        "prescription",
+        "plan",
+        "recommendation",
+        "advice",
+        "therapy",
+        "management",
+        "specialty_referral",
     }
 )
 
@@ -53,9 +71,7 @@ class Slot(BaseModel):
     recorded slot without at least one backing fact.
     """
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     path: str
     label: str = ""
@@ -80,9 +96,7 @@ class Slot(BaseModel):
 class Section(BaseModel):
     """An ordered group of slots, as the physician expects to read them."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     section_id: str
     title: str
@@ -98,9 +112,7 @@ class Section(BaseModel):
 
 
 class Medication(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     entry_id: str
     name: Slot
@@ -115,9 +127,7 @@ class Medication(BaseModel):
 
 
 class Allergy(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     entry_id: str
     substance: Slot
@@ -128,9 +138,7 @@ class Allergy(BaseModel):
 class ProblemEntry(BaseModel):
     """A problem the patient or a document *reports*. Not an assessment: reported history only."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     entry_id: str
     reported_term: Slot
@@ -141,9 +149,7 @@ class ProblemEntry(BaseModel):
 
 
 class InvestigationResult(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     entry_id: str
     analyte: Slot
@@ -158,9 +164,7 @@ class InvestigationResult(BaseModel):
 
 
 class TimelineEvent(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     event_id: str
     occurred_on: date | None
@@ -177,9 +181,7 @@ class TimelineEvent(BaseModel):
 class RedFlag(BaseModel):
     """Fired by the deterministic rule engine only. Additive: it can never lower a priority."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     rule_id: str
     label: str
@@ -192,9 +194,7 @@ class RedFlag(BaseModel):
 
 
 class DocumentRef(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     document_id: str
     filename: str
@@ -209,9 +209,7 @@ class DocumentRef(BaseModel):
 class Demographics(BaseModel):
     """From the ABHA token only. The kiosk never asks the patient to re-type these."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     abha_ref: str | None = None
     display_name: str | None = None
@@ -227,9 +225,7 @@ class Demographics(BaseModel):
 class ClinicalHistory(BaseModel):
     """The physician-facing structured record. Rebuilt from the ledger; never hand-edited."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     session_id: str
     schema_version: str = "1.0.0"
@@ -263,8 +259,13 @@ class ClinicalHistory(BaseModel):
 
     def sections(self) -> list[Section]:
         ordered = [
-            self.chief_complaint, self.hpi, self.past_medical, self.past_surgical,
-            self.drug_allergy, self.family_history, self.personal_history,
+            self.chief_complaint,
+            self.hpi,
+            self.past_medical,
+            self.past_surgical,
+            self.drug_allergy,
+            self.family_history,
+            self.personal_history,
             self.review_of_systems,
         ]
         if self.ayush is not None:
@@ -295,9 +296,7 @@ class ClinicalHistory(BaseModel):
 class LedgerSnapshot(BaseModel):
     """Everything the projection was built from. Shipped alongside the history for audit."""
 
-    model_config = ConfigDict(
-        extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
+    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
 
     session_id: str
     facts: list[Fact]

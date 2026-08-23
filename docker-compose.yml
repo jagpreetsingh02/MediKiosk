@@ -1,0 +1,67 @@
+# Four services. `docker compose up` gives a complete, offline-capable system: the API, its
+# database and cache, and WHO's own ICD-11 API container.
+#
+# Ported from the SIH 25026 stack (docs/PORTED.md). The demo does NOT need this — the default
+# configuration is SQLite plus an in-process session store, so `make demo` runs on a laptop
+# with no containers. This is the deployment shape, not the development one.
+services:
+  api:
+    build: .
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    environment:
+      DATABASE_URL: postgresql+asyncpg://medikiosk:medikiosk@postgres:5432/medikiosk
+      REDIS_URL: redis://redis:6379/0
+      SESSION_STORE_ALLOW_MEMORY_FALLBACK: "false"   # never in a multi-worker deployment
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      JWT_SECRET: ${JWT_SECRET:?set a real secret before deploying}
+      LLM_BACKEND: ${LLM_BACKEND:-offline}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      SPEECH_BACKEND: ${SPEECH_BACKEND:-client}
+      OCR_BACKEND: ${OCR_BACKEND:-tesseract}
+      ICD_RELEASE_ID: ${ICD_RELEASE_ID:-2026-01}
+      HIS_FHIR_ENDPOINT: ${HIS_FHIR_ENDPOINT:-http://api:8000/api/v1/stub-his/Bundle}
+    ports: ["8000:8000"]
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: medikiosk
+      POSTGRES_PASSWORD: medikiosk
+      POSTGRES_DB: medikiosk
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medikiosk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  # WHO's official ICD-11 API container. No OAuth, no internet, no rate limits. The
+  # terminology ingestion pipeline points at this to load the real release; the demo runs on
+  # a hand-seeded subset instead (docs/PORTED.md).
+  icd-api:
+    image: whoicd/icd-api
+    environment:
+      acceptLicense: "true"
+      saveAnalytics: "false"
+      includeSearch: "true"
+    ports: ["8080:80"]
+
+volumes:
+  pgdata:

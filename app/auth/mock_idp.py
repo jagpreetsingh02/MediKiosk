@@ -12,6 +12,7 @@ nobody watching a demo can mistake it for a live ABDM connection.
 If real ABDM sandbox credentials arrive, point `JWT_ISSUER`/JWKS at the real issuer and delete
 this router. Nothing else in the codebase changes.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -36,16 +37,28 @@ DEMO_OTP = "123456"
 #: the kiosk uses them to skip questions (an obstetric ROS branch, for instance).
 DEMO_PATIENTS: dict[str, dict[str, Any]] = {
     "kamala.devi@abdm": {
-        "display_name": "Kamala Devi", "age_years": 64, "gender": "female", "language": "hi",
+        "display_name": "Kamala Devi",
+        "age_years": 64,
+        "gender": "female",
+        "language": "hi",
     },
     "ramesh.kumar@abdm": {
-        "display_name": "Ramesh Kumar", "age_years": 47, "gender": "male", "language": "hi",
+        "display_name": "Ramesh Kumar",
+        "age_years": 47,
+        "gender": "male",
+        "language": "hi",
     },
     "anitha.r@abdm": {
-        "display_name": "Anitha R", "age_years": 31, "gender": "female", "language": "ta",
+        "display_name": "Anitha R",
+        "age_years": 31,
+        "gender": "female",
+        "language": "ta",
     },
     "demo@abdm": {
-        "display_name": "Demo Patient", "age_years": 52, "gender": "male", "language": "en",
+        "display_name": "Demo Patient",
+        "age_years": 52,
+        "gender": "male",
+        "language": "en",
     },
 }
 
@@ -82,7 +95,7 @@ async def notice() -> dict[str, Any]:
         "roles": sorted(load_policy()["roles"]),
         "demoAbhaAddresses": sorted(DEMO_PATIENTS),
         "demoOtp": DEMO_OTP,
-        "usage": 'POST /mock-idp/abha/request-otp then /mock-idp/abha/verify-otp',
+        "usage": "POST /mock-idp/abha/request-otp then /mock-idp/abha/verify-otp",
     }
 
 

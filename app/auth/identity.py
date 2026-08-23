@@ -8,6 +8,7 @@ The token issuer used in development is a **mock** (`app/auth/mock_idp.py`). It 
 a mock in the README, in `/about`, and in the token itself. It is never presented as a real
 ABDM integration.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

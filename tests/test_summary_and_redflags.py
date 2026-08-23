@@ -1,4 +1,5 @@
 """Phase 5 — the summary, its traceability gate, and Invariant 3."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,11 +7,11 @@ import pytest
 from app.contracts.history import Demographics
 from app.contracts.projection import project
 from app.contracts.record import FactLedger
-from app.core.errors import DeEscalationAttempt, TraceabilityError, ValidationError
+from app.core.errors import DeEscalationAttempt, TraceabilityError
 from app.modules.summary.assemble import SummaryLine, build
 from app.modules.summary.generate import generate
 from app.modules.summary.prose import smooth
-from app.modules.summary.traceability import check, enforce
+from app.modules.summary.traceability import enforce
 from app.redflags.engine import Priority, evaluate, load_rules, raise_priority
 from tests.helpers import tap
 
@@ -257,11 +258,14 @@ def test_unmapped_problems_are_labelled_not_hidden() -> None:
         ProblemEntry(
             entry_id="p1",
             reported_term=Slot(
-                path="problems[0].reported_term", value="pain",
-                status=SlotStatus.RECORDED, fact_ids=[ledger.facts[0].fact_id],
+                path="problems[0].reported_term",
+                value="pain",
+                status=SlotStatus.RECORDED,
+                fact_ids=[ledger.facts[0].fact_id],
             ),
             reported_year=Slot(path="problems[0].reported_year"),
-            coding=None, unmapped=True,
+            coding=None,
+            unmapped=True,
         )
     )
     summary = build(history)
@@ -299,8 +303,10 @@ def test_smoothing_that_invents_a_word_is_discarded(monkeypatch) -> None:
         def complete(self, *, system, user, schema_hint):
             return LLMResponse(
                 text='{"prose": "Crushing retrosternal ischaemic pain with diaphoresis."}',
-                model_name=self.name, model_version=self.version,
-                prompt="p", offline=False,
+                model_name=self.name,
+                model_version=self.version,
+                prompt="p",
+                offline=False,
             )
 
     import app.modules.summary.prose as prose_module
@@ -324,12 +330,11 @@ def test_smoothing_that_stays_within_the_facts_is_applied(monkeypatch) -> None:
 
         def complete(self, *, system, user, schema_hint):
             return LLMResponse(
-                text=(
-                    '{"prose": "Site: Chest. Onset: All at once, suddenly. '
-                    'Severity 9 of 10."}'
-                ),
-                model_name=self.name, model_version=self.version,
-                prompt="p", offline=False,
+                text=('{"prose": "Site: Chest. Onset: All at once, suddenly. Severity 9 of 10."}'),
+                model_name=self.name,
+                model_version=self.version,
+                prompt="p",
+                offline=False,
             )
 
     import app.modules.summary.prose as prose_module

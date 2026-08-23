@@ -16,12 +16,13 @@ The tier is not a string on a general-purpose object. ``DocumentSpan`` and ``Utt
 are different classes with different required fields, so "a document fact with no page number"
 is a construction error, not a review comment.
 """
+
 from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -135,7 +136,7 @@ class DocumentSpan(_Span):
     handwritten: bool = False
 
 
-Span = Annotated[Union[UtteranceSpan, DocumentSpan], Field(discriminator="kind")]
+Span = Annotated[UtteranceSpan | DocumentSpan, Field(discriminator="kind")]
 
 #: Which spans may back which tier. A `document` fact cannot be backed by an utterance and
 #: vice versa — the tier and the span class are two views of the same truth, kept in step here.

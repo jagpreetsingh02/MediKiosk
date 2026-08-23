@@ -11,6 +11,7 @@ Tapping is ``confirmed`` (the patient affirmed a direct, closed question). Free 
 ``stated``. Those are the two utterance tiers and they mean different things clinically: a
 patient volunteering chest pain is a stronger signal than a patient agreeing that they have it.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -41,8 +42,7 @@ def _validate_choice(question: Question, values: list[str]) -> list[str]:
     unknown = [v for v in values if v not in valid]
     if unknown:
         raise ValidationError(
-            f"{question.id}: {unknown!r} are not options of this question. "
-            f"Valid: {sorted(valid)}."
+            f"{question.id}: {unknown!r} are not options of this question. Valid: {sorted(valid)}."
         )
     exclusives = [v for v in values if (o := question.option(v)) and o.exclusive]
     if exclusives:
@@ -75,13 +75,19 @@ def record_answer(
     known = ontology.known_paths
 
     if modality is Modality.TOUCH:
-        return _record_tapped(
-            ledger, question, value, turn_id, language, known, machine
-        )
+        return _record_tapped(ledger, question, value, turn_id, language, known, machine)
     return _record_spoken_or_typed(
-        ledger, question, value, turn_id, language, known, machine,
-        transcript=transcript, modality=modality,
-        asr_confidence=asr_confidence, audio_ref=audio_ref,
+        ledger,
+        question,
+        value,
+        turn_id,
+        language,
+        known,
+        machine,
+        transcript=transcript,
+        modality=modality,
+        asr_confidence=asr_confidence,
+        audio_ref=audio_ref,
     )
 
 
@@ -95,6 +101,7 @@ def _record_tapped(
     machine: DialogueMachine,
 ) -> list[Fact]:
     selected: tuple[str, ...] | None = None
+    recorded: str | bool | int | list[str]
 
     if question.kind in ("single_choice", "duration"):
         values = _validate_choice(question, [str(value)])
@@ -120,7 +127,11 @@ def _record_tapped(
                 f"{question.scale.min}–{question.scale.max}."
             )
         anchors = question.scale.anchors_hi if language == "hi" else question.scale.anchors_en
-        anchor = anchors[min(number * len(anchors) // (question.scale.max + 1), len(anchors) - 1)] if anchors else ""
+        anchor = (
+            anchors[min(number * len(anchors) // (question.scale.max + 1), len(anchors) - 1)]
+            if anchors
+            else ""
+        )
         recorded = number
         verbatim = f"{anchor} ({number} of {question.scale.max})".strip()
     elif question.options:
@@ -135,13 +146,22 @@ def _record_tapped(
         verbatim = str(value)
 
     span = utterance_span(
-        verbatim=verbatim, turn_id=turn_id, question_id=question.id,
-        modality=Modality.TOUCH, language=language, selected_values=selected,
+        verbatim=verbatim,
+        turn_id=turn_id,
+        question_id=question.id,
+        modality=Modality.TOUCH,
+        language=language,
+        selected_values=selected,
     )
     fact = record_fact(
-        ledger, path=question.path, value=recorded,
-        tier=SourceTier.CONFIRMED, source=span, confidence=TOUCH_CONFIDENCE,
-        provenance_note="kiosk-tap", known_paths=known,
+        ledger,
+        path=question.path,
+        value=recorded,
+        tier=SourceTier.CONFIRMED,
+        source=span,
+        confidence=TOUCH_CONFIDENCE,
+        provenance_note="kiosk-tap",
+        known_paths=known,
     )
     machine.mark_answered(turn_id, recorded, Modality.TOUCH.value)
     machine.state.values[question.path] = recorded
@@ -168,19 +188,30 @@ def _record_spoken_or_typed(
         raise ValidationError(f"{question.id}: an empty answer cannot be recorded.")
 
     span = utterance_span(
-        verbatim=text, turn_id=turn_id, question_id=question.id,
-        modality=modality, full_text=transcript or text, language=language,
-        asr_confidence=asr_confidence, audio_ref=audio_ref,
+        verbatim=text,
+        turn_id=turn_id,
+        question_id=question.id,
+        modality=modality,
+        full_text=transcript or text,
+        language=language,
+        asr_confidence=asr_confidence,
+        audio_ref=audio_ref,
     )
     confidence = (
-        asr_confidence if (modality is Modality.SPEECH and asr_confidence is not None)
+        asr_confidence
+        if (modality is Modality.SPEECH and asr_confidence is not None)
         else TYPED_CONFIDENCE
     )
     # A patient who narrates rather than taps is *stating*, not confirming.
     fact = record_fact(
-        ledger, path=question.path, value=text,
-        tier=SourceTier.STATED, source=span, confidence=confidence,
-        provenance_note=f"kiosk-{modality.value}", known_paths=known,
+        ledger,
+        path=question.path,
+        value=text,
+        tier=SourceTier.STATED,
+        source=span,
+        confidence=confidence,
+        provenance_note=f"kiosk-{modality.value}",
+        known_paths=known,
     )
     machine.mark_answered(turn_id, text, modality.value)
     machine.state.values[question.path] = text
@@ -199,12 +230,20 @@ def record_derived(
     source_value = machine._condition_values().get(question.derive_from or "")
     verbatim = f"{value} (derived from {question.derive_from} = {source_value})"
     span = utterance_span(
-        verbatim=verbatim, turn_id=f"derived_{question.id}", question_id=question.id,
-        modality=Modality.TOUCH, language=machine.state.language,
+        verbatim=verbatim,
+        turn_id=f"derived_{question.id}",
+        question_id=question.id,
+        modality=Modality.TOUCH,
+        language=machine.state.language,
     )
     fact = record_fact(
-        ledger, path=question.path, value=value, tier=SourceTier.CONFIRMED,
-        source=span, confidence=1.0, provenance_note=f"derived:{question.derive_from}",
+        ledger,
+        path=question.path,
+        value=value,
+        tier=SourceTier.CONFIRMED,
+        source=span,
+        confidence=1.0,
+        provenance_note=f"derived:{question.derive_from}",
         known_paths=machine.ontology.known_paths,
     )
     machine.state.values[question.path] = value

@@ -12,6 +12,7 @@ This is why smoothing is safe to offer at all, and it is worth being clear about
 smoothing makes the summary nicer to read and adds a failure mode. The failure mode is
 contained to "the physician sees bullets instead of a sentence", which is not a clinical risk.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,11 +26,11 @@ from app.llm.registry import get_llm
 from app.llm.schemas import SmoothedSection
 from app.modules.summary.assemble import Summary, SummaryLine, SummarySection
 from app.modules.summary.traceability import (
+    _TOKEN,
     STOPWORDS,
     TEMPLATE_VOCABULARY,
     _authored_vocabulary,
     _supported_vocabulary,
-    _TOKEN,
 )
 
 log = get_logger(__name__)
@@ -78,17 +79,15 @@ def smooth(
         # are the correct output here, not a degraded one.
         return summary, [
             SmoothingOutcome(
-                section_id="*", applied=False,
+                section_id="*",
+                applied=False,
                 reason="The offline backend does not generate prose; template output kept.",
             )
         ]
 
     allowed = (sections or SMOOTHABLE) & SMOOTHABLE
     supported = (
-        _supported_vocabulary(ledger)
-        | TEMPLATE_VOCABULARY
-        | STOPWORDS
-        | _authored_vocabulary()
+        _supported_vocabulary(ledger) | TEMPLATE_VOCABULARY | STOPWORDS | _authored_vocabulary()
     )
 
     for section in summary.sections:
@@ -128,17 +127,20 @@ def _smooth_section(
 
     unsupported = sorted(
         {
-            token for token in _TOKEN.findall(smoothed.prose)
+            token
+            for token in _TOKEN.findall(smoothed.prose)
             if token.casefold() not in supported and not token.isnumeric()
         }
     )
     if unsupported:
         log.warning(
             "summary.smoothing_rejected",
-            section=section.section_id, tokens=unsupported[:8],
+            section=section.section_id,
+            tokens=unsupported[:8],
         )
         return SmoothingOutcome(
-            section.section_id, False,
+            section.section_id,
+            False,
             "Smoothed prose introduced words no recorded fact supports; bullets kept.",
             unsupported_tokens=unsupported,
             response=response,
@@ -153,7 +155,8 @@ def _smooth_section(
 
     log.info(
         "summary.smoothed",
-        section=section.section_id, model=response.model_name,
+        section=section.section_id,
+        model=response.model_name,
         prompt_hash=prompt_fingerprint(response.prompt)[:12],
     )
     return SmoothingOutcome(section.section_id, True, None, response=response)

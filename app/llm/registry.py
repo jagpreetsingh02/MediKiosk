@@ -1,4 +1,5 @@
 """Backend selection. Decided once, at startup, and reported in `/about`."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -48,8 +49,9 @@ def describe() -> dict[str, object]:
         "offline": backend.offline,
         "configured": settings.llm_backend,
         "note": (
-            "Deterministic rule-based extractor. No network, no model." if backend.offline
+            "Deterministic rule-based extractor. No network, no model."
+            if backend.offline
             else "Hosted model. All output is JSON-schema validated; a parse failure discards "
-                 "the extraction rather than falling back to free text."
+            "the extraction rather than falling back to free text."
         ),
     }

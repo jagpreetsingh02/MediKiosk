@@ -1,4 +1,5 @@
 """Invariant 1 — the system never diagnoses."""
+
 from __future__ import annotations
 
 import ast

@@ -5,6 +5,7 @@ The session state lives in three places and this module is what keeps them in st
 and the cache (the dialogue state). `load_context()` reads all three; `save_context()` writes
 them back in one place so no route can persist half a session.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -100,8 +101,10 @@ async def load_context(db: AsyncSession, session_ref: str) -> SessionContext:
 
     ledger = FactLedger(session_ref)
     rows = (
-        await db.execute(select(SessionFact).where(SessionFact.session_id == row.id))
-    ).scalars().all()
+        (await db.execute(select(SessionFact).where(SessionFact.session_id == row.id)))
+        .scalars()
+        .all()
+    )
     for fact_row in rows:
         fact = _fact_from_row(fact_row)
         ledger._facts.append(fact)
@@ -137,10 +140,10 @@ async def save_context(db: AsyncSession, context: SessionContext) -> None:
     existing = {
         row.fact_id
         for row in (
-            await db.execute(
-                select(SessionFact).where(SessionFact.session_id == context.row.id)
-            )
-        ).scalars().all()
+            await db.execute(select(SessionFact).where(SessionFact.session_id == context.row.id))
+        )
+        .scalars()
+        .all()
     }
     for fact in context.ledger.facts:
         if fact.fact_id in existing:
@@ -162,10 +165,10 @@ async def save_context(db: AsyncSession, context: SessionContext) -> None:
     superseded = {f.fact_id: f.superseded_by for f in context.ledger.facts if f.superseded_by}
     if superseded:
         for row in (
-            await db.execute(
-                select(SessionFact).where(SessionFact.session_id == context.row.id)
-            )
-        ).scalars().all():
+            (await db.execute(select(SessionFact).where(SessionFact.session_id == context.row.id)))
+            .scalars()
+            .all()
+        ):
             if row.fact_id in superseded:
                 row.superseded_by = superseded[row.fact_id]
 

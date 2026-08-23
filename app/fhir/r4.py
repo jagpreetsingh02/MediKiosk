@@ -11,6 +11,7 @@ The resource list differs from 25026: that service emitted terminology resources
 Bundle. Coding and CodeableConcept carry across unchanged because the closed-vocabulary guard
 does.
 """
+
 from __future__ import annotations
 
 from fhir.resources.R4B.allergyintolerance import AllergyIntolerance

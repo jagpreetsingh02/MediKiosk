@@ -7,6 +7,7 @@ names the exact rule ids. A script that says "should detect an emergency" is not
 Written by hand, not generated. A generated gold set measures how well the system reproduces
 the generator, which is a number that always looks good and means nothing.
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal

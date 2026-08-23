@@ -9,6 +9,7 @@ The rule that carries across intact: terminology content is data. No code string
 or mapping is written in Python anywhere in this repo. `tests/test_no_hardcoded_codes.py`
 enforces it.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -39,18 +40,25 @@ def normalize(text: str) -> str:
 
 
 async def load_codesystem_file(session: AsyncSession, path: Path) -> CodeSystem:
-    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    # Blocking file reads inside an async function, deliberately: this runs once at startup
+    # over three small JSON files before the server accepts traffic. Pushing it to a thread
+    # pool would add machinery to a path where nothing is waiting on the event loop.
+    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))  # noqa: ASYNC240
     url, version = payload["url"], payload["version"]
 
     existing = (
-        await session.execute(
-            select(CodeSystem).where(CodeSystem.url == url, CodeSystem.version == version)
+        (
+            await session.execute(
+                select(CodeSystem).where(CodeSystem.url == url, CodeSystem.version == version)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if existing is not None:
         return existing
 
-    checksum = hashlib.sha256(path.read_bytes()).hexdigest()
+    checksum = hashlib.sha256(path.read_bytes()).hexdigest()  # noqa: ASYNC240
     cs = CodeSystem(
         url=url,
         name=payload["name"],
@@ -108,15 +116,14 @@ async def seed_all(session: AsyncSession, directory: str | None = None) -> dict[
         cs = await load_codesystem_file(session, path)
         count = len(
             (await session.execute(select(Concept.id).where(Concept.code_system_id == cs.id)))
-            .scalars().all()
+            .scalars()
+            .all()
         )
         loaded[f"{cs.url}|{cs.version}"] = count
     return loaded
 
 
-async def lookup(
-    session: AsyncSession, system: str, term: str, *, limit: int = 5
-) -> list[Concept]:
+async def lookup(session: AsyncSession, system: str, term: str, *, limit: int = 5) -> list[Concept]:
     """Normalised-substring lookup. Deliberately dumb, and deliberately allowed to find nothing.
 
     Fuzzy scoring lives in the 25026 service behind pg_trgm; porting it here would add a
@@ -126,25 +133,36 @@ async def lookup(
     if len(key) < 3:
         return []
     cs = (
-        await session.execute(
-            select(CodeSystem)
-            .where(CodeSystem.url == system, CodeSystem.is_active.is_(True))
-            .order_by(CodeSystem.created_at.desc())
+        (
+            await session.execute(
+                select(CodeSystem)
+                .where(CodeSystem.url == system, CodeSystem.is_active.is_(True))
+                .order_by(CodeSystem.created_at.desc())
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     if cs is None:
         return []
     rows = (
-        await session.execute(select(Concept).where(Concept.code_system_id == cs.id))
-    ).scalars().all()
+        (await session.execute(select(Concept).where(Concept.code_system_id == cs.id)))
+        .scalars()
+        .all()
+    )
 
     exact = [c for c in rows if c.display_normalized == key]
     contains = [
-        c for c in rows
+        c
+        for c in rows
         if c is not None and c.display_normalized and key in c.display_normalized and c not in exact
     ]
     reverse = [
-        c for c in rows
-        if c.display_normalized and c.display_normalized in key and c not in exact and c not in contains
+        c
+        for c in rows
+        if c.display_normalized
+        and c.display_normalized in key
+        and c not in exact
+        and c not in contains
     ]
     return (exact + contains + reverse)[:limit]

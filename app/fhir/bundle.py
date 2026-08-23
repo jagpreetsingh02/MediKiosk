@@ -11,6 +11,7 @@ A third rule is MediKiosk's own: **a `Provenance` resource for every clinical re
 provenance chain is not decoration here — it is the entire product. A Condition with no
 Provenance pointing at the utterance behind it should not exist in this bundle.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -53,7 +54,9 @@ def _uuid_ref() -> str:
 
 
 def _text(div: str) -> Narrative:
-    return Narrative(status="generated", div=f'<div xmlns="http://www.w3.org/1999/xhtml">{div}</div>')
+    return Narrative(
+        status="generated", div=f'<div xmlns="http://www.w3.org/1999/xhtml">{div}</div>'
+    )
 
 
 def _concept(text: str, coding: dict[str, Any] | None = None) -> CodeableConcept:
@@ -121,7 +124,8 @@ def build_bundle(
     patient = Patient(
         identifier=[
             Identifier(
-                system="https://healthid.abdm.gov.in/", value=abha_ref or "unlinked",
+                system="https://healthid.abdm.gov.in/",
+                value=abha_ref or "unlinked",
             )
         ],
         active=True,
@@ -163,8 +167,7 @@ def build_bundle(
                         coding=[
                             {
                                 "system": (
-                                    "http://terminology.hl7.org/CodeSystem/"
-                                    "condition-ver-status"
+                                    "http://terminology.hl7.org/CodeSystem/condition-ver-status"
                                 ),
                                 "code": "unconfirmed",
                                 "display": "Unconfirmed",
@@ -198,9 +201,7 @@ def build_bundle(
         if not med.name.recorded:
             continue
         full = _uuid_ref()
-        dosage = " ".join(
-            str(s.value) for s in (med.dose, med.frequency, med.route) if s.recorded
-        )
+        dosage = " ".join(str(s.value) for s in (med.dose, med.frequency, med.route) if s.recorded)
         entries.append(
             BundleEntry(
                 fullUrl=full,
@@ -239,7 +240,8 @@ def build_bundle(
         if inv.value.recorded:
             try:
                 payload["valueQuantity"] = {
-                    "value": float(str(inv.value.value)), "unit": inv.unit or "",
+                    "value": float(str(inv.value.value)),
+                    "unit": inv.unit or "",
                 }
             except ValueError:
                 payload["valueString"] = str(inv.value.value)
@@ -248,11 +250,13 @@ def build_bundle(
                 {
                     **(
                         {"low": {"value": inv.reference_low, "unit": inv.unit or ""}}
-                        if inv.reference_low is not None else {}
+                        if inv.reference_low is not None
+                        else {}
                     ),
                     **(
                         {"high": {"value": inv.reference_high, "unit": inv.unit or ""}}
-                        if inv.reference_high is not None else {}
+                        if inv.reference_high is not None
+                        else {}
                     ),
                 }
             ]

@@ -1,11 +1,12 @@
 """Session creation, consent, and teardown. The kiosk's first and last calls."""
+
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body
 from sqlalchemy import select
 
 from app.api.deps import CurrentIdentity, DbSession, load_context, save_context
@@ -96,8 +97,12 @@ async def create_session(
     await db.flush()
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="session.create", abha_ref=identity.abha_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="session.create",
+        abha_ref=identity.abha_ref,
         consent_ref=consent.consent_ref,
         request_summary={"language": language, "scopes": sorted(consent.granted)},
     )
@@ -107,11 +112,7 @@ async def create_session(
     # Demographics come from the ABHA token, never from the patient re-typing them.
     if identity.demographics:
         context.state.values.update(
-            {
-                f"demographics.{k}": v
-                for k, v in identity.demographics.items()
-                if v is not None
-            }
+            {f"demographics.{k}": v for k, v in identity.demographics.items() if v is not None}
         )
     await save_context(db, context)
 
@@ -151,15 +152,15 @@ async def revoke_consent(
     db: DbSession,
     session_ref: str,
     identity: CurrentIdentity,
-    payload: Annotated[dict, Body()] = {},
+    payload: Annotated[dict | None, Body()] = None,
 ) -> dict[str, Any]:
     """Withdraw consent, wholly or per-scope. Facts under a withdrawn scope are purged."""
     context = await load_context(db, session_ref)
     stored = (
-        await db.execute(
-            select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)
-        )
-    ).scalars().first()
+        (await db.execute(select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)))
+        .scalars()
+        .first()
+    )
     if stored is None:
         raise ConsentRequired(f"No consent record exists for {session_ref}.")
 
@@ -173,7 +174,7 @@ async def revoke_consent(
         policy_version=stored.policy_version,
         expires_at=stored.expires_at,
     )
-    scopes = payload.get("scopes")
+    scopes = (payload or {}).get("scopes")
     result = consent_module.revoke(consent, context.ledger, scopes=scopes)
 
     stored.scopes_granted = sorted(consent.granted)
@@ -181,8 +182,13 @@ async def revoke_consent(
     stored.revoked_at = consent.revoked_at
 
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="consent.revoke", abha_ref=identity.abha_ref, consent_ref=stored.consent_ref,
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="consent.revoke",
+        abha_ref=identity.abha_ref,
+        consent_ref=stored.consent_ref,
         request_summary={"scopes": result["revokedScopes"]},
         response_summary={"factsPurged": result["factsPurged"]},
     )
@@ -192,13 +198,16 @@ async def revoke_consent(
         return {**result, "purge": purged.to_dict()}
 
     # Rewrite the persisted ledger to match what survived the revocation.
-    from app.db.models import SessionFact
     from sqlalchemy import delete
+
+    from app.db.models import SessionFact
 
     surviving = {f.fact_id for f in context.ledger.facts}
     for row in (
-        await db.execute(select(SessionFact).where(SessionFact.session_id == context.row.id))
-    ).scalars().all():
+        (await db.execute(select(SessionFact).where(SessionFact.session_id == context.row.id)))
+        .scalars()
+        .all()
+    ):
         if row.fact_id not in surviving:
             await db.execute(delete(SessionFact).where(SessionFact.id == row.id))
     await save_context(db, context)
@@ -211,8 +220,12 @@ async def purge_session(
 ) -> dict[str, Any]:
     result = await purge(db, session_ref, reason="explicit")
     await record(
-        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
-        action="session.purge", response_summary={"factsDeleted": result.facts_deleted},
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="session.purge",
+        response_summary={"factsDeleted": result.facts_deleted},
     )
     return result.to_dict()
 

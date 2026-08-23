@@ -18,6 +18,7 @@ Two checks, and they catch different failures:
 The stopword and template vocabularies are deliberately explicit rather than statistical. A
 clever check that "usually" catches hallucinations is not a guarantee, and this needs to be one.
 """
+
 from __future__ import annotations
 
 import re
@@ -33,17 +34,20 @@ from app.modules.summary.assemble import Summary, SummaryLine
 log = get_logger(__name__)
 
 #: Words that carry no clinical claim. Everything else must be traceable.
-STOPWORDS = frozenset("""
+STOPWORDS = frozenset(
+    """
 a an the and or but if then than that this these those of in on at to from for with without
 by as is are was were be been being has have had do does did no not none nor so such it its
 their there here when while during over under about into onto up down out off again further
 once each few more most other some any all both which who whom whose what where why how
 patient reports reported states stated says said denies denied describes described
-""".split())
+""".split()
+)
 
 #: Vocabulary the TEMPLATE itself introduces. Fixed strings from assemble.py, never from a
 #: model, so they are traceable to the code rather than to a fact.
-TEMPLATE_VOCABULARY = frozenset("""
+TEMPLATE_VOCABULARY = frozenset(
+    """
 presenting complaint history illness escalation past medical surgical medicines allergies
 prior records family personal review systems ayurvedic assessment covered patient years
 medication reported unmapped undated page pages read mean confidence need verification
@@ -55,7 +59,8 @@ taking substance reaction tobacco alcohol diet sleep bowel occupation pregnancy 
 cardiovascular respiratory gastrointestinal neurological genitourinary musculoskeletal
 prakriti vikriti sara samhanana pramana satmya sattva ahara shakti vyayama vaya agni koshtha
 vihara nidra build backend textlayer tesseract not this is only was of the
-""".split())
+""".split()
+)
 
 _TOKEN = re.compile(r"[a-zA-Zऀ-෿]{3,}")
 
@@ -99,7 +104,9 @@ def _authored_vocabulary() -> frozenset[str]:
     words: set[str] = set()
     for question in load_ontology(ayush=True).by_id.values():
         for chunk in (
-            question.physician_label(), *question.prompt.values(), *question.help.values(),
+            question.physician_label(),
+            *question.prompt.values(),
+            *question.help.values(),
         ):
             words.update(t.casefold() for t in _TOKEN.findall(chunk))
         for option in question.options:
@@ -175,9 +182,7 @@ def check(
                     continue
                 report.unsupported_tokens.append({"token": token, "line": line.text})
 
-    report.ok = not (
-        report.untraced_lines or report.dangling_fact_ids or report.unsupported_tokens
-    )
+    report.ok = not (report.untraced_lines or report.dangling_fact_ids or report.unsupported_tokens)
     return report
 
 
@@ -241,9 +246,7 @@ def with_sources(summary: Summary, ledger: FactLedger) -> list[dict[str, Any]]:
                         "audioRef": getattr(span, "audio_ref", None),
                         "documentId": getattr(span, "document_id", None),
                         "page": getattr(span, "page", None),
-                        "bbox": (
-                            span.bbox.model_dump() if hasattr(span, "bbox") else None
-                        ),
+                        "bbox": (span.bbox.model_dump() if hasattr(span, "bbox") else None),
                         "handwritten": getattr(span, "handwritten", None),
                     }
                 )

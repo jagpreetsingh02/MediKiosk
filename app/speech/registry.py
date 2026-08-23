@@ -1,4 +1,5 @@
 """Speech backend selection. Local first, always — the demo must not need a network."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -14,6 +15,14 @@ log = get_logger(__name__)
 
 @lru_cache(maxsize=1)
 def get_speech() -> SpeechBackend:
+    if settings.speech_backend == "whisper":
+        from app.speech.groq_whisper import GroqWhisperSpeechBackend
+
+        try:
+            return GroqWhisperSpeechBackend()
+        except Exception as exc:
+            log.warning("speech.whisper_unavailable", error=str(exc)[:200])
+            return LocalSpeechBackend()
     if settings.speech_backend == "bhashini":
         from app.speech.bhashini import BhashiniSpeechBackend
 

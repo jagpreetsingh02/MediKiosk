@@ -9,16 +9,16 @@ extraction and keep the deterministic answer, not to guess at what it meant.
 an audit row for every single call (Invariant 6). There is no code path that calls a model
 without producing one of these.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
-from pydantic import BaseModel, ValidationError as PydanticValidationError
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from app.core.errors import LLMContractError
-
-T = TypeVar("T", bound=BaseModel)
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +41,7 @@ class LLMBackend(Protocol):
     def complete(self, *, system: str, user: str, schema_hint: str) -> LLMResponse: ...
 
 
-def parse_or_fail(response: LLMResponse, model: type[T]) -> T:
+def parse_or_fail[T: BaseModel](response: LLMResponse, model: type[T]) -> T:
     """Validate the model's JSON against `model`. No repair, no retry-with-prose, no fallback."""
     import json
 

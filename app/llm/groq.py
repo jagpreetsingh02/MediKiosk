@@ -12,8 +12,10 @@ offline extractor mid-request: a silent backend switch would make the eval numbe
 which backend produced them. The *session* can be configured to use the offline backend; a
 single call cannot switch under you.
 """
+
 from __future__ import annotations
 
+import random
 import time
 
 import httpx
@@ -60,6 +62,19 @@ class GroqLLM:
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     timeout=settings.groq_timeout_seconds,
                 )
+                if response.status_code == 429 and attempt < settings.groq_max_retries:
+                    # Rate limited. Honour Retry-After when the API sends one; otherwise back
+                    # off exponentially with jitter. Retrying immediately three times, which
+                    # is what the first version did, is indistinguishable from not retrying.
+                    delay = _retry_after(response) or (
+                        settings.groq_retry_base_seconds * (2**attempt)
+                        + random.uniform(0, 0.4)
+                    )
+                    log.warning(
+                        "groq.rate_limited", attempt=attempt, sleeping=round(delay, 2)
+                    )
+                    time.sleep(min(delay, settings.groq_max_backoff_seconds))
+                    continue
                 response.raise_for_status()
                 text = response.json()["choices"][0]["message"]["content"]
                 return LLMResponse(
@@ -73,6 +88,19 @@ class GroqLLM:
             except (httpx.HTTPError, KeyError, IndexError) as exc:
                 last_error = exc
                 log.warning("groq.retry", attempt=attempt, error=str(exc)[:200])
+                if attempt < settings.groq_max_retries:
+                    time.sleep(settings.groq_retry_base_seconds * (2**attempt))
         raise UpstreamUnavailable(
             f"Groq call failed after {settings.groq_max_retries + 1} attempts: {last_error}"
         )
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    """Seconds the API asked us to wait, if it said. Groq sends this on 429."""
+    raw = response.headers.get("retry-after")
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None

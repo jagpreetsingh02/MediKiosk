@@ -1,4 +1,5 @@
 """Phase 4 — documents: OCR, entities, ranges, timeline, and the handwriting lane."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -9,7 +10,7 @@ import pytest
 from app.contracts.history import TimelineEvent
 from app.core.errors import UpstreamUnavailable, ValidationError
 from app.modules.dialogue.ontology import load_ontology
-from app.modules.documents.backends import TesseractOCR, TextLayerOCR, get_ocr_backend
+from app.modules.documents.backends import TesseractOCR, TextLayerOCR
 from app.modules.documents.entities import (
     document_date,
     extract_entities,
@@ -65,7 +66,8 @@ def test_every_block_carries_a_bbox_and_confidence() -> None:
 def test_indian_prescription_notation_is_parsed() -> None:
     result = TextLayerOCR().read(
         b"TAB. METFORMIN 500MG 1-0-1 x 30 days\nTAB. AMLODIPINE 5MG OD\nCAP. OMEPRAZOLE 20MG HS",
-        filename="rx.txt", media_type="text/plain",
+        filename="rx.txt",
+        media_type="text/plain",
     )
     entities, _ = extract_entities(result)
     meds = {e.text: e.detail for e in entities if e.kind == "medication"}
@@ -100,7 +102,8 @@ def test_analyte_label_containing_digits_is_not_split() -> None:
 def test_headings_are_not_read_as_medications() -> None:
     result = TextLayerOCR().read(
         b"Patient: someone   Age: 64\nReg No 12345\nDate: 14/03/2026",
-        filename="rx.txt", media_type="text/plain",
+        filename="rx.txt",
+        media_type="text/plain",
     )
     entities, _ = extract_entities(result)
     assert not [e for e in entities if e.kind == "medication"]
@@ -169,7 +172,8 @@ def test_date_parsing_carries_precision(text, expected, precision) -> None:
 def test_document_header_date_is_preferred_over_a_body_year() -> None:
     result = TextLayerOCR().read(
         b"Discharge summary\nOperated in 2019\nDate: 14/03/2026",
-        filename="d.txt", media_type="text/plain",
+        filename="d.txt",
+        media_type="text/plain",
     )
     found, precision, _line = document_date(result)
     assert found == date(2026, 3, 14) and precision == "exact"
@@ -209,8 +213,13 @@ def test_undated_group_is_labelled_not_hidden() -> None:
 def test_ingest_writes_document_tier_facts_with_page_and_bbox(ledger, known_paths) -> None:
     data = (FIXTURES / "prescription.pdf").read_bytes()
     result = ingest(
-        ledger, data, filename="prescription.pdf", media_type="application/pdf",
-        known_paths=known_paths, backend_name="textlayer", sex="female",
+        ledger,
+        data,
+        filename="prescription.pdf",
+        media_type="application/pdf",
+        known_paths=known_paths,
+        backend_name="textlayer",
+        sex="female",
     )
     assert result.facts
     for fact in result.facts:
@@ -226,8 +235,13 @@ def test_handwriting_lane_is_never_auto_merged(ledger, known_paths) -> None:
     if not TesseractOCR().available:
         pytest.skip("tesseract is not installed")
     result = ingest(
-        ledger, data, filename="lab_degraded.png", media_type="image/png",
-        known_paths=known_paths, backend_name="tesseract", sex="female",
+        ledger,
+        data,
+        filename="lab_degraded.png",
+        media_type="image/png",
+        known_paths=known_paths,
+        backend_name="tesseract",
+        sex="female",
     )
     assert result.needs_verification, "the degraded fixture must produce low-confidence entities"
     lane_texts = {e["text"] for e in result.needs_verification}
@@ -240,13 +254,22 @@ def test_verification_by_a_human_is_what_creates_the_fact(ledger, known_paths) -
         pytest.skip("tesseract is not installed")
     data = (FIXTURES / "lab_report_degraded.png").read_bytes()
     result = ingest(
-        ledger, data, filename="lab_degraded.png", media_type="image/png",
-        known_paths=known_paths, backend_name="tesseract", sex="female",
+        ledger,
+        data,
+        filename="lab_degraded.png",
+        media_type="image/png",
+        known_paths=known_paths,
+        backend_name="tesseract",
+        sex="female",
     )
     before = len(ledger.facts)
     facts = verify_entity(
-        ledger, result, entity_index=result.needs_verification[0]["entityIndex"],
-        accepted=True, verified_by="dr.test", known_paths=known_paths,
+        ledger,
+        result,
+        entity_index=result.needs_verification[0]["entityIndex"],
+        accepted=True,
+        verified_by="dr.test",
+        known_paths=known_paths,
     )
     assert facts and len(ledger.facts) > before
 
@@ -256,13 +279,22 @@ def test_rejecting_a_low_confidence_entity_records_nothing(ledger, known_paths) 
         pytest.skip("tesseract is not installed")
     data = (FIXTURES / "lab_report_degraded.png").read_bytes()
     result = ingest(
-        ledger, data, filename="lab_degraded.png", media_type="image/png",
-        known_paths=known_paths, backend_name="tesseract", sex="female",
+        ledger,
+        data,
+        filename="lab_degraded.png",
+        media_type="image/png",
+        known_paths=known_paths,
+        backend_name="tesseract",
+        sex="female",
     )
     before = len(ledger.facts)
     facts = verify_entity(
-        ledger, result, entity_index=result.needs_verification[0]["entityIndex"],
-        accepted=False, verified_by="dr.test", known_paths=known_paths,
+        ledger,
+        result,
+        entity_index=result.needs_verification[0]["entityIndex"],
+        accepted=False,
+        verified_by="dr.test",
+        known_paths=known_paths,
     )
     assert not facts and len(ledger.facts) == before
 
@@ -273,13 +305,23 @@ def test_a_correction_keeps_the_original_ocr_span(ledger, known_paths) -> None:
         pytest.skip("tesseract is not installed")
     data = (FIXTURES / "lab_report_degraded.png").read_bytes()
     result = ingest(
-        ledger, data, filename="lab_degraded.png", media_type="image/png",
-        known_paths=known_paths, backend_name="tesseract", sex="female",
+        ledger,
+        data,
+        filename="lab_degraded.png",
+        media_type="image/png",
+        known_paths=known_paths,
+        backend_name="tesseract",
+        sex="female",
     )
     pending = result.needs_verification[0]
     facts = verify_entity(
-        ledger, result, entity_index=pending["entityIndex"], accepted=True,
-        verified_by="dr.test", known_paths=known_paths, corrected_text="TSH",
+        ledger,
+        result,
+        entity_index=pending["entityIndex"],
+        accepted=True,
+        verified_by="dr.test",
+        known_paths=known_paths,
+        corrected_text="TSH",
     )
     if facts:
         assert facts[0].source.verbatim == pending["sourceText"]
@@ -301,6 +343,10 @@ def test_a_scan_with_no_text_layer_fails_honestly(ledger, known_paths) -> None:
     Image.new("L", (200, 200), 255).save(buffer, format="PNG")
     with pytest.raises((UpstreamUnavailable, ValidationError)):
         ingest(
-            ledger, buffer.getvalue(), filename="blank.png", media_type="image/png",
-            known_paths=known_paths, backend_name="textlayer",
+            ledger,
+            buffer.getvalue(),
+            filename="blank.png",
+            media_type="image/png",
+            known_paths=known_paths,
+            backend_name="textlayer",
         )

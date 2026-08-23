@@ -10,6 +10,7 @@ Two families of table live here and they have very different lifetimes:
   TTL expiry (Invariant 6). The ``ON DELETE CASCADE`` from ``intake_session`` is what makes
   the purge a single statement that cannot half-succeed.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

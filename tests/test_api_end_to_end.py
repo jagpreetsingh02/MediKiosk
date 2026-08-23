@@ -1,8 +1,8 @@
 """The whole journey through the HTTP surface: login → consent → interview → documents →
 physician review → commit → purge. If this passes, the demo works."""
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -28,9 +28,15 @@ async def client(tmp_path, monkeypatch):
     fresh = config_module.Settings()
     monkeypatch.setattr(config_module, "settings", fresh)
     for module in (
-        "app.db.session", "app.terminology.store", "app.modules.consent.session",
-        "app.modules.dialogue.ontology", "app.redflags.engine", "app.llm.registry",
-        "app.speech.registry", "app.modules.consent.consent", "app.main",
+        "app.db.session",
+        "app.terminology.store",
+        "app.modules.consent.session",
+        "app.modules.dialogue.ontology",
+        "app.redflags.engine",
+        "app.llm.registry",
+        "app.speech.registry",
+        "app.modules.consent.consent",
+        "app.main",
     ):
         import importlib
 
@@ -44,9 +50,10 @@ async def client(tmp_path, monkeypatch):
 
     from app.main import app
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as http, app.router.lifespan_context(app):
+    async with (
+        AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http,
+        app.router.lifespan_context(app),
+    ):
         yield http
 
     db_module.get_engine.cache_clear()
@@ -169,9 +176,7 @@ async def test_full_patient_journey(client) -> None:
     escalation = None
     for _ in range(80):
         step = (
-            await client.get(
-                f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token)
-            )
+            await client.get(f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token))
         ).json()
         if step["complete"]:
             break
@@ -181,8 +186,10 @@ async def test_full_patient_journey(client) -> None:
             response = await client.post(
                 f"/api/v1/sessions/{session_ref}/dialogue/answer",
                 json={
-                    "turnId": question["turnId"], "questionId": qid,
-                    "value": answers[qid], "modality": "touch",
+                    "turnId": question["turnId"],
+                    "questionId": qid,
+                    "value": answers[qid],
+                    "modality": "touch",
                 },
                 headers=_auth(token),
             )
@@ -191,7 +198,8 @@ async def test_full_patient_journey(client) -> None:
         else:
             await client.post(
                 f"/api/v1/sessions/{session_ref}/dialogue/skip",
-                json={"questionId": qid}, headers=_auth(token),
+                json={"questionId": qid},
+                headers=_auth(token),
             )
 
     assert escalation is not None
@@ -210,25 +218,22 @@ async def test_full_patient_journey(client) -> None:
     assert upload.json()["factsRecorded"] > 0
 
     timeline = (
-        await client.get(
-            f"/api/v1/sessions/{session_ref}/documents/timeline", headers=_auth(token)
-        )
+        await client.get(f"/api/v1/sessions/{session_ref}/documents/timeline", headers=_auth(token))
     ).json()
     assert timeline["eventCount"] > 0
 
     # --- a patient may NOT commit ------------------------------------------
     refused = await client.post(
         f"/api/v1/sessions/{session_ref}/commit",
-        json={"confirmed": True}, headers=_auth(token),
+        json={"confirmed": True},
+        headers=_auth(token),
     )
     assert refused.status_code == 403, "Invariant 4: only a clinician commits"
 
     # --- physician review ---------------------------------------------------
     clinician = await _clinician_token(client)
     summary = (
-        await client.get(
-            f"/api/v1/sessions/{session_ref}/summary", headers=_auth(clinician)
-        )
+        await client.get(f"/api/v1/sessions/{session_ref}/summary", headers=_auth(clinician))
     ).json()
     assert summary["status"] == "draft"
     assert summary["traceability"]["ok"] is True
@@ -263,7 +268,8 @@ async def test_full_patient_journey(client) -> None:
 
     committed = await client.post(
         f"/api/v1/sessions/{session_ref}/commit",
-        json={"confirmed": True}, headers=_auth(clinician),
+        json={"confirmed": True},
+        headers=_auth(clinician),
     )
     assert committed.status_code == 200, committed.text
     body = committed.json()
@@ -279,31 +285,23 @@ async def test_full_patient_journey(client) -> None:
 
     # --- the session is purged ------------------------------------------------
     assert body["purge"]["factsDeleted"] > 0
-    gone = await client.get(
-        f"/api/v1/sessions/{session_ref}/summary", headers=_auth(clinician)
-    )
+    gone = await client.get(f"/api/v1/sessions/{session_ref}/summary", headers=_auth(clinician))
     assert gone.status_code == 410, "session data must be unreachable after purge"
 
     # --- but the committed bundle survives ------------------------------------
     bundle = (
-        await client.get(
-            f"/api/v1/sessions/{session_ref}/bundle", headers=_auth(clinician)
-        )
+        await client.get(f"/api/v1/sessions/{session_ref}/bundle", headers=_auth(clinician))
     ).json()
-    resources = {
-        entry["resource"]["resourceType"] for entry in bundle["bundle"]["entry"]
-    }
+    resources = {entry["resource"]["resourceType"] for entry in bundle["bundle"]["entry"]}
     assert "Composition" in resources
     assert "Provenance" in resources
 
     # --- and the audit chain is intact ----------------------------------------
-    auditor = (
-        await client.post("/mock-idp/token", json={"role": "auditor"})
-    ).json()["access_token"]
+    auditor = (await client.post("/mock-idp/token", json={"role": "auditor"})).json()[
+        "access_token"
+    ]
     audit = (
-        await client.get(
-            "/api/v1/audit/verify?purpose=RESEARCH", headers=_auth(auditor)
-        )
+        await client.get("/api/v1/audit/verify?purpose=RESEARCH", headers=_auth(auditor))
     ).json()
     assert audit["intact"] is True
     assert audit["totalEvents"] > 10
@@ -330,16 +328,16 @@ async def test_voice_answer_below_threshold_degrades_to_touch(client) -> None:
     ).json()["sessionRef"]
 
     step = (
-        await client.get(
-            f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token)
-        )
+        await client.get(f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token))
     ).json()
     question = step["question"]
     response = await client.post(
         f"/api/v1/sessions/{session_ref}/dialogue/answer/voice",
         json={
-            "turnId": question["turnId"], "questionId": question["questionId"],
-            "transcript": "mujhe dard ho raha hai", "confidence": 0.22,
+            "turnId": question["turnId"],
+            "questionId": question["questionId"],
+            "transcript": "mujhe dard ho raha hai",
+            "confidence": 0.22,
         },
         headers=_auth(token),
     )
@@ -359,16 +357,15 @@ async def test_voice_without_consent_is_refused(client) -> None:
         )
     ).json()["sessionRef"]
     step = (
-        await client.get(
-            f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token)
-        )
+        await client.get(f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token))
     ).json()
     response = await client.post(
         f"/api/v1/sessions/{session_ref}/dialogue/answer/voice",
         json={
             "turnId": step["question"]["turnId"],
             "questionId": step["question"]["questionId"],
-            "transcript": "chest pain", "confidence": 0.95,
+            "transcript": "chest pain",
+            "confidence": 0.95,
         },
         headers=_auth(token),
     )
@@ -410,32 +407,31 @@ async def test_revoking_a_scope_purges_its_facts(client) -> None:
             data={"backend": "textlayer"},
             headers=_auth(token),
         )
-    before = (
-        await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(token))
-    ).json()["factsRecorded"]
+    before = (await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(token))).json()[
+        "factsRecorded"
+    ]
     assert before > 0
 
     revoked = await client.post(
         f"/api/v1/sessions/{session_ref}/consent/revoke",
-        json={"scopes": ["documents"]}, headers=_auth(token),
+        json={"scopes": ["documents"]},
+        headers=_auth(token),
     )
     assert revoked.json()["factsPurged"] > 0
-    after = (
-        await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(token))
-    ).json()["factsRecorded"]
+    after = (await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(token))).json()[
+        "factsRecorded"
+    ]
     assert after < before
 
 
 async def test_triage_nurse_sees_the_queue_but_not_the_narrative(client) -> None:
     """The clinically important asymmetry: a triage desk needs to know someone is urgent,
     not why."""
-    nurse = (
-        await client.post("/mock-idp/token", json={"role": "triage_nurse"})
-    ).json()["access_token"]
+    nurse = (await client.post("/mock-idp/token", json={"role": "triage_nurse"})).json()[
+        "access_token"
+    ]
     assert (await client.get("/api/v1/queue", headers=_auth(nurse))).status_code == 200
-    blocked = await client.get(
-        "/api/v1/sessions/sess_whatever/summary", headers=_auth(nurse)
-    )
+    blocked = await client.get("/api/v1/sessions/sess_whatever/summary", headers=_auth(nurse))
     assert blocked.status_code == 403
 
 
@@ -447,9 +443,7 @@ async def test_terminology_unmapped_is_a_200_not_an_error(client) -> None:
 
 
 async def test_terminology_exact_match_returns_a_retrieved_code(client) -> None:
-    response = await client.get(
-        "/api/v1/terminology/search?term=Type%202%20diabetes%20mellitus"
-    )
+    response = await client.get("/api/v1/terminology/search?term=Type%202%20diabetes%20mellitus")
     body = response.json()
     assert body["unmapped"] is False
     assert body["coding"]["code"] == "5A11"

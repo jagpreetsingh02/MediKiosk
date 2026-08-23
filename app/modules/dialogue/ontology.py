@@ -4,6 +4,7 @@
 This module contains **no clinical content**. It contains the loader, the typed models, and
 the condition evaluator. A clinician changing the interview edits YAML; nobody edits Python.
 """
+
 from __future__ import annotations
 
 import functools
@@ -208,7 +209,8 @@ _ENTRY_PATHS: set[str] = {
 
 def _merge(ontologies: list[Ontology], version: str, title: str) -> Ontology:
     return Ontology(
-        version=version, title=title,
+        version=version,
+        title=title,
         sections=[s for o in ontologies for s in o.sections],
     )
 

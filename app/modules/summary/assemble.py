@@ -9,6 +9,7 @@ two-minute consultation. A template produces the same structure every time, so a
 learns where to look; a model produces prose that reads well and moves things around. Reading
 speed under time pressure comes from predictable structure, not from good sentences.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -50,8 +51,12 @@ class SummaryLine:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "text": self.text, "factIds": self.fact_ids, "kind": self.kind,
-            "tier": self.tier, "confidence": self.confidence, "emphasis": self.emphasis,
+            "text": self.text,
+            "factIds": self.fact_ids,
+            "kind": self.kind,
+            "tier": self.tier,
+            "confidence": self.confidence,
+            "emphasis": self.emphasis,
         }
 
 
@@ -147,14 +152,19 @@ def build(
     )
 
     demo = history.demographics
-    header_bits = [b for b in (
-        f"{demo.age_years} years" if demo.age_years else None,
-        demo.gender,
-    ) if b]
+    header_bits = [
+        b
+        for b in (
+            f"{demo.age_years} years" if demo.age_years else None,
+            demo.gender,
+        )
+        if b
+    ]
     if header_bits:
         summary.sections.append(
             SummarySection(
-                "patient", "Patient",
+                "patient",
+                "Patient",
                 [SummaryLine(", ".join(header_bits), kind="structural")],
             )
         )
@@ -241,12 +251,8 @@ def _problem_lines(history: ClinicalHistory) -> list[SummaryLine]:
         coding = problem.coding
         # `unmapped` is printed, not hidden. A physician seeing "unmapped" knows the term was
         # not codeable; a physician seeing nothing assumes it was never tried.
-        suffix = (
-            f" [{coding.get('code')} {coding.get('display')}]" if coding else " [unmapped]"
-        )
-        year = (
-            f" ({problem.reported_year.value})" if problem.reported_year.recorded else ""
-        )
+        suffix = f" [{coding.get('code')} {coding.get('display')}]" if coding else " [unmapped]"
+        year = f" ({problem.reported_year.value})" if problem.reported_year.recorded else ""
         lines.append(
             SummaryLine(
                 text=f"Reported: {problem.reported_term.value}{year}{suffix}",
@@ -262,7 +268,8 @@ def _document_lines(history: ClinicalHistory) -> list[SummaryLine]:
     for doc in history.documents:
         note = (
             f" — {len(doc.low_confidence_pages)} page(s) need verification"
-            if doc.low_confidence_pages else ""
+            if doc.low_confidence_pages
+            else ""
         )
         lines.append(
             SummaryLine(
@@ -296,12 +303,12 @@ def _gap_lines(history: ClinicalHistory) -> list[SummaryLine]:
         lines.append(
             SummaryLine(
                 f"Patient declined to answer: {', '.join(history.declined)}",
-                kind="structural", emphasis="unverified",
+                kind="structural",
+                emphasis="unverified",
             )
         )
     unasked = [
-        path for path, slot in history.all_slots().items()
-        if slot.status is SlotStatus.NOT_ASKED
+        path for path, slot in history.all_slots().items() if slot.status is SlotStatus.NOT_ASKED
     ]
     if unasked:
         lines.append(

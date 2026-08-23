@@ -19,6 +19,7 @@ Two things this harness does that most do not, and both are the point:
 * **It reports false negatives by name.** A sensitivity figure without the list of missed
   scripts is a number you cannot act on.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -103,7 +104,9 @@ def run_script(script: Script) -> ScriptResult:
     """Walk one gold script through the real system. No mocks, no shortcuts."""
     started = time.perf_counter()
     result = ScriptResult(
-        script_id=script.id, title=script.title, difficulty=script.difficulty,
+        script_id=script.id,
+        title=script.title,
+        difficulty=script.difficulty,
         language=script.language,
         expected_flags=list(script.expected_red_flags),
         expected_priority=script.expected_priority,
@@ -113,9 +116,7 @@ def run_script(script: Script) -> ScriptResult:
     state = DialogueState(
         session_id=script.id, language=script.language, ayush_mode=script.ayush_mode
     )
-    state.values.update(
-        {f"demographics.{k}": v for k, v in script.demographics.items()}
-    )
+    state.values.update({f"demographics.{k}": v for k, v in script.demographics.items()})
     ledger = FactLedger(
         script.id, consent_scopes={"history", "voice", "documents", "ayush", "abdm_share"}
     )
@@ -133,11 +134,15 @@ def run_script(script: Script) -> ScriptResult:
 
             if turn.utterance is not None:
                 outcome = handle_spoken_answer(
-                    machine, ledger,
-                    turn_id=question.turn_id, question_id=question.question_id,
+                    machine,
+                    ledger,
+                    turn_id=question.turn_id,
+                    question_id=question.question_id,
                     transcript=Transcript(
-                        text=turn.utterance, confidence=turn.asr_confidence,
-                        language=script.language, backend="eval",
+                        text=turn.utterance,
+                        confidence=turn.asr_confidence,
+                        language=script.language,
+                        backend="eval",
                     ),
                 )
                 if outcome.degraded_to_touch:
@@ -148,8 +153,11 @@ def run_script(script: Script) -> ScriptResult:
                         again = machine.next_question()
                         if again is not None and again.question_id == question.question_id:
                             record_answer(
-                                machine, ledger, turn_id=again.turn_id,
-                                question_id=again.question_id, value=turn.tap,
+                                machine,
+                                ledger,
+                                turn_id=again.turn_id,
+                                question_id=again.question_id,
+                                value=turn.tap,
                                 modality=Modality.TOUCH,
                             )
                     else:
@@ -158,8 +166,11 @@ def run_script(script: Script) -> ScriptResult:
                     result.hallucinated_quotes += len(outcome.extraction.rejected_unquoted)
             else:
                 record_answer(
-                    machine, ledger, turn_id=question.turn_id,
-                    question_id=question.question_id, value=turn.tap,
+                    machine,
+                    ledger,
+                    turn_id=question.turn_id,
+                    question_id=question.question_id,
+                    value=turn.tap,
                     modality=Modality.TOUCH,
                 )
 
@@ -167,6 +178,10 @@ def run_script(script: Script) -> ScriptResult:
             record_derived(machine, ledger, derived_question, value)
 
     except MediKioskError as exc:
+        # Anything reaching here is a genuine harness or contract failure. Model
+        # unavailability no longer lands here: `handle_spoken_answer` degrades to touch, so
+        # a rate-limited run now measures the DEGRADED path rather than aborting, which is
+        # exactly what a real kiosk would do on a bad network.
         result.ok = False
         result.error = f"{type(exc).__name__}: {exc}"[:200]
         result.duration_ms = int((time.perf_counter() - started) * 1000)
@@ -183,9 +198,7 @@ def run_script(script: Script) -> ScriptResult:
     result.fired_flags = sorted({f.rule_id for f in escalation.flags})
     result.actual_priority = escalation.priority.label
     result.missed_flags = sorted(set(script.expected_red_flags) - set(result.fired_flags))
-    result.forbidden_fired = sorted(
-        set(script.forbidden_red_flags) & set(result.fired_flags)
-    )
+    result.forbidden_fired = sorted(set(script.forbidden_red_flags) & set(result.fired_flags))
 
     # ---- extraction accuracy against the gold slots --------------------------
     actual = {f.path: f.value for f in ledger.active_facts()}
@@ -218,9 +231,8 @@ def run_script(script: Script) -> ScriptResult:
 
     try:
         generated = generate(history, ledger, escalation=escalation)
-        result.untraceable_summary_lines = (
-            len(generated.traceability.untraced_lines)
-            + len(generated.traceability.unsupported_tokens)
+        result.untraceable_summary_lines = len(generated.traceability.untraced_lines) + len(
+            generated.traceability.unsupported_tokens
         )
     except TraceabilityError as exc:
         result.ok = False
@@ -284,10 +296,7 @@ class Report:
     def priority_under_calls(self) -> list[ScriptResult]:
         """The dangerous direction: escalated LESS than the gold script requires."""
         order = {"routine": 0, "urgent": 1, "immediate": 2}
-        return [
-            r for r in self.results
-            if order[r.actual_priority] < order[r.expected_priority]
-        ]
+        return [r for r in self.results if order[r.actual_priority] < order[r.expected_priority]]
 
     @property
     def forbidden_fired(self) -> list[ScriptResult]:
@@ -326,7 +335,6 @@ class Report:
             del matched_paths
         for result in self.results:
             missed = {m["path"] for m in result.mismatched}
-            from eval.runner import load_scripts as _ls  # noqa: PLC0415
 
             del missed
         # Recomputed cleanly below from the scripts themselves.
@@ -336,8 +344,12 @@ class Report:
         return [r for r in self.results if not r.ok]
 
     def to_dict(self) -> dict[str, Any]:
+        from app.llm.registry import get_llm
+
+        backend = get_llm()
         return {
             "scripts": len(self.results),
+            "backend": {"name": backend.name, "offline": backend.offline},
             "metrics": {
                 "hallucinationRate": round(self.hallucination_rate, 6),
                 "unsourcedSummaryClaims": self.unsourced_summary_claims,
@@ -354,12 +366,11 @@ class Report:
                 "timing": self.timing,
             },
             "perField": self.per_field(),
-            "failures": [
-                {"script": r.script_id, "error": r.error} for r in self.failures()
-            ],
+            "failures": [{"script": r.script_id, "error": r.error} for r in self.failures()],
             "missedFlags": [
                 {"script": r.script_id, "missed": r.missed_flags}
-                for r in self.results if r.missed_flags
+                for r in self.results
+                if r.missed_flags
             ],
             "results": [r.to_dict() for r in self.results],
         }
@@ -392,12 +403,21 @@ def _per_field_stats(results: list[ScriptResult]) -> list[dict[str, Any]]:
     )
 
 
+def _backend_line() -> str:
+    from app.llm.registry import get_llm
+
+    backend = get_llm()
+    kind = "offline rule extractor" if backend.offline else "hosted model"
+    return f"  backend: {backend.name} ({kind})"
+
+
 def render(report: Report, *, label: str | None = None) -> str:
     metrics = report.to_dict()["metrics"]
     n = len(report.results)
     lines = [
         "═" * 78,
         f"  MediKiosk evaluation — {label or f'{n} synthetic gold scripts'}",
+        _backend_line(),
         "═" * 78,
         "",
         f"{'Metric':<44}{'Result':>14}{'Target':>18}",
@@ -411,49 +431,57 @@ def render(report: Report, *, label: str | None = None) -> str:
     lines.append(
         row(
             "Hallucination rate (facts with no source)",
-            f"{metrics['hallucinationRate']:.4f}", "0",
+            f"{metrics['hallucinationRate']:.4f}",
+            "0",
             metrics["hallucinationRate"] == 0.0,
         )
     )
     lines.append(
         row(
             "Unsourced claims in generated summaries",
-            str(metrics["unsourcedSummaryClaims"]), "0",
+            str(metrics["unsourcedSummaryClaims"]),
+            "0",
             metrics["unsourcedSummaryClaims"] == 0,
         )
     )
     lines.append(
         row(
             "Red-flag sensitivity (emergency scripts)",
-            f"{metrics['redFlagSensitivity']:.4f}", "≥ 0.98",
+            f"{metrics['redFlagSensitivity']:.4f}",
+            "≥ 0.98",
             metrics["redFlagSensitivity"] >= 0.98,
         )
     )
     lines.append(
         row(
             "Emergency scripts with every flag caught",
-            f"{metrics['emergencyScriptRecall']:.4f}", "1.00",
+            f"{metrics['emergencyScriptRecall']:.4f}",
+            "1.00",
             metrics["emergencyScriptRecall"] >= 1.0,
         )
     )
     lines.append(
         row(
             "Priority under-calls (dangerous direction)",
-            str(len(metrics["priorityUnderCalls"])), "0",
+            str(len(metrics["priorityUnderCalls"])),
+            "0",
             not metrics["priorityUnderCalls"],
         )
     )
     lines.append(
         row(
             "Forbidden flags fired (over-triggering)",
-            str(len(metrics["forbiddenFlagsFired"])), "0",
+            str(len(metrics["forbiddenFlagsFired"])),
+            "0",
             not metrics["forbiddenFlagsFired"],
         )
     )
     lines.append(
         row(
             "Extraction accuracy vs gold slots",
-            f"{metrics['extractionAccuracy']:.4f}", "tracked", True,
+            f"{metrics['extractionAccuracy']:.4f}",
+            "tracked",
+            True,
         )
     )
     lines.append(
@@ -462,12 +490,18 @@ def render(report: Report, *, label: str | None = None) -> str:
     lines.append(
         row(
             "Time to physician-ready summary (median)",
-            f"{metrics['timing'].get('medianMs', 0):.0f} ms", "tracked", True,
+            f"{metrics['timing'].get('medianMs', 0):.0f} ms",
+            "tracked",
+            True,
         )
     )
     lines.append(
-        row("Scripts completing without error", f"{len(report.results) - len(report.failures())}"
-            f"/{len(report.results)}", "50/50", not report.failures())
+        row(
+            "Scripts completing without error",
+            f"{len(report.results) - len(report.failures())}/{len(report.results)}",
+            "50/50",
+            not report.failures(),
+        )
     )
     lines.append("")
 
@@ -525,19 +559,35 @@ def render(report: Report, *, label: str | None = None) -> str:
 
 
 def main() -> int:
+    # The harness prints a metrics table, not a log stream. Per-script INFO lines drown it.
+    import logging
+    import os
+
+    os.environ.setdefault("LOG_LEVEL", "WARNING")
+    from app.core.logging import configure_logging
+
+    configure_logging("WARNING")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
     parser = argparse.ArgumentParser(description="Run the MediKiosk gold-script evaluation.")
     parser.add_argument("--only", help="Run scripts whose id contains this substring.")
     parser.add_argument(
-        "--strict", action="store_true",
+        "--strict",
+        action="store_true",
         help="Exit non-zero on any hallucination, missed red flag, or script failure.",
     )
     parser.add_argument("--json", action="store_true", help="Print the raw JSON report.")
     parser.add_argument(
-        "--holdout", action="store_true",
+        "--out", help="Write the JSON report to this path instead of the default."
+    )
+    parser.add_argument(
+        "--holdout",
+        action="store_true",
         help="Run the held-out set instead. Never tuned against; the honest generalisation number.",
     )
     parser.add_argument(
-        "--both", action="store_true",
+        "--both",
+        action="store_true",
         help="Run the development set and the held-out set, and print the gap between them.",
     )
     args = parser.parse_args()
@@ -560,13 +610,16 @@ def main() -> int:
                 report,
                 label=(
                     f"{len(report.results)} HELD-OUT scripts (never tuned against)"
-                    if args.holdout else None
+                    if args.holdout
+                    else None
                 ),
             )
         )
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = REPORTS_DIR / ("holdout.json" if args.holdout else "latest.json")
+    out = Path(args.out) if args.out else REPORTS_DIR / (
+        "holdout.json" if args.holdout else "latest.json"
+    )
     out.write_text(json.dumps(report.to_dict(), indent=2, default=str) + "\n")
     if not args.json:
         print(f"Full report: {out}")
@@ -600,9 +653,7 @@ def _run_both(args: argparse.Namespace) -> int:
 
     print(render(dev, label=f"{len(dev.results)} development scripts (tuned against)"))
     print()
-    print(
-        render(held, label=f"{len(held.results)} HELD-OUT scripts (never tuned against)")
-    )
+    print(render(held, label=f"{len(held.results)} HELD-OUT scripts (never tuned against)"))
     print()
     print("═" * 78)
     print("  DEVELOPMENT vs HELD-OUT — the gap is the overfitting estimate")
@@ -616,10 +667,7 @@ def _run_both(args: argparse.Namespace) -> int:
         ("History completeness", dev.mean_completeness, held.mean_completeness),
         ("Priority accuracy", dev.priority_accuracy, held.priority_accuracy),
     ):
-        print(
-            f"  {label:<40}{dev_value:>12.4f}{held_value:>12.4f}"
-            f"{held_value - dev_value:>+12.4f}"
-        )
+        print(f"  {label:<40}{dev_value:>12.4f}{held_value:>12.4f}{held_value - dev_value:>+12.4f}")
     print()
     print(f"  Development scripts: {len(dev.results)}   Held-out scripts: {len(held.results)}")
     print("═" * 78)

@@ -9,6 +9,7 @@ Contradictions are preserved rather than resolved. If the patient said "three da
 "about a week", the slot shows the latest value and lists the earlier one under `superseded`.
 Deciding which is true is the physician's job, and they cannot do it if we have thrown one away.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -51,9 +52,11 @@ def _display_value(question: Question, value: Any, language: str) -> Any:
         option = question.option(str(value))
         return option.label_en if option else value
     if question.kind == "multi_choice" and isinstance(value, list):
-        return [
-            (question.option(str(v)).label_en if question.option(str(v)) else v) for v in value
-        ]
+        rendered: list[Any] = []
+        for item in value:
+            option = question.option(str(item))
+            rendered.append(option.label_en if option is not None else item)
+        return rendered
     return value
 
 
@@ -109,9 +112,14 @@ def _group_slot(path: str, facts: list[Fact], label: str = "") -> Slot:
         return Slot(path=path, label=label, status=SlotStatus.NOT_ASKED)
     latest = max(active, key=lambda f: f.recorded_at)
     return Slot(
-        path=path, label=label, value=latest.value, status=SlotStatus.RECORDED,
-        tier=latest.tier, confidence=latest.confidence,
-        fact_ids=[f.fact_id for f in active], verbatim=latest.source.verbatim,
+        path=path,
+        label=label,
+        value=latest.value,
+        status=SlotStatus.RECORDED,
+        tier=latest.tier,
+        confidence=latest.confidence,
+        fact_ids=[f.fact_id for f in active],
+        verbatim=latest.source.verbatim,
     )
 
 
@@ -249,7 +257,9 @@ def project(
         recorded = sum(1 for s in slots.values() if s.recorded)
         # Denominator excludes slots the branch legitimately closed: a section is not
         # "incomplete" because the patient has no allergies to describe.
-        askable = sum(1 for s in slots.values() if s.status is not SlotStatus.NOT_ASKED) or len(slots)
+        askable = sum(1 for s in slots.values() if s.status is not SlotStatus.NOT_ASKED) or len(
+            slots
+        )
         sections[onto_section.id] = Section(
             section_id=onto_section.id,
             title=onto_section.title,
@@ -267,11 +277,11 @@ def project(
     def _section(section_id: str) -> Section:
         return sections.get(section_id) or Section(section_id=section_id, title=section_id)
 
-    total_recorded = sum(
-        1 for s in sections.values() for slot in s.slots.values() if slot.recorded
-    )
+    total_recorded = sum(1 for s in sections.values() for slot in s.slots.values() if slot.recorded)
     total_askable = sum(
-        1 for s in sections.values() for slot in s.slots.values()
+        1
+        for s in sections.values()
+        for slot in s.slots.values()
         if slot.status is not SlotStatus.NOT_ASKED
     )
 
@@ -297,7 +307,5 @@ def project(
         investigations=investigations,
         declined=sorted(set(declined)),
         not_asked=sorted(set(not_asked)),
-        overall_completeness=(
-            round(total_recorded / total_askable, 4) if total_askable else 0.0
-        ),
+        overall_completeness=(round(total_recorded / total_askable, 4) if total_askable else 0.0),
     )

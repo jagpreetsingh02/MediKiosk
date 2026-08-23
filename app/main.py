@@ -4,6 +4,7 @@ Startup does three things and says so in the log: create the schema (SQLite dev 
 owns anything else), seed the terminology tables so the closed-vocabulary guard has something
 to verify against, and sweep any session that expired while the process was down.
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -82,7 +83,9 @@ async def domain_error_handler(request: Request, exc: MediKioskError) -> JSONRes
     """Every domain error becomes a FHIR OperationOutcome. Ported behaviour from SIH 25026."""
     log.warning(
         "request.error",
-        path=request.url.path, error=type(exc).__name__, detail=exc.message[:200],
+        path=request.url.path,
+        error=type(exc).__name__,
+        detail=exc.message[:200],
     )
     return JSONResponse(
         status_code=exc.http_status,

@@ -13,6 +13,7 @@ printed prescriptions and lab reports, which is the expected shape of that resul
 Every entity carries the exact source block, so a `document`-tier fact gets its page and bbox
 for free.
 """
+
 from __future__ import annotations
 
 import re
@@ -43,9 +44,13 @@ class ExtractedEntity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "kind": self.kind, "text": self.text, "page": self.page,
-            "bbox": self.bbox.model_dump(), "confidence": round(self.confidence, 4),
-            "handwritten": self.handwritten, "sourceText": self.source_text,
+            "kind": self.kind,
+            "text": self.text,
+            "page": self.page,
+            "bbox": self.bbox.model_dump(),
+            "confidence": round(self.confidence, 4),
+            "handwritten": self.handwritten,
+            "sourceText": self.source_text,
             "detail": self.detail,
             "observedOn": self.observed_on.isoformat() if self.observed_on else None,
             "datePrecision": self.date_precision,
@@ -76,9 +81,15 @@ MEDICATION_LINE = re.compile(
 #: A medication line must show at least a strength or a recognisable frequency. A bare
 #: capitalised word is a heading, not a drug.
 _ROUTE_WORDS = {
-    "oral": "oral", "po": "oral", "iv": "intravenous", "im": "intramuscular",
-    "sc": "subcutaneous", "topical": "topical", "inhaled": "inhalation",
-    "nebulis": "inhalation", "drops": "ophthalmic",
+    "oral": "oral",
+    "po": "oral",
+    "iv": "intravenous",
+    "im": "intramuscular",
+    "sc": "subcutaneous",
+    "topical": "topical",
+    "inhaled": "inhalation",
+    "nebulis": "inhalation",
+    "drops": "ophthalmic",
 }
 
 # The separator between label and value is REQUIRED. Without it the non-greedy label
@@ -123,8 +134,18 @@ _DATE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 _MONTHS = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 
 
@@ -143,8 +164,11 @@ def parse_date(text: str) -> tuple[date | None, str]:
                 return date(y, m, d), "exact"
             if kind == "dmonthy":
                 return (
-                    date(int(match.group(3)), _MONTHS[match.group(2)[:3].lower()],
-                         int(match.group(1))),
+                    date(
+                        int(match.group(3)),
+                        _MONTHS[match.group(2)[:3].lower()],
+                        int(match.group(1)),
+                    ),
                     "exact",
                 )
             if kind == "monthy":
@@ -167,11 +191,18 @@ def _normalise_frequency(raw: str) -> str:
         taken = [label for label, s in zip(labels, slots, strict=False) if s != "0"]
         return f"{times}× daily ({', '.join(taken)})" if taken else "as directed"
     return {
-        "OD": "once daily", "BD": "twice daily", "BID": "twice daily",
-        "TDS": "three times daily", "TID": "three times daily",
-        "QID": "four times daily", "QDS": "four times daily",
-        "HS": "at bedtime", "SOS": "as needed", "PRN": "as needed",
-        "STAT": "immediately, once", "OW": "once weekly",
+        "OD": "once daily",
+        "BD": "twice daily",
+        "BID": "twice daily",
+        "TDS": "three times daily",
+        "TID": "three times daily",
+        "QID": "four times daily",
+        "QDS": "four times daily",
+        "HS": "at bedtime",
+        "SOS": "as needed",
+        "PRN": "as needed",
+        "STAT": "immediately, once",
+        "OW": "once weekly",
     }.get(cleaned, raw.strip())
 
 
@@ -196,10 +227,16 @@ def extract_from_block(
 
     def _entity(kind: EntityKind, label: str, detail: dict[str, Any]) -> ExtractedEntity:
         return ExtractedEntity(
-            kind=kind, text=label, page=page, bbox=block.bbox,
-            confidence=block.confidence, handwritten=block.handwritten,
-            source_text=text, detail=detail,
-            observed_on=observed, date_precision=precision,
+            kind=kind,
+            text=label,
+            page=page,
+            bbox=block.bbox,
+            confidence=block.confidence,
+            handwritten=block.handwritten,
+            source_text=text,
+            detail=detail,
+            observed_on=observed,
+            date_precision=precision,
         )
 
     diagnosis = DIAGNOSIS_CUE.search(text)
@@ -244,8 +281,12 @@ def extract_from_block(
     if medication and (medication.group("strength") or medication.group("freq")):
         name = (medication.group("name") or "").strip(" .:-")
         # Reject headings and section labels that happen to sit next to a number.
-        if name and len(name) >= 3 and not name.casefold().startswith(
-            ("date", "name", "age", "sex", "patient", "ref", "dr", "reg", "opd", "uhid")
+        if (
+            name
+            and len(name) >= 3
+            and not name.casefold().startswith(
+                ("date", "name", "age", "sex", "patient", "ref", "dr", "reg", "opd", "uhid")
+            )
         ):
             found.append(
                 _entity(

@@ -1,4 +1,5 @@
 """Structured logging. One configuration call, used by the app and by the eval runner."""
+
 from __future__ import annotations
 
 import logging
@@ -16,7 +17,9 @@ def configure_logging(level: str | None = None) -> None:
     if _configured:
         return
     logging.basicConfig(
-        format="%(message)s", stream=sys.stdout, level=getattr(logging, (level or settings.log_level).upper(), logging.INFO)
+        format="%(message)s",
+        stream=sys.stdout,
+        level=getattr(logging, (level or settings.log_level).upper(), logging.INFO),
     )
     structlog.configure(
         processors=[

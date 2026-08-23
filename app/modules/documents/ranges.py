@@ -9,6 +9,7 @@ And the flag is a *range comparison*, never an interpretation. `range_flag: "hig
 number exceeds the interval; it does not mean anything is wrong with the patient. That
 distinction is Invariant 1 at the level of a single field.
 """
+
 from __future__ import annotations
 
 import functools
@@ -49,7 +50,9 @@ def load_analytes() -> tuple[Analyte, ...]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return tuple(
         Analyte(
-            key=item["key"], display=item["display"], unit=item["unit"],
+            key=item["key"],
+            display=item["display"],
+            unit=item["unit"],
             aliases=tuple(a.casefold() for a in item["aliases"]),
             ranges=tuple(item["ranges"]),
         )
@@ -138,7 +141,9 @@ def assess(
 
     if value is None or interval is None:
         return RangeAssessment(
-            flag="unknown", low=None, high=None,
+            flag="unknown",
+            low=None,
+            high=None,
             unit=analyte.unit if analyte else None,
             analyte_key=analyte.key if analyte else None,
             display=analyte.display if analyte else None,
@@ -154,7 +159,9 @@ def assess(
         flag = "in_range"
 
     return RangeAssessment(
-        flag=flag, low=low, high=high,
+        flag=flag,
+        low=low,
+        high=high,
         unit=analyte.unit if analyte else None,
         analyte_key=analyte.key if analyte else None,
         display=analyte.display if analyte else None,
