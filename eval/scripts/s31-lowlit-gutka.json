@@ -1,0 +1,169 @@
+{
+  "id": "s31-lowlit-gutka",
+  "title": "Tobacco described the way people describe it",
+  "language": "hi",
+  "difficulty": "low_literacy",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 45,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "gale mein takleef hai"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "weeks_2_4"
+    },
+    {
+      "question_id": "hpi.site",
+      "utterance": "gala"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "dull"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 4
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "utterance": "main gutka khata hoon din me chaar paanch baar"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "utterance": "kabhi kabhi peeta hoon"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "throat",
+    "personal_history.tobacco": "current_chew",
+    "personal_history.alcohol": "occasional"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [],
+  "expected_priority": "routine",
+  "expected_declined": [],
+  "notes": "Nobody says 'I chew tobacco'. They say gutka, khaini, zarda."
+}

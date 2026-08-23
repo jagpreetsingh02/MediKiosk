@@ -1,0 +1,171 @@
+{
+  "id": "s25-back-pain",
+  "title": "Mechanical low back pain",
+  "language": "en",
+  "difficulty": "plain",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 38,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "pain in my lower back since I lifted a heavy sack"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "week_1"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "back"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "after_event"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "dull"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "worse_movement",
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 5
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "labour"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "back_pain"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "back",
+    "hpi.onset": "after_event"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [
+    "RF-ABDO-02"
+  ],
+  "expected_priority": "routine",
+  "expected_declined": [],
+  "notes": ""
+}

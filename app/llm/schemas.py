@@ -18,7 +18,10 @@ class ExtractedSlot(BaseModel):
     #: Must be a path the ontology defines. Anything else is rejected downstream.
     path: str
     #: For a choice question, one of the rendered option values. For open text, the text.
-    value: str | list[str]
+    #: A boolean question yields a bool and a scale yields an int — modelling those as
+    #: strings would push "is the patient on medication?" through a str("False") round-trip,
+    #: which is exactly where a falsy answer turns into a truthy one.
+    value: str | bool | int | list[str]
     #: A verbatim substring of the patient's utterance. Checked, not trusted.
     quote: str = Field(min_length=1)
     confidence: float = Field(ge=0.0, le=1.0)

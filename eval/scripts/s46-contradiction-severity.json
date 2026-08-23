@@ -1,0 +1,171 @@
+{
+  "id": "s46-contradiction-severity",
+  "title": "Says it is nothing, rates it 9",
+  "language": "en",
+  "difficulty": "contradictory",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 66,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "it is nothing really, just a small pain"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "weeks_2_4"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "abdomen"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "sudden"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "sharp"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 9
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.severity": 9,
+    "hpi.site": "abdomen"
+  },
+  "expected_red_flags": [
+    "RF-ABDO-01",
+    "RF-PAIN-01"
+  ],
+  "forbidden_red_flags": [],
+  "expected_priority": "immediate",
+  "expected_declined": [],
+  "notes": "The tapped 9 is the recorded fact. Stoicism must not lower a priority."
+}

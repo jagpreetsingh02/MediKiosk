@@ -1,0 +1,223 @@
+{
+  "id": "s49-ayush-hinglish",
+  "title": "AYUSH interview in Hinglish",
+  "language": "hi",
+  "difficulty": "mixed",
+  "ayush_mode": true,
+  "demographics": {
+    "age_years": 41,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "pet mein jalan rehti hai"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "weeks_2_4"
+    },
+    {
+      "question_id": "hpi.site",
+      "utterance": "pet"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "utterance": "jalan hoti hai"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 5
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ayush.prakriti_build",
+      "tap": "medium_warm"
+    },
+    {
+      "question_id": "ayush.vikriti",
+      "tap": "burning_acid"
+    },
+    {
+      "question_id": "ayush.sara",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.samhanana",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.pramana",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.satmya",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.sattva",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.ahara_shakti",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.vyayama_shakti",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.agni",
+      "utterance": "hamesha bhookh lagti hai, bahut tez"
+    },
+    {
+      "question_id": "ayush.koshtha",
+      "utterance": "aasani se ho jata hai"
+    },
+    {
+      "question_id": "ayush.vihara",
+      "tap": "moderate"
+    },
+    {
+      "question_id": "ayush.nidra",
+      "tap": "sound"
+    }
+  ],
+  "expected": {
+    "hpi.site": "abdomen",
+    "hpi.character": "burning",
+    "ayush.agni": "tikshna",
+    "ayush.koshtha": "mridu",
+    "ayush.vaya": "madhya"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [],
+  "expected_priority": "routine",
+  "expected_declined": [],
+  "notes": ""
+}

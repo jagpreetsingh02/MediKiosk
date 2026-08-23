@@ -1,0 +1,223 @@
+{
+  "id": "s48-ayush-vata",
+  "title": "AYUSH extended interview",
+  "language": "en",
+  "difficulty": "mixed",
+  "ayush_mode": true,
+  "demographics": {
+    "age_years": 68,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "gas and constipation, and my joints pain"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "weeks_2_4"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "abdomen"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "dull"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 4
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "constipated"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ayush.prakriti_build",
+      "tap": "thin_light"
+    },
+    {
+      "question_id": "ayush.vikriti",
+      "tap": "dryness_gas"
+    },
+    {
+      "question_id": "ayush.sara",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.samhanana",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.pramana",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.satmya",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.sattva",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.ahara_shakti",
+      "tap": "madhyama"
+    },
+    {
+      "question_id": "ayush.vyayama_shakti",
+      "tap": "avara"
+    },
+    {
+      "question_id": "ayush.agni",
+      "tap": "vishama"
+    },
+    {
+      "question_id": "ayush.koshtha",
+      "tap": "krura"
+    },
+    {
+      "question_id": "ayush.vihara",
+      "tap": "moderate"
+    },
+    {
+      "question_id": "ayush.nidra",
+      "tap": "sound"
+    }
+  ],
+  "expected": {
+    "ayush.prakriti_build": "thin_light",
+    "ayush.vikriti": "dryness_gas",
+    "ayush.agni": "vishama",
+    "ayush.koshtha": "krura",
+    "ayush.vaya": "vriddha"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [],
+  "expected_priority": "routine",
+  "expected_declined": [],
+  "notes": "Vaya is DERIVED from age 68, never asked. Every AYUSH answer must carry a code."
+}

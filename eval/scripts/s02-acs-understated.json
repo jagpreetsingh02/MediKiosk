@@ -1,0 +1,164 @@
+{
+  "id": "s02-acs-understated",
+  "title": "ACS described mildly by a stoic patient",
+  "language": "en",
+  "difficulty": "emergency",
+  "demographics": {
+    "age_years": 66,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "just a little discomfort, my wife made me come"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "days_1_3"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "chest"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "utterance": "like something heavy sitting there"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "utterance": "sometimes up to my jaw"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "sweating"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "utterance": "it comes when I climb the stairs"
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 3
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "diabetes"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": true
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "former"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "retired"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "chest_pain_exertion"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "chest",
+    "hpi.character": "pressure",
+    "hpi.radiation": "jaw_neck",
+    "hpi.severity": 3
+  },
+  "expected_red_flags": [
+    "RF-CARD-01",
+    "RF-CARD-02"
+  ],
+  "expected_priority": "immediate",
+  "notes": "Severity 3. A severity-threshold system misses this one; the rules must not."
+}

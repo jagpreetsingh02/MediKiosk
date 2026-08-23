@@ -37,18 +37,49 @@ def _lexicon() -> dict[str, dict[str, list[str]]]:
 
 _WORD = re.compile(r"[\wऀ-෿]+", re.UNICODE)
 
+#: Match scores are bucketed before ranking, so a one-word difference in phrase length does
+#: not outrank the order the patient narrated in. Within a bucket, earliest mention wins.
+#: The scale runs 0.55–0.88, so this gives three meaningful strength bands.
+_SCORE_BUCKET = 0.1
+
+#: Option values that themselves assert absence. Negation suppression does not apply to them.
+_ABSENCE_OPTIONS = frozenset({"none", "never", "no", "na", "not_applicable", "unsure"})
+
 
 def _tokens(text: str) -> list[str]:
     return _WORD.findall(text.casefold())
 
 
-def _find_quote(text: str, needle: str) -> str | None:
-    """Return the exact slice of `text` that matched. Never a reconstruction."""
+def _find_quote(text: str, needle: str) -> tuple[str, int] | None:
+    """Return the exact slice of `text` that matched, and where. Never a reconstruction."""
     lowered = text.casefold()
     index = lowered.find(needle.casefold())
     if index >= 0:
-        return text[index : index + len(needle)]
+        return text[index : index + len(needle)], index
     return None
+
+
+#: Negators. A match immediately preceded by one of these is the patient RULING SOMETHING OUT,
+#: and recording it as present is how a system invents a symptom nobody reported.
+#: "a heavy feeling, like pressure, not sharp" must not yield `sharp`.
+_NEGATORS = (
+    "not", "no", "never", "without", "denies", "denied", "isn't", "wasn't", "doesn't",
+    "didn't", "dont", "don't", "nahin", "nahi", "na", "bilkul nahin", "koi nahin", "illa",
+)
+#: How far back to look. Long enough for "it is not a sharp pain", short enough that a
+#: negator in a previous clause does not suppress an unrelated later symptom.
+_NEGATION_WINDOW = 24
+
+
+def _is_negated(text: str, index: int) -> bool:
+    window = text[max(0, index - _NEGATION_WINDOW) : index].casefold()
+    # Stop at a clause boundary: "no fever, chest pain present" negates fever, not the pain.
+    for boundary in (";", " but ", " however ", " aur ", " and "):
+        cut = window.rfind(boundary)
+        if cut >= 0:
+            window = window[cut + len(boundary) :]
+    tokens = re.findall(r"[\w']+", window)
+    return any(token in _NEGATORS for token in tokens[-4:])
 
 
 def match_options(question: Question, utterance: str) -> list[tuple[str, str, float]]:
@@ -64,19 +95,32 @@ def match_options(question: Question, utterance: str) -> list[tuple[str, str, fl
                 phrases.append(label)
                 phrases.extend(w for w in _tokens(label) if len(w) > 4)
 
-        best: tuple[str, float] | None = None
+        # An option that MEANS absence ("never", "none of these") is not negated by a
+        # preceding negator — "no, I never smoke" reinforces `never`, it does not cancel it.
+        # Suppressing it here recorded nothing at all and lost a real clinical answer.
+        negatable = option.value not in _ABSENCE_OPTIONS
+
+        best: tuple[str, float, int] | None = None
         for phrase in phrases:
-            quote = _find_quote(utterance, phrase)
-            if quote is None:
+            found = _find_quote(utterance, phrase)
+            if found is None:
+                continue
+            quote, index = found
+            if negatable and _is_negated(utterance, index):
                 continue
             # Longer matches are stronger evidence, capped so nothing here reaches certainty.
             score = min(0.55 + 0.03 * len(quote.split()), 0.88)
             if best is None or score > best[1]:
-                best = (quote, score)
+                best = (quote, score, index)
         if best is not None:
-            hits.append((option.value, best[0], best[1]))
+            hits.append((option.value, best[0], best[1], best[2]))
 
-    return sorted(hits, key=lambda h: -h[2])
+    # Rank by strength, then by what the patient said FIRST. Comparable matches are bucketed
+    # so a one-word difference in phrase length does not outrank the order of narration:
+    # in "my face swelled up and I could not breathe" both options are real, and the one
+    # they led with is the one to record for a single-choice question.
+    ranked = sorted(hits, key=lambda h: (-round(h[2] / _SCORE_BUCKET), h[3]))
+    return [(value, quote, score) for value, quote, score, _index in ranked]
 
 
 class OfflineLLM:
@@ -167,7 +211,8 @@ def extract_offline(question: Question, utterance: str) -> dict[str, Any]:
 def _span_covering(text: str, quotes: list[str]) -> str:
     """The smallest slice of `text` containing every quote. Still a real substring."""
     lowered = text.casefold()
-    starts, ends = [], []
+    starts: list[int] = []
+    ends: list[int] = []
     for quote in quotes:
         index = lowered.find(quote.casefold())
         if index >= 0:
@@ -187,13 +232,13 @@ _NO = ("no", "nahin", "nahi", "never", "kabhi nahin", "not", "illa", "false")
 def _polarity(utterance: str) -> tuple[bool, str] | None:
     """Negation first: "no, never" must not read as a yes because "no" contains no vowel cue."""
     for cue in sorted(_NO, key=len, reverse=True):
-        quote = _find_quote(utterance, cue)
-        if quote is not None and _is_whole_word(utterance, quote):
-            return False, quote
+        found = _find_quote(utterance, cue)
+        if found is not None and _is_whole_word(utterance, found[0]):
+            return False, found[0]
     for cue in sorted(_YES, key=len, reverse=True):
-        quote = _find_quote(utterance, cue)
-        if quote is not None and _is_whole_word(utterance, quote):
-            return True, quote
+        found = _find_quote(utterance, cue)
+        if found is not None and _is_whole_word(utterance, found[0]):
+            return True, found[0]
     return None
 
 

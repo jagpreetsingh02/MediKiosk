@@ -1,0 +1,174 @@
+{
+  "id": "s18-knee-oa",
+  "title": "Chronic knee pain",
+  "language": "en",
+  "difficulty": "plain",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 62,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "my knees pain when I walk, since many months"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "months_6_plus"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "joints"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "dull"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "worse_movement",
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 5
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "joint_pain",
+        "morning_stiffness"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "chief_complaint.text": "pain",
+    "hpi.site": "joints"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [
+    "RF-CARD-01",
+    "RF-NEURO-01",
+    "RF-BLEED-01"
+  ],
+  "expected_priority": "routine",
+  "expected_declined": [],
+  "notes": ""
+}

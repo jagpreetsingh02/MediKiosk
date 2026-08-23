@@ -1,0 +1,167 @@
+{
+  "id": "s01-acs-classic",
+  "title": "Classic acute coronary syndrome",
+  "language": "en",
+  "difficulty": "emergency",
+  "demographics": {
+    "age_years": 58,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "I have very bad pain in my chest since this morning"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "today"
+    },
+    {
+      "question_id": "hpi.site",
+      "utterance": "here in the middle of my chest"
+    },
+    {
+      "question_id": "hpi.onset",
+      "utterance": "it started all at once, suddenly, while I was walking"
+    },
+    {
+      "question_id": "hpi.character",
+      "utterance": "it feels heavy, like a pressure on me"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "utterance": "it goes down my left arm also"
+    },
+    {
+      "question_id": "hpi.associated",
+      "utterance": "I had cold sweating and I could not breathe properly"
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "constant"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "worse_effort"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 9
+    },
+    {
+      "question_id": "pmh.conditions",
+      "utterance": "I have sugar and bp both"
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": true
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "heart"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "utterance": "yes I smoke bidi, ten to fifteen a day"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "occasional"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "mixed"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "labour"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "chest_pain_exertion"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "chief_complaint.text": "pain",
+    "hpi.site": "chest",
+    "hpi.onset": "sudden",
+    "hpi.character": "pressure",
+    "hpi.radiation": "left_arm",
+    "hpi.severity": 9,
+    "personal_history.tobacco": "current_smoke"
+  },
+  "expected_red_flags": [
+    "RF-CARD-01",
+    "RF-CARD-02",
+    "RF-RESP-01",
+    "RF-PAIN-01"
+  ],
+  "expected_priority": "immediate",
+  "notes": "The presentation the whole system exists to not miss."
+}

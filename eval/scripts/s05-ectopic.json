@@ -1,0 +1,167 @@
+{
+  "id": "s05-ectopic",
+  "title": "Possible ectopic pregnancy",
+  "language": "en",
+  "difficulty": "emergency",
+  "demographics": {
+    "age_years": 27,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "sharp pain in my lower stomach since yesterday"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "days_1_3"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "abdomen"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "sudden"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "sharp"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "groin"
+    },
+    {
+      "question_id": "hpi.associated",
+      "utterance": "there is some bleeding also, and I feel dizzy"
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "constant"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "worse_movement"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 8
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "office"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "utterance": "possibly, my period is late"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "fainting"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "abdomen",
+    "personal_history.pregnancy": "maybe"
+  },
+  "expected_red_flags": [
+    "RF-OBS-01",
+    "RF-BLEED-03",
+    "RF-SYS-03"
+  ],
+  "expected_priority": "immediate",
+  "notes": "The pregnancy question is asked only because the ABHA token says 27/female."
+}

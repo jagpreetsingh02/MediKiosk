@@ -1,0 +1,174 @@
+{
+  "id": "h11-declines-all-optional",
+  "title": "Declines every optional question",
+  "language": "en",
+  "difficulty": "mixed",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 30,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "tap": "fever"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "weeks_2_4"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "whole_body"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "dull"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 4
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "decline": true
+    },
+    {
+      "question_id": "ph.tobacco",
+      "decline": true
+    },
+    {
+      "question_id": "ph.alcohol",
+      "decline": true
+    },
+    {
+      "question_id": "ph.diet",
+      "decline": true
+    },
+    {
+      "question_id": "ph.sleep",
+      "decline": true
+    },
+    {
+      "question_id": "ph.bowel",
+      "decline": true
+    },
+    {
+      "question_id": "ph.occupation",
+      "decline": true
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "decline": true
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "chief_complaint.text": "fever"
+  },
+  "expected_red_flags": [],
+  "forbidden_red_flags": [],
+  "expected_priority": "routine",
+  "expected_declined": [
+    "personal_history.tobacco",
+    "personal_history.alcohol",
+    "personal_history.diet",
+    "personal_history.sleep",
+    "personal_history.bowel",
+    "personal_history.occupation",
+    "personal_history.pregnancy",
+    "family_history.conditions"
+  ],
+  "notes": ""
+}

@@ -1,0 +1,169 @@
+{
+  "id": "h01-mi-different-words",
+  "title": "Chest pain, phrasing not in the lexicon",
+  "language": "en",
+  "difficulty": "emergency",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 61,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "there is a tightness across my chest since dawn"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "today"
+    },
+    {
+      "question_id": "hpi.site",
+      "utterance": "across the front of my chest"
+    },
+    {
+      "question_id": "hpi.onset",
+      "utterance": "it came on abruptly while I was at rest"
+    },
+    {
+      "question_id": "hpi.character",
+      "utterance": "a squeezing tightness, like a band"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "utterance": "it shoots into my left shoulder and arm"
+    },
+    {
+      "question_id": "hpi.associated",
+      "utterance": "I broke out in a cold sweat and felt winded"
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 8
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "chest",
+    "hpi.character": "pressure",
+    "hpi.radiation": "left_arm"
+  },
+  "expected_red_flags": [
+    "RF-CARD-01"
+  ],
+  "forbidden_red_flags": [],
+  "expected_priority": "immediate",
+  "expected_declined": [],
+  "notes": ""
+}

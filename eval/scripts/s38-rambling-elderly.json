@@ -1,0 +1,169 @@
+{
+  "id": "s38-rambling-elderly",
+  "title": "A long story with the symptom buried in it",
+  "language": "en",
+  "difficulty": "rambling",
+  "ayush_mode": false,
+  "demographics": {
+    "age_years": 78,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "well it started when my grandson came to visit, we had gone to the temple that day and it was very hot, and afterwards I felt this pain in my chest, my daughter said I should come but I said no it is nothing"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "days_1_3"
+    },
+    {
+      "question_id": "hpi.site",
+      "utterance": "in my chest, here, where I showed you"
+    },
+    {
+      "question_id": "hpi.onset",
+      "utterance": "slowly over a few days I think, it is hard to say"
+    },
+    {
+      "question_id": "hpi.character",
+      "utterance": "a heavy feeling, like pressure, not sharp"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "utterance": "some sweating, yes, cold sweating in the night"
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "better_rest"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 6
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": false
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "chest",
+    "hpi.character": "pressure",
+    "hpi.onset": "gradual"
+  },
+  "expected_red_flags": [
+    "RF-CARD-01"
+  ],
+  "forbidden_red_flags": [],
+  "expected_priority": "immediate",
+  "expected_declined": [],
+  "notes": "Length is the difficulty. The span recorded must be the six words that matter."
+}

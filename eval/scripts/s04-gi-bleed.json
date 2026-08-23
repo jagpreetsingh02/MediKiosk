@@ -1,0 +1,166 @@
+{
+  "id": "s04-gi-bleed",
+  "title": "Upper GI bleed",
+  "language": "en",
+  "difficulty": "emergency",
+  "demographics": {
+    "age_years": 49,
+    "gender": "male"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "my stomach is paining and I am passing black motion"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "days_1_3"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "abdomen"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "gradual"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "burning"
+    },
+    {
+      "question_id": "hpi.radiation",
+      "tap": "none"
+    },
+    {
+      "question_id": "hpi.associated",
+      "tap": [
+        "vomiting"
+      ]
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "intermittent"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "worse_empty"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 6
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "ulcer"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": true
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "current_chew"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "daily"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "nonveg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "disturbed"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "loose"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "shop"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "melaena",
+        "nausea"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "abdomen",
+    "review_of_systems.gastrointestinal": [
+      "melaena",
+      "nausea"
+    ]
+  },
+  "expected_red_flags": [
+    "RF-BLEED-01"
+  ],
+  "expected_priority": "immediate"
+}

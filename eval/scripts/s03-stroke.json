@@ -1,0 +1,168 @@
+{
+  "id": "s03-stroke",
+  "title": "Acute stroke, brought by family",
+  "language": "en",
+  "difficulty": "emergency",
+  "demographics": {
+    "age_years": 71,
+    "gender": "female"
+  },
+  "turns": [
+    {
+      "question_id": "cc.text",
+      "utterance": "my right hand became weak suddenly this morning"
+    },
+    {
+      "question_id": "cc.duration",
+      "tap": "today"
+    },
+    {
+      "question_id": "hpi.site",
+      "tap": "limbs"
+    },
+    {
+      "question_id": "hpi.onset",
+      "tap": "sudden"
+    },
+    {
+      "question_id": "hpi.character",
+      "tap": "tingling"
+    },
+    {
+      "question_id": "hpi.associated",
+      "utterance": "my speech also became difficult, and my face is pulling to one side"
+    },
+    {
+      "question_id": "hpi.timing",
+      "tap": "constant"
+    },
+    {
+      "question_id": "hpi.exacerbating",
+      "tap": [
+        "nothing_helps"
+      ]
+    },
+    {
+      "question_id": "hpi.severity",
+      "tap": 7
+    },
+    {
+      "question_id": "pmh.conditions",
+      "tap": [
+        "hypertension"
+      ]
+    },
+    {
+      "question_id": "pmh.hospitalised",
+      "tap": false
+    },
+    {
+      "question_id": "psh.any",
+      "tap": false
+    },
+    {
+      "question_id": "med.taking",
+      "tap": true
+    },
+    {
+      "question_id": "med.ayush_taking",
+      "tap": false
+    },
+    {
+      "question_id": "allergy.any",
+      "tap": false
+    },
+    {
+      "question_id": "fh.conditions",
+      "tap": [
+        "stroke"
+      ]
+    },
+    {
+      "question_id": "ph.tobacco",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.alcohol",
+      "tap": "never"
+    },
+    {
+      "question_id": "ph.diet",
+      "tap": "veg"
+    },
+    {
+      "question_id": "ph.sleep",
+      "tap": "good"
+    },
+    {
+      "question_id": "ph.bowel",
+      "tap": "regular"
+    },
+    {
+      "question_id": "ph.occupation",
+      "tap": "home"
+    },
+    {
+      "question_id": "ph.pregnancy",
+      "tap": "na"
+    },
+    {
+      "question_id": "ros.cardio",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.resp",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.gi",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.neuro",
+      "tap": [
+        "limb_weakness",
+        "facial_droop",
+        "speech"
+      ]
+    },
+    {
+      "question_id": "ros.gu",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.msk",
+      "tap": [
+        "none"
+      ]
+    },
+    {
+      "question_id": "ros.general",
+      "tap": [
+        "none"
+      ]
+    }
+  ],
+  "expected": {
+    "hpi.site": "limbs",
+    "hpi.onset": "sudden",
+    "review_of_systems.neurological": [
+      "limb_weakness",
+      "facial_droop",
+      "speech"
+    ]
+  },
+  "expected_red_flags": [
+    "RF-NEURO-01"
+  ],
+  "expected_priority": "immediate",
+  "notes": "Time-critical window. Must escalate on the HPI answer, before ROS is reached."
+}

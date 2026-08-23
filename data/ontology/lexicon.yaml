@@ -53,7 +53,10 @@ hpi.radiation:
 hpi.associated:
   fever: ["bukhar", "fever", "taap"]
   vomiting: ["ulti", "vomit", "vomiting", "throwing up", "qai"]
-  breathlessness: ["saans", "saans phool", "breathless", "cannot breathe", "short of breath", "dam ghut"]
+  breathlessness: ["saans", "saans phool", "breathless", "cannot breathe", "could not breathe",
+                   "couldn't breathe", "not able to breathe", "unable to breathe",
+                   "difficulty breathing", "trouble breathing", "hard to breathe",
+                   "short of breath", "dam ghut", "saans lene mein"]
   sweating: ["paseena", "pasina", "sweat", "sweating", "cold sweat", "thanda paseena"]
   dizziness: ["chakkar", "dizzy", "dizziness", "faint", "behoshi", "light headed"]
   palpitations: ["dhadkan", "palpitation", "heart racing", "dil tez"]
@@ -107,6 +110,15 @@ ph.alcohol:
   daily: ["roz", "daily", "every day", "har din"]
   former: ["chhod diya", "quit", "stopped drinking", "pehle peeta tha"]
 
+allergy.reaction:
+  rash: ["daane", "rash", "khujli", "itching", "chakatte", "red spots", "hives"]
+  swelling: ["sujan", "swelled", "swelled up", "swelling", "swollen", "soojan", "puff",
+             "face swelled", "lips swelled", "hoth soojh", "chehra sooj"]
+  breathing: ["saans", "could not breathe", "cannot breathe", "breathing problem",
+              "saans ruk", "dam ghut", "wheez", "throat closed"]
+  collapse: ["behosh", "collapsed", "unconscious", "gir gaya", "fainted", "blacked out"]
+  stomach: ["ulti", "vomit", "pet kharab", "loose motion", "stomach upset", "nausea only"]
+
 ros.cardio:
   chest_pain: ["chhaati me dard", "chest pain", "seene me dard"]
   chest_pain_exertion: ["chalne par dard", "chest pain when walking", "on climbing", "chadhne par"]
@@ -116,7 +128,9 @@ ros.cardio:
 
 ros.resp:
   cough: ["khansi", "cough"]
-  cough_3wk: ["teen hafte se khansi", "cough for three weeks", "long cough", "purani khansi"]
+  cough_3wk: ["teen hafte se khansi", "khansi teen hafte", "teen hafte se", "hafte se khansi",
+              "cough for three weeks", "three weeks", "more than three weeks", "long cough",
+              "purani khansi", "kai hafte se", "cough since a month", "mahine se khansi"]
   haemoptysis: ["balgam me khoon", "blood in sputum", "coughing blood", "khoon ki khansi"]
   breathlessness: ["saans phool", "breathless", "short of breath"]
   wheeze: ["seeti", "wheeze", "whistling", "ghar ghar"]
