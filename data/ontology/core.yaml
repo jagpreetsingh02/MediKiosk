@@ -23,6 +23,7 @@ sections:
     questions:
       - id: cc.text
         path: chief_complaint.text
+        label: "Complaint"
         kind: open_text
         required: true
         red_flag_scan: true
@@ -47,6 +48,7 @@ sections:
 
       - id: cc.duration
         path: chief_complaint.duration
+        label: "Duration"
         kind: duration
         required: true
         prompt:
@@ -143,6 +145,7 @@ sections:
 
       - id: hpi.associated
         path: hpi.associated
+        label: "Associated symptoms"
         kind: multi_choice
         socrates: "A — Associations"
         red_flag_scan: true
@@ -179,6 +182,7 @@ sections:
 
       - id: hpi.exacerbating
         path: hpi.exacerbating
+        label: "Aggravating / relieving"
         kind: multi_choice
         socrates: "E — Exacerbating / relieving"
         prompt:
@@ -217,6 +221,7 @@ sections:
     questions:
       - id: pmh.conditions
         path: past_medical.conditions
+        label: "Known conditions"
         kind: multi_choice
         prompt:
           en: "Has a doctor ever told you that you have any of these?"
@@ -241,6 +246,7 @@ sections:
 
       - id: pmh.hospitalised
         path: past_medical.hospitalised
+        label: "Ever admitted"
         kind: boolean
         prompt:
           en: "Have you ever been admitted to a hospital overnight?"
@@ -248,6 +254,7 @@ sections:
 
       - id: pmh.hospital_reason
         path: past_medical.hospital_reason
+        label: "Admission reason"
         kind: open_text
         ask_if:
           all: [{path: past_medical.hospitalised, eq: true}]
@@ -262,6 +269,7 @@ sections:
     questions:
       - id: psh.any
         path: past_surgical.any
+        label: "Any operation"
         kind: boolean
         prompt:
           en: "Have you ever had an operation?"
@@ -269,6 +277,7 @@ sections:
 
       - id: psh.which
         path: past_surgical.which
+        label: "Operations"
         kind: multi_choice
         ask_if:
           all: [{path: past_surgical.any, eq: true}]
@@ -288,6 +297,7 @@ sections:
 
       - id: psh.year
         path: past_surgical.year
+        label: "Operation year"
         kind: open_text
         ask_if:
           all: [{path: past_surgical.any, eq: true}]
@@ -302,6 +312,7 @@ sections:
     questions:
       - id: med.taking
         path: drug_allergy.taking_medicines
+        label: "On medication"
         kind: boolean
         prompt:
           en: "Are you taking any medicines at the moment?"
@@ -312,6 +323,7 @@ sections:
 
       - id: med.list
         path: drug_allergy.medicines
+        label: "Medication"
         kind: open_text
         repeatable: true
         entry_of: medications
@@ -326,6 +338,7 @@ sections:
 
       - id: med.ayush_taking
         path: drug_allergy.ayush_medicines
+        label: "On AYUSH medication"
         kind: boolean
         prompt:
           en: "Are you taking any Ayurvedic, Siddha, Unani or homeopathic medicine?"
@@ -333,6 +346,7 @@ sections:
 
       - id: allergy.any
         path: drug_allergy.has_allergy
+        label: "Any allergy"
         kind: boolean
         red_flag_scan: true
         prompt:
@@ -341,6 +355,7 @@ sections:
 
       - id: allergy.what
         path: drug_allergy.allergy_substance
+        label: "Allergen"
         kind: open_text
         repeatable: true
         entry_of: allergies
@@ -352,6 +367,7 @@ sections:
 
       - id: allergy.reaction
         path: drug_allergy.allergy_reaction
+        label: "Allergic reaction"
         kind: single_choice
         red_flag_scan: true
         ask_if:
@@ -373,6 +389,7 @@ sections:
     questions:
       - id: fh.conditions
         path: family_history.conditions
+        label: "Family conditions"
         kind: multi_choice
         prompt:
           en: "Does anyone in your close family have any of these?"

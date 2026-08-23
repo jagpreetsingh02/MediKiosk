@@ -1,0 +1,227 @@
+# Emergency escalation rules. DATA, reviewable by a clinician without reading Python.
+#
+# INVARIANT 3: these rules are ADDITIVE ONLY. Every rule can raise a patient's priority.
+# There is no rule that can lower one, there is no "low priority" level, and the schema has
+# no field in which to express one. `app/redflags/engine.py` refuses to construct a rule
+# whose effect is anything other than a raise.
+#
+# Recall-biased on purpose. A false positive costs a nurse thirty seconds of attention. A
+# false negative is a patient with an evolving myocardial infarction sitting in a queue for
+# three hours. These rules will fire on people who turn out to be fine, and that is correct.
+#
+# `all` clauses use the same condition DSL as the ontology's ask_if. `level`:
+#   immediate — interrupt triage now
+#   urgent    — move up the queue, see within the hour
+
+version: "1.0.0"
+
+rules:
+
+  # ---------------------------------------------------------------- cardiac
+  - id: RF-CARD-01
+    label: "Chest pain with autonomic or cardiac features"
+    level: immediate
+    rationale: "Chest pain accompanied by sweating, breathlessness or radiation to arm/jaw is an acute coronary presentation until a physician says otherwise."
+    any:
+      - all:
+          - {path: hpi.site, eq: chest}
+          - {path: hpi.associated, in: [sweating, breathlessness, palpitations]}
+      - all:
+          - {path: hpi.site, eq: chest}
+          - {path: hpi.radiation, in: [left_arm, jaw_neck]}
+      - all:
+          - {path: hpi.site, eq: chest}
+          - {path: hpi.onset, eq: sudden}
+          - {path: hpi.severity, gte: 7}
+
+  - id: RF-CARD-02
+    label: "Exertional chest pain"
+    level: urgent
+    rationale: "Chest pain reproducibly brought on by exertion is the classical angina history."
+    any:
+      - all:
+          - {path: review_of_systems.cardiovascular, in: [chest_pain_exertion]}
+      - all:
+          - {path: hpi.site, eq: chest}
+          - {path: hpi.exacerbating, in: [worse_effort]}
+
+  - id: RF-CARD-03
+    label: "Breathless lying flat, with ankle swelling"
+    level: urgent
+    rationale: "Orthopnoea with peripheral oedema is a decompensation history."
+    all:
+      - {path: review_of_systems.cardiovascular, in: [orthopnoea]}
+      - {path: review_of_systems.cardiovascular, in: [ankle_swelling]}
+
+  # ---------------------------------------------------------------- neurological
+  - id: RF-NEURO-01
+    label: "Sudden focal neurological deficit"
+    level: immediate
+    rationale: "Sudden limb weakness, facial droop, speech difficulty or visual loss is a stroke presentation inside a time-critical window."
+    any:
+      - all: [{path: review_of_systems.neurological, in: [limb_weakness]}]
+      - all: [{path: review_of_systems.neurological, in: [facial_droop]}]
+      - all: [{path: review_of_systems.neurological, in: [speech]}]
+      - all: [{path: review_of_systems.neurological, in: [vision_loss]}]
+      - all: [{path: hpi.associated, in: [weakness_limb]}]
+      - all: [{path: hpi.associated, in: [speech_trouble]}]
+
+  - id: RF-NEURO-02
+    label: "Thunderclap headache"
+    level: immediate
+    rationale: "A sudden worst-ever headache is a subarachnoid presentation until excluded."
+    any:
+      - all: [{path: review_of_systems.neurological, in: [thunderclap]}]
+      - all:
+          - {path: hpi.site, eq: head}
+          - {path: hpi.onset, eq: sudden}
+          - {path: hpi.severity, gte: 8}
+
+  - id: RF-NEURO-03
+    label: "Fever with neck stiffness"
+    level: immediate
+    rationale: "Meningism with fever requires assessment before the patient waits in a queue."
+    all:
+      - {path: review_of_systems.neurological, in: [neck_stiff]}
+
+  - id: RF-NEURO-04
+    label: "New seizure"
+    level: urgent
+    rationale: "A first or newly recurrent seizure needs same-visit assessment."
+    all:
+      - {path: review_of_systems.neurological, in: [fits]}
+
+  # ---------------------------------------------------------------- bleeding
+  - id: RF-BLEED-01
+    label: "Upper gastrointestinal bleeding"
+    level: immediate
+    rationale: "Vomiting blood, or black tarry stool, is active bleeding."
+    any:
+      - all: [{path: review_of_systems.gastrointestinal, in: [haematemesis]}]
+      - all: [{path: review_of_systems.gastrointestinal, in: [melaena]}]
+
+  - id: RF-BLEED-02
+    label: "Coughing blood"
+    level: urgent
+    rationale: "Haemoptysis requires assessment for tuberculosis and malignancy."
+    all:
+      - {path: review_of_systems.respiratory, in: [haemoptysis]}
+
+  - id: RF-BLEED-03
+    label: "Bleeding reported with the presenting complaint"
+    level: urgent
+    rationale: "Bleeding volunteered alongside the main complaint is escalated pending assessment."
+    any:
+      - all: [{path: hpi.associated, in: [bleeding]}]
+      - all: [{path: review_of_systems.general, in: [bleeding_any]}]
+      - all: [{path: review_of_systems.genitourinary, in: [haematuria]}]
+
+  # ---------------------------------------------------------------- respiratory
+  - id: RF-RESP-01
+    label: "Acute breathlessness"
+    level: immediate
+    rationale: "Breathlessness reported with the presenting complaint needs oxygen saturation before queueing."
+    all:
+      - {path: hpi.associated, in: [breathlessness]}
+
+  - id: RF-RESP-02
+    label: "Prolonged cough with constitutional symptoms"
+    level: urgent
+    rationale: "Cough beyond three weeks with night sweats or weight loss is a tuberculosis screening trigger; India has a national obligation here."
+    any:
+      - all:
+          - {path: review_of_systems.respiratory, in: [cough_3wk]}
+          - {path: review_of_systems.respiratory, in: [night_sweats]}
+      - all:
+          - {path: review_of_systems.respiratory, in: [cough_3wk]}
+          - {path: review_of_systems.general, in: [weight_loss]}
+      - all:
+          - {path: review_of_systems.respiratory, in: [cough_3wk]}
+          - {path: review_of_systems.general, in: [fever_persistent]}
+
+  # ---------------------------------------------------------------- abdominal
+  - id: RF-ABDO-01
+    label: "Severe acute abdominal pain"
+    level: immediate
+    rationale: "Sudden severe abdominal pain covers perforation, obstruction and ruptured aneurysm."
+    all:
+      - {path: hpi.site, eq: abdomen}
+      - {path: hpi.onset, eq: sudden}
+      - {path: hpi.severity, gte: 7}
+
+  - id: RF-ABDO-02
+    label: "Abdominal pain radiating to the back"
+    level: urgent
+    rationale: "Back-radiating abdominal pain covers pancreatitis and aortic pathology."
+    all:
+      - {path: hpi.site, eq: abdomen}
+      - {path: hpi.radiation, in: [back]}
+
+  - id: RF-ABDO-03
+    label: "Jaundice"
+    level: urgent
+    rationale: "New jaundice needs same-visit hepatic assessment."
+    all:
+      - {path: review_of_systems.gastrointestinal, in: [jaundice]}
+
+  # ---------------------------------------------------------------- systemic
+  - id: RF-SYS-01
+    label: "Unexplained weight loss"
+    level: urgent
+    rationale: "Unintentional weight loss is a malignancy and tuberculosis screening trigger."
+    any:
+      - all: [{path: hpi.associated, in: [weight_loss]}]
+      - all: [{path: review_of_systems.general, in: [weight_loss]}]
+      - all: [{path: review_of_systems.gastrointestinal, in: [weight_loss]}]
+
+  - id: RF-SYS-02
+    label: "Anaphylaxis history"
+    level: immediate
+    rationale: "Airway swelling or collapse after an exposure must be visible before any medicine is prescribed today."
+    any:
+      - all: [{path: drug_allergy.allergy_reaction, eq: swelling}]
+      - all: [{path: drug_allergy.allergy_reaction, eq: breathing}]
+      - all: [{path: drug_allergy.allergy_reaction, eq: collapse}]
+
+  - id: RF-SYS-03
+    label: "Fainting or collapse"
+    level: urgent
+    rationale: "Syncope covers arrhythmia, bleeding and hypoglycaemia."
+    any:
+      - all: [{path: review_of_systems.neurological, in: [fainting]}]
+      - all: [{path: hpi.associated, in: [dizziness]}]
+
+  - id: RF-SYS-04
+    label: "Difficulty swallowing"
+    level: urgent
+    rationale: "New dysphagia is an oesophageal malignancy screening trigger."
+    all:
+      - {path: review_of_systems.gastrointestinal, in: [swallowing]}
+
+  - id: RF-SYS-05
+    label: "Complete urinary retention"
+    level: immediate
+    rationale: "Inability to pass urine requires catheterisation, not a queue."
+    all:
+      - {path: review_of_systems.genitourinary, in: [retention]}
+
+  # ---------------------------------------------------------------- obstetric
+  - id: RF-OBS-01
+    label: "Possible pregnancy with abdominal pain or bleeding"
+    level: immediate
+    rationale: "Ectopic pregnancy. The single most time-critical presentation this system will see in a general OPD."
+    any:
+      - all:
+          - {path: personal_history.pregnancy, in: [yes, maybe]}
+          - {path: hpi.site, eq: abdomen}
+      - all:
+          - {path: personal_history.pregnancy, in: [yes, maybe]}
+          - {path: hpi.associated, in: [bleeding]}
+
+  # ---------------------------------------------------------------- severity floor
+  - id: RF-PAIN-01
+    label: "Pain rated 9 or 10 out of 10"
+    level: urgent
+    rationale: "Whatever the cause, a patient reporting near-maximal pain should not wait three hours."
+    all:
+      - {path: hpi.severity, gte: 9}

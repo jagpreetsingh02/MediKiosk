@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.contracts.history import DocumentRef, TimelineEvent
+from app.contracts.history import DocumentRef, TimelineEvent, api_dump
 from app.contracts.provenance import DocumentSpan, Fact, SourceTier
 from app.contracts.record import FactLedger, record_fact
 from app.core.config import settings
@@ -58,7 +58,7 @@ class IngestResult:
             "pages": self.pages,
             "meanConfidence": round(self.mean_confidence, 4),
             "factsRecorded": len(self.facts),
-            "timeline": [e.model_dump(mode="json") for e in self.timeline],
+            "timeline": [api_dump(e) for e in self.timeline],
             "needsVerification": self.needs_verification,
             "lowConfidenceCount": len(self.needs_verification),
         }

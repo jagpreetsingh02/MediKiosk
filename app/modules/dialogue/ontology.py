@@ -98,7 +98,12 @@ class Question(BaseModel):
     id: str
     path: str
     kind: QuestionKind
+    #: What the PATIENT hears. Written for a first-time, possibly non-literate user.
     prompt: dict[str, str]
+    #: What the PHYSICIAN reads on the summary. Two audiences, two registers: "What is
+    #: troubling you today?" is right for a kiosk and useless in a dense clinical summary.
+    #: Defaults to the prettified path leaf, which is right for most fields.
+    label: str | None = None
     help: dict[str, str] = Field(default_factory=dict)
     options: list[Option] = Field(default_factory=list)
     scale: Scale | None = None
@@ -132,6 +137,11 @@ class Question(BaseModel):
         if language in self.prompt:
             return self.prompt[language], False
         return self.prompt["en"], language != "en"
+
+    def physician_label(self) -> str:
+        if self.label:
+            return self.label
+        return self.path.rsplit(".", 1)[-1].replace("_", " ").capitalize()
 
     def option(self, value: str) -> Option | None:
         return next((o for o in self.options if o.value == value), None)

@@ -145,8 +145,18 @@ def extract_offline(question: Question, utterance: str) -> dict[str, Any]:
                 {"path": question.path, "value": str(value), "quote": quote, "confidence": 0.75}
             )
     else:
+        # An open_text question may ALSO render tap options (the chief complaint does).
+        # Try to land the narration on one of them first: "mere chhaati mein dard" is more
+        # useful to the physician as `pain` than as an unparsed sentence. Fall back to the
+        # raw text when nothing matches, so nothing the patient said is ever discarded.
+        hits = match_options(question, utterance) if question.options else []
         stripped = utterance.strip()
-        if stripped:
+        if hits:
+            value, quote, confidence = hits[0]
+            slots.append(
+                {"path": question.path, "value": value, "quote": quote, "confidence": confidence}
+            )
+        elif stripped:
             slots.append(
                 {"path": question.path, "value": stripped, "quote": stripped, "confidence": 0.9}
             )

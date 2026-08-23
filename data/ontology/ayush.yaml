@@ -23,6 +23,7 @@ sections:
 
       - id: ayush.prakriti_build
         path: ayush.prakriti_build
+        label: "Prakriti (build)"
         kind: single_choice
         parameter: "Prakriti"
         parameter_code: "DVP-01"

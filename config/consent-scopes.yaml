@@ -1,0 +1,82 @@
+# Granular consent scopes. Each is a separate, independently refusable permission.
+#
+# `required: true` means the kiosk cannot proceed without it — the patient can still refuse,
+# and the session simply ends with nothing captured, which is the correct outcome of a refusal.
+# Everything else is genuinely optional and refusing it must not degrade the rest of the visit.
+#
+# `audio_hi` / `audio_en` are read aloud by the kiosk. They are written for someone who has
+# never used a computer, and they say what actually happens, including deletion.
+
+version: "1.0.0"
+policy_version: "1.0.0"
+
+scopes:
+  - id: history
+    required: true
+    title_en: "Record what you tell me about your health"
+    title_hi: "आपकी सेहत के बारे में जो आप बताएँगे, वह लिखना"
+    audio_en: >-
+      I will ask you some questions about your health and write down your answers,
+      so the doctor can read them before you go in. You can stop at any time.
+    audio_hi: >-
+      मैं आपसे आपकी सेहत के बारे में कुछ सवाल पूछूँगा और आपके जवाब लिख लूँगा,
+      ताकि डॉक्टर आपके अंदर जाने से पहले उन्हें पढ़ सकें। आप कभी भी रोक सकते हैं।
+
+  - id: voice
+    required: false
+    title_en: "Listen to your voice while you answer"
+    title_hi: "जवाब देते समय आपकी आवाज़ सुनना"
+    audio_en: >-
+      If you allow it, you can speak your answers instead of pressing buttons.
+      Your voice is used only to write down your answer, and is deleted when you finish.
+      If you say no, you can still answer everything by pressing the buttons.
+    audio_hi: >-
+      अगर आप अनुमति दें, तो आप बटन दबाने के बजाय बोलकर जवाब दे सकते हैं।
+      आपकी आवाज़ सिर्फ़ जवाब लिखने के लिए इस्तेमाल होगी, और काम पूरा होते ही मिटा दी जाएगी।
+      अगर आप मना करें, तब भी आप सब कुछ बटन दबाकर बता सकते हैं।
+
+  - id: documents
+    required: false
+    title_en: "Scan your old prescriptions and reports"
+    title_hi: "आपकी पुरानी पर्चियाँ और रिपोर्ट स्कैन करना"
+    audio_en: >-
+      If you have old prescriptions or test reports with you, I can scan them so the
+      doctor can see them. The scans are deleted after your visit.
+    audio_hi: >-
+      अगर आपके पास पुरानी पर्चियाँ या जाँच की रिपोर्ट हैं, तो मैं उन्हें स्कैन कर सकता हूँ
+      ताकि डॉक्टर उन्हें देख सकें। आपकी मुलाक़ात के बाद ये स्कैन मिटा दिए जाते हैं।
+
+  - id: abdm_share
+    required: false
+    title_en: "Send the summary to your health record after the doctor approves it"
+    title_hi: "डॉक्टर की मंज़ूरी के बाद सारांश आपके स्वास्थ्य रिकॉर्ड में भेजना"
+    audio_en: >-
+      After the doctor has read and approved the summary, it can be saved to your own
+      national health record, linked to your ABHA number. Nothing is sent unless the
+      doctor approves it first. If you say no, the doctor still sees everything today.
+    audio_hi: >-
+      डॉक्टर द्वारा सारांश पढ़ने और मंज़ूरी देने के बाद, उसे आपके राष्ट्रीय स्वास्थ्य रिकॉर्ड में,
+      आपके आभा नंबर से जोड़कर सहेजा जा सकता है। डॉक्टर की मंज़ूरी के बिना कुछ नहीं भेजा जाता।
+      अगर आप मना करें, तब भी डॉक्टर आज सब कुछ देख सकेंगे।
+
+  - id: ayush
+    required: false
+    title_en: "Ask a few extra questions used in Ayurvedic assessment"
+    title_hi: "आयुर्वेदिक आकलन में काम आने वाले कुछ अतिरिक्त सवाल पूछना"
+    audio_en: >-
+      This clinic also practises Ayurveda. If you allow it, I will ask a few more
+      questions about your body type, digestion and daily habits.
+    audio_hi: >-
+      यह चिकित्सालय आयुर्वेद भी करता है। अगर आप अनुमति दें, तो मैं आपके शरीर के प्रकार,
+      पाचन और रोज़ की आदतों के बारे में कुछ और सवाल पूछूँगा।
+
+# What the patient is told, in every language, before any question is asked.
+preamble:
+  en: >-
+    Before we begin: everything you tell me is deleted from this machine when your visit
+    ends. The doctor will see it, and nobody else. You can stop at any time, and you can
+    change your mind about any of this later.
+  hi: >-
+    शुरू करने से पहले: आप जो कुछ भी बताएँगे, वह आपकी मुलाक़ात ख़त्म होते ही इस मशीन से मिटा
+    दिया जाता है। इसे सिर्फ़ डॉक्टर देखेंगे, और कोई नहीं। आप कभी भी रोक सकते हैं, और बाद में
+    इनमें से किसी भी बात पर अपना मन बदल सकते हैं।

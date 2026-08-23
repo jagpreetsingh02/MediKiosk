@@ -19,6 +19,7 @@ from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from app.contracts.provenance import AbsenceReason, Fact, SourceTier
 
@@ -34,6 +35,11 @@ FORBIDDEN_CLINICAL_FIELDS = frozenset(
 )
 
 
+#: Every model in this module serialises camelCase on the wire (`by_alias=True`, applied at
+#: the API boundary by `api_dump`) and is constructed by field name internally. One casing
+#: convention on the wire matters more than which one it is.
+
+
 class SlotStatus(StrEnum):
     RECORDED = "recorded"
     NOT_ASKED = "not_asked"
@@ -47,7 +53,9 @@ class Slot(BaseModel):
     recorded slot without at least one backing fact.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     path: str
     label: str = ""
@@ -72,7 +80,9 @@ class Slot(BaseModel):
 class Section(BaseModel):
     """An ordered group of slots, as the physician expects to read them."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     section_id: str
     title: str
@@ -88,7 +98,9 @@ class Section(BaseModel):
 
 
 class Medication(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     entry_id: str
     name: Slot
@@ -103,7 +115,9 @@ class Medication(BaseModel):
 
 
 class Allergy(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     entry_id: str
     substance: Slot
@@ -114,7 +128,9 @@ class Allergy(BaseModel):
 class ProblemEntry(BaseModel):
     """A problem the patient or a document *reports*. Not an assessment: reported history only."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     entry_id: str
     reported_term: Slot
@@ -125,7 +141,9 @@ class ProblemEntry(BaseModel):
 
 
 class InvestigationResult(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     entry_id: str
     analyte: Slot
@@ -140,7 +158,9 @@ class InvestigationResult(BaseModel):
 
 
 class TimelineEvent(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     event_id: str
     occurred_on: date | None
@@ -157,7 +177,9 @@ class TimelineEvent(BaseModel):
 class RedFlag(BaseModel):
     """Fired by the deterministic rule engine only. Additive: it can never lower a priority."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     rule_id: str
     label: str
@@ -170,7 +192,9 @@ class RedFlag(BaseModel):
 
 
 class DocumentRef(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     document_id: str
     filename: str
@@ -185,7 +209,9 @@ class DocumentRef(BaseModel):
 class Demographics(BaseModel):
     """From the ABHA token only. The kiosk never asks the patient to re-type these."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     abha_ref: str | None = None
     display_name: str | None = None
@@ -201,7 +227,9 @@ class Demographics(BaseModel):
 class ClinicalHistory(BaseModel):
     """The physician-facing structured record. Rebuilt from the ledger; never hand-edited."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     session_id: str
     schema_version: str = "1.0.0"
@@ -267,7 +295,9 @@ class ClinicalHistory(BaseModel):
 class LedgerSnapshot(BaseModel):
     """Everything the projection was built from. Shipped alongside the history for audit."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
 
     session_id: str
     facts: list[Fact]
@@ -279,3 +309,8 @@ class LedgerSnapshot(BaseModel):
 
 def absence_status(reason: AbsenceReason) -> SlotStatus:
     return SlotStatus.DECLINED if reason is AbsenceReason.DECLINED else SlotStatus.NOT_ASKED
+
+
+def api_dump(model: BaseModel) -> dict[str, Any]:
+    """Serialise for the wire: camelCase, JSON-safe, nulls dropped."""
+    return model.model_dump(mode="json", by_alias=True, exclude_none=False)

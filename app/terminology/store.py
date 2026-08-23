@@ -84,11 +84,27 @@ async def load_codesystem_file(session: AsyncSession, path: Path) -> CodeSystem:
     return cs
 
 
+def is_codesystem_file(path: Path) -> bool:
+    """A CodeSystem file declares a url, a version and concepts.
+
+    The seed directory also holds non-CodeSystem data (reference-ranges.json), so the
+    seeder identifies its input by SHAPE rather than by globbing every .json and hoping.
+    """
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    return isinstance(payload, dict) and {"url", "version", "concepts"} <= set(payload)
+
+
 async def seed_all(session: AsyncSession, directory: str | None = None) -> dict[str, int]:
     """Load every CodeSystem JSON in the seed directory. Idempotent."""
     seed_dir = settings.path(directory or settings.terminology_seed_dir)
     loaded: dict[str, int] = {}
     for path in sorted(seed_dir.glob("*.json")):
+        if not is_codesystem_file(path):
+            log.debug("terminology.skipped", file=path.name, reason="not a CodeSystem")
+            continue
         cs = await load_codesystem_file(session, path)
         count = len(
             (await session.execute(select(Concept.id).where(Concept.code_system_id == cs.id)))

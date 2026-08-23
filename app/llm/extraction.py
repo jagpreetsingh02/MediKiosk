@@ -154,12 +154,13 @@ def extract(
 
         # --- gate 3: the value must be an allowed option -------------------------
         target = ontology.by_path.get(slot.path, question)
-        if target.options:
-            wanted = slot.value if isinstance(slot.value, list) else [slot.value]
-            allowed = target.valid_values()
-            if not all(str(v) in allowed for v in wanted):
-                outcome.rejected_bad_value.append({"path": slot.path, "value": slot.value})
-                continue
+        wanted = slot.value if isinstance(slot.value, list) else [slot.value]
+        allowed = target.valid_values()
+        is_coded = bool(allowed) and all(str(v) in allowed for v in wanted)
+        if target.options and target.kind != "open_text" and not is_coded:
+            # A choice question admits nothing but its own options.
+            outcome.rejected_bad_value.append({"path": slot.path, "value": slot.value})
+            continue
 
         # --- gate 4: record_fact re-checks everything independently --------------
         # The quote, not the whole utterance, is the span. The provenance a physician sees
@@ -185,7 +186,10 @@ def extract(
                 confidence=min(slot.confidence, asr_confidence or 1.0),
                 provenance_note=f"extracted:{backend.name}",
                 known_paths=ontology.known_paths,
-                coded_value_of=target.valid_values() if target.options else None,
+                # Closed-vocabulary proof applies only to a value that IS an option.
+                # Free narration on an open_text question proves itself the normal way:
+                # by appearing in its own source span.
+                coded_value_of=allowed if is_coded else None,
             )
         except (ProvenanceError, ValidationError) as exc:
             outcome.rejected_unquoted.append(

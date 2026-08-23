@@ -20,6 +20,7 @@ sections:
 
       - id: ros.cardio
         path: review_of_systems.cardiovascular
+        label: "Cardiovascular"
         kind: multi_choice
         system: "Cardiovascular"
         red_flag_scan: true
@@ -36,6 +37,7 @@ sections:
 
       - id: ros.resp
         path: review_of_systems.respiratory
+        label: "Respiratory"
         kind: multi_choice
         system: "Respiratory"
         red_flag_scan: true
@@ -53,6 +55,7 @@ sections:
 
       - id: ros.gi
         path: review_of_systems.gastrointestinal
+        label: "Gastrointestinal"
         kind: multi_choice
         system: "Gastrointestinal"
         red_flag_scan: true
@@ -73,6 +76,7 @@ sections:
 
       - id: ros.neuro
         path: review_of_systems.neurological
+        label: "Neurological"
         kind: multi_choice
         system: "Neurological"
         red_flag_scan: true
@@ -94,6 +98,7 @@ sections:
 
       - id: ros.gu
         path: review_of_systems.genitourinary
+        label: "Genitourinary"
         kind: multi_choice
         system: "Genitourinary"
         red_flag_scan: true
@@ -111,6 +116,7 @@ sections:
 
       - id: ros.msk
         path: review_of_systems.musculoskeletal
+        label: "Musculoskeletal"
         kind: multi_choice
         system: "Musculoskeletal"
         prompt:
@@ -126,6 +132,7 @@ sections:
 
       - id: ros.general
         path: review_of_systems.general
+        label: "General"
         kind: multi_choice
         system: "General"
         red_flag_scan: true

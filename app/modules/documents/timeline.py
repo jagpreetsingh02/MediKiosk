@@ -16,7 +16,7 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from app.contracts.history import TimelineEvent
+from app.contracts.history import TimelineEvent, api_dump
 from app.modules.documents.entities import ExtractedEntity
 
 #: Order within the same date. A diagnosis contextualises the drugs and results beneath it.
@@ -108,7 +108,7 @@ def group_by_period(events: list[TimelineEvent]) -> list[dict]:
         {
             "period": key,
             "label": key,
-            "events": [e.model_dump(mode="json") for e in buckets[key]],
+            "events": [api_dump(e) for e in buckets[key]],
         }
         for key in known
     ]
@@ -117,7 +117,7 @@ def group_by_period(events: list[TimelineEvent]) -> list[dict]:
             {
                 "period": "unknown",
                 "label": "Date not legible on the document",
-                "events": [e.model_dump(mode="json") for e in buckets["unknown"]],
+                "events": [api_dump(e) for e in buckets["unknown"]],
             }
         )
     return out
