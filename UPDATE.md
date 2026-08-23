@@ -17,9 +17,9 @@ which the session data is purged.
 
 | | |
 |---|---|
-| Tests | **183 passing**, `ruff` clean, `mypy` clean (74 files), `tsc` clean |
-| Backend | ~13,200 lines across 75 modules, 33 API endpoints |
-| Frontend | ~2,800 lines, two surfaces, one component per file |
+| Tests | **200 passing** + a browser smoke test; `ruff`, `mypy` (76 files) and `tsc` clean |
+| Backend | ~14,000 lines across 76 modules, 40 API endpoints |
+| Frontend | ~3,600 lines, four surfaces, one component per file |
 | Content in YAML/JSON | ~1,700 lines — the interview, the rules, the lexicon, the consent scripts |
 | Gold evaluation | 50 development scripts + 12 held-out |
 | Runs with | no Docker, no network, no API key (SQLite + offline extractor by default) |
@@ -47,6 +47,18 @@ and `:8000/about` lists every invariant and — bluntly — everything that is m
 | **5** Summary + physician screen | Done | Traceability gate fails generation outright. Click-to-source, 22 red-flag rules |
 | **6** ABDM + AYUSH | Done | Consent gate, FHIR bundle with Provenance per resource, audit chain, session purge, Dashavidha |
 | **Eval harness** | Done | The differentiator — see below |
+
+### Built after the first pass, from the final build prompt
+
+| Feature | Why it earned its place |
+|---|---|
+| **Demo mode** (`/demo`) | Five one-click synthetic cases. Without it there is no 90-second demo — nobody taps 49 answers in front of a jury. Each case plays a gold eval script through the **real** pipeline; nothing is pre-recorded. |
+| **Contradiction detection** | A patient says "no medicines" while holding a prescription for metformin. Both facts are kept, neither wins, the physician resolves it. Five rules in YAML; five real conflicts on the demo prescription. |
+| **Jury drawer** (`d`) | Live state-machine node, facts by tier, "facts with no source: 0", rules evaluated vs fired, which backends are actually running, audit-chain state. Makes the invisible engineering visible without cluttering the clinical screen. |
+| **Landing page** | Ten seconds of the demo, and it frames everything — including "This system does not diagnose" above the fold. |
+| **Patient review** | The patient reads back what they said before a physician sees it. The cheapest guard against a mishearing reaching a clinician. |
+| **Complaint-aware branching** | A cough is no longer asked about pain radiation. Exclusion is by deny-list, so an *unknown* complaint still gets the pain questions. |
+| **FHIR preview** | The bundle can be inspected before commit. Transmits nothing; tested not to. |
 
 ---
 
@@ -127,6 +139,9 @@ found by running it:
 | `cough_3wk` matched one word order but not the other, losing a TB screening trigger | High |
 | Negation suppression applied to options that *mean* absence, so "no, I never smoke" recorded nothing | Medium |
 | Gold script `s30` expected a rule at severity 8 that needs ≥ 9 — **the eval caught the script being wrong, not the system** | — |
+| Complaint-aware branching, first attempt, used an allow-list — which stopped asking about pain character and radiation for any complaint that did not map to a coded option, **including two cardiac emergencies** described vaguely ("just a little discomfort, my wife made me come"). Now a deny-list: an unknown complaint gets more questions, never fewer | Critical |
+| `reopen()` reset the cursor but `next_question()` skips already-answered paths, so a patient correcting an answer was silently returned to the same screen | High |
+| CSS grid auto-placement put the clinical summary in the 380px right rail and the source drawer in the main column — every Python test passed while the physician screen looked broken | High |
 
 The negation bug is the one worth dwelling on. It was invisible to every unit test, produced a
 confident, well-formed, fully-sourced fact, and the fact was wrong in the direction that matters.
@@ -134,6 +149,26 @@ Provenance does not protect against it — the span "not sharp" really does cont
 behavioural testing over realistic narration finds it.
 
 ---
+
+## What the second build prompt asked for, and what I chose not to do
+
+`SIH26047_CLAUDE_CODE_FINAL_BUILD_PROMPT.md` describes 52 sections of work and opens by
+assuming this repo is "an existing 28-question prototype" — it never was. The full audit,
+including a gap table against every section, is in **[docs/CURRENT_STATE.md](docs/CURRENT_STATE.md)**.
+
+27 of its 28 success criteria are met. Four things I deliberately did **not** build, because
+they would make the codebase worse rather than more complete:
+
+- **`TranslationBackend` protocol** — it would have no consumer. Untranslated questions already
+  fall back to English *visibly* (ADR-0007). An abstraction with one mock and no caller is
+  clutter.
+- **Caregiver mode** — genuinely useful in a real OPD, invisible in a 90-second demo. A
+  `source_role` field and a toggle, to add when the demo is not the constraint.
+- **A separate "Simple Mode" toggle** — the kiosk *is* simple mode. A toggle implies a worse
+  default, and there isn't one.
+- **A web `/evaluation` page** — the CLI harness, `docs/EVALUATION.md` and the jury drawer
+  already answer "show me the metrics" from three directions. A fourth would be a fourth place
+  for the same numbers to drift apart.
 
 ## Changes to the original brief
 
