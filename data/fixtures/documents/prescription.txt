@@ -1,0 +1,15 @@
+SHRI VENKATESHWARA POLYCLINIC
+Dr. R. Sharma, MBBS MD (Gen Med)    Reg No. TN/12345
+
+Patient: [synthetic]        Age: 64 / F
+Date: 14/03/2026
+
+Diagnosis: Type 2 diabetes mellitus with hypertension
+
+Rx
+TAB. METFORMIN 500MG 1-0-1 x 30 days
+TAB. AMLODIPINE 5MG OD x 30 days
+TAB. ATORVASTATIN 10MG HS x 30 days
+CAP. OMEPRAZOLE 20MG 1-0-0 x 14 days
+
+Advice: review after one month with fasting sugar

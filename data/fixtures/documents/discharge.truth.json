@@ -1,0 +1,19 @@
+{
+  "medications": [
+    {
+      "name": "AMOXICILLIN",
+      "dose": "625MG",
+      "frequency": "TDS"
+    },
+    {
+      "name": "LACTULOSE",
+      "dose": "15ML",
+      "frequency": "HS"
+    }
+  ],
+  "diagnoses": [
+    "Community acquired pneumonia"
+  ],
+  "investigations": [],
+  "documentDate": "2024-09-03"
+}

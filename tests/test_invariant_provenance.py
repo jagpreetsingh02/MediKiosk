@@ -186,3 +186,26 @@ def test_contradiction_supersedes_rather_than_overwrites(ledger) -> None:
     assert stored_first is not None and stored_first.superseded_by == second.fact_id
     assert len(ledger.facts) == 2, "the earlier answer must be kept, not overwritten"
     assert len(ledger.active_facts()) == 1
+
+
+def test_closed_vocabulary_proof_still_refuses_a_value_outside_the_set(ledger) -> None:
+    """The coded-value path is a different proof obligation, not a waived one."""
+    span = utterance_span(verbatim="chhaati", turn_id="t1", question_id="hpi.site")
+    with pytest.raises(ProvenanceError, match="closed vocabulary"):
+        record_fact(
+            ledger, path="hpi.site", value="pancreas",
+            tier=SourceTier.STATED, source=span, confidence=0.9,
+            coded_value_of={"chest", "abdomen", "head"},
+        )
+
+
+def test_closed_vocabulary_proof_allows_cross_lingual_mapping(ledger) -> None:
+    """A Hindi utterance backing an English option key: the whole point of a 10-language kiosk."""
+    span = utterance_span(verbatim="chhaati", turn_id="t1", question_id="hpi.site")
+    fact = record_fact(
+        ledger, path="hpi.site", value="chest",
+        tier=SourceTier.STATED, source=span, confidence=0.86,
+        coded_value_of={"chest", "abdomen", "head"},
+    )
+    assert fact.value == "chest"
+    assert fact.source.verbatim == "chhaati", "the patient's own words remain the source"

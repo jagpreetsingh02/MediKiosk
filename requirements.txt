@@ -16,3 +16,5 @@ pyjwt>=2.9
 structlog>=24.4
 python-multipart>=0.0.9
 pypdf>=5.0
+pillow>=10.4
+pypdfium2>=4.30

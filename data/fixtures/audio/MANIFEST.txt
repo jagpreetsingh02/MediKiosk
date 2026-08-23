@@ -1,0 +1,23 @@
+Synthetic audio fixtures for Phase 3.
+
+clean_*  : macOS `say` output, 22050 Hz mono LEI16.
+noisy_*  : the same file with Gaussian hiss + 50 Hz-ish hum mixed in at the stated SNR.
+           snr15 = a quiet room, snr05 = a busy corridor, snr00 = signal and noise equal.
+
+These exercise the DEGRADATION POLICY, not ASR accuracy. Measuring recognition accuracy
+needs a real acoustic model and real recordings of real speakers; synthetic TTS in
+synthetic noise would produce a number that means nothing. What these fixtures prove is
+that low-confidence input degrades to touch instead of being recorded as a guess.
+
+clean_en_chestpain.wav
+clean_en_nomeds.wav
+clean_hi_chestpain.wav
+noisy_en_chestpain_snr00.wav
+noisy_en_chestpain_snr05.wav
+noisy_en_chestpain_snr15.wav
+noisy_en_nomeds_snr00.wav
+noisy_en_nomeds_snr05.wav
+noisy_en_nomeds_snr15.wav
+noisy_hi_chestpain_snr00.wav
+noisy_hi_chestpain_snr05.wav
+noisy_hi_chestpain_snr15.wav

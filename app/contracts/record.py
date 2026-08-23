@@ -169,6 +169,7 @@ def record_fact(
     provenance_note: str | None = None,
     known_paths: set[str] | None = None,
     required_scope: str | None = None,
+    coded_value_of: set[str] | None = None,
     supersede: bool = True,
 ) -> Fact:
     """Record one clinical fact. The only sanctioned write path into a patient's history.
@@ -227,7 +228,24 @@ def record_fact(
             f"for this session (granted: {sorted(ledger.consent_scopes) or 'none'})."
         )
 
-    if not _value_is_echoed(value, source):
+    if coded_value_of is not None:
+        # A closed-vocabulary value. The text check below cannot apply: the patient said
+        # "chhaati" and the recorded value is the option key `chest`. Demanding a textual
+        # echo there would make cross-lingual extraction impossible, which for a kiosk
+        # serving ten languages means demanding the wrong thing.
+        #
+        # The proof obligation is not waived, it is *replaced* by a stricter one: the value
+        # must be a member of the option set the question actually defines. The patient's
+        # words remain the span, so click-to-source still shows "chhaati" to the physician.
+        wanted = value if isinstance(value, list | tuple | set) else [value]
+        unknown = [v for v in wanted if str(v) not in coded_value_of]
+        if unknown:
+            raise ProvenanceError(
+                f"Refusing to record {path!r}: {unknown!r} is not in the closed vocabulary "
+                f"for this field. A coded value must come from the option set, never from "
+                "free text."
+            )
+    elif not _value_is_echoed(value, source):
         raise ProvenanceError(
             f"Refusing to record {path!r} = {value!r}: that value does not appear in its own "
             f"source span ({source.verbatim!r}). A paraphrase is not a source — record the "

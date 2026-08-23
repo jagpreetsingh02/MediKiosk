@@ -1,0 +1,175 @@
+# Phrase → option-value lexicon for the offline extractor. CONTENT, so it lives in data.
+#
+# This is the low-literacy phrasing layer: what a patient actually says, as opposed to the
+# clinical label on the button. "chhaati mein bhaari lagta hai" is how someone describes
+# pressure; "Heavy, like pressure" is how the button reads. Both must land on the same slot.
+#
+# Every phrase here is matched as a literal substring and the matched slice becomes the
+# provenance quote, so nothing in this file can cause an unsourced fact.
+
+cc.text:
+  pain: ["dard", "dukh raha", "dukhta", "hurts", "hurting", "ache", "aching", "pain", "peeda"]
+  fever: ["bukhar", "bukhaar", "fever", "temperature", "jvara", "taap", "hot body"]
+  cough: ["khansi", "khaansi", "cough", "coughing", "breathless", "saans", "saans phool", "wheez", "shvasa"]
+  stomach: ["pet", "stomach", "belly", "tummy", "acidity", "gas", "vomit", "ulti", "loose motion", "dast"]
+  weakness: ["kamzori", "kamjori", "weakness", "tired", "thakan", "thak", "fatigue", "no energy"]
+  injury: ["chot", "injury", "fell", "gir gaya", "accident", "wound", "cut"]
+  skin: ["khujli", "itching", "rash", "daane", "skin", "twacha", "boil"]
+  checkup: ["checkup", "check up", "routine", "jaanch", "regular test"]
+
+hpi.site:
+  head: ["sar", "sir", "head", "sar dukh", "headache", "sirdard", "matha"]
+  chest: ["chhaati", "chaati", "chest", "seena", "heart area", "breast bone"]
+  abdomen: ["pet", "stomach", "abdomen", "belly", "naabhi", "tummy"]
+  back: ["peeth", "kamar", "back", "lower back", "spine", "reedh"]
+  limbs: ["haath", "pair", "paer", "arm", "leg", "hand", "foot", "limb"]
+  joints: ["jod", "ghutna", "joint", "knee", "elbow", "shoulder", "kandha"]
+  throat: ["gala", "throat", "gardan", "neck", "tonsil"]
+  whole_body: ["poore shareer", "pura badan", "all over", "whole body", "everywhere", "sab jagah"]
+
+hpi.onset:
+  sudden: ["achanak", "suddenly", "all at once", "ekdum", "straight away", "out of nowhere"]
+  gradual: ["dheere dheere", "slowly", "gradually", "over time", "bit by bit", "thoda thoda"]
+  after_event: ["after eating", "khane ke baad", "after i fell", "gir ne ke baad", "after working", "after lifting"]
+  unsure: ["pata nahin", "not sure", "dont know", "don't know", "malum nahi"]
+
+hpi.character:
+  sharp: ["tez", "sharp", "chubhta", "stabbing", "knife", "chubhan"]
+  dull: ["halka", "dull", "mild ache", "sust dard", "dheema"]
+  burning: ["jalan", "burning", "jal raha", "jalta", "acid", "sensation of fire"]
+  cramping: ["marod", "cramp", "cramping", "aiynthan", "twisting", "waves"]
+  pressure: ["bhaari", "bhari", "pressure", "heavy", "weight", "dabav", "squeezing", "someone sitting"]
+  throbbing: ["dhak dhak", "throbbing", "pulsating", "beating"]
+  tingling: ["jhunjhuni", "tingling", "numb", "sunn", "pins and needles"]
+
+hpi.radiation:
+  none: ["ek hi jagah", "stays there", "does not move", "nahin jata", "only there"]
+  left_arm: ["baayen haath", "left arm", "left hand", "baaya haath"]
+  jaw_neck: ["jabde", "jabda", "jaw", "gardan", "neck", "throat me"]
+  back: ["peeth me", "to my back", "kamar tak"]
+  leg: ["pair me", "down my leg", "tang me", "thigh"]
+  groin: ["jangh", "groin", "hip tak"]
+
+hpi.associated:
+  fever: ["bukhar", "fever", "taap"]
+  vomiting: ["ulti", "vomit", "vomiting", "throwing up", "qai"]
+  breathlessness: ["saans", "saans phool", "breathless", "cannot breathe", "short of breath", "dam ghut"]
+  sweating: ["paseena", "pasina", "sweat", "sweating", "cold sweat", "thanda paseena"]
+  dizziness: ["chakkar", "dizzy", "dizziness", "faint", "behoshi", "light headed"]
+  palpitations: ["dhadkan", "palpitation", "heart racing", "dil tez"]
+  weight_loss: ["vajan kam", "wajan ghat", "losing weight", "weight loss", "patla ho gaya"]
+  bleeding: ["khoon", "blood", "bleeding", "rakt"]
+  weakness_limb: ["haath kaam nahin", "leg weak", "arm weak", "cannot lift", "lakwa"]
+  speech_trouble: ["bolne me", "cannot speak", "speech", "zubaan", "slurred"]
+  vision_change: ["dikhai", "vision", "eyesight", "blurred", "dhundhla"]
+
+hpi.timing:
+  constant: ["har samay", "all the time", "constant", "always", "lagatar", "continuously"]
+  intermittent: ["aata jata", "comes and goes", "on and off", "kabhi kabhi", "sometimes"]
+  worsening: ["badh raha", "getting worse", "worse each day", "increasing", "zyada ho raha"]
+  improving: ["kam ho raha", "getting better", "improving", "theek ho raha"]
+  night_worse: ["raat me zyada", "worse at night", "night me badhta"]
+
+hpi.exacerbating:
+  worse_movement: ["chalne se", "when i move", "on movement", "hilne se"]
+  worse_effort: ["mehnat", "chadhne se", "walking uphill", "on exertion", "climbing stairs", "seedhi chadh"]
+  worse_food: ["khane ke baad", "after eating", "after meals", "after food"]
+  worse_empty: ["khali pet", "empty stomach", "when hungry", "before eating"]
+  worse_lying: ["lete", "lying down", "when i lie", "sone par"]
+  better_rest: ["aaram", "rest", "resting", "baithne se", "on sitting"]
+  better_medicine: ["dawa se", "with medicine", "after tablet", "goli se"]
+  nothing_helps: ["kuch fark nahin", "nothing helps", "no relief", "koi aaram nahin"]
+
+pmh.conditions:
+  diabetes: ["sugar", "shugar", "diabetes", "madhumeh", "sugar ki bimari"]
+  hypertension: ["bp", "blood pressure", "high bp", "rakt chaap", "pressure ki dawa"]
+  heart: ["dil", "heart", "hriday", "heart attack", "angina", "stent", "bypass"]
+  asthma: ["dama", "asthma", "inhaler", "shvasa"]
+  tb: ["tb", "tuberculosis", "kshay", "tapedik", "six month treatment"]
+  thyroid: ["thyroid", "thairoid", "thyronorm"]
+  kidney: ["gurda", "kidney", "creatinine", "dialysis"]
+  stroke: ["lakwa", "stroke", "paralysis", "brain attack"]
+  arthritis: ["gathiya", "arthritis", "joint disease", "sandhivata"]
+  anaemia: ["khoon ki kami", "anaemia", "anemia", "hb kam", "pandu"]
+  ulcer: ["ulcer", "pet ka ghav", "gastric ulcer"]
+
+ph.tobacco:
+  never: ["kabhi nahin", "never", "no tobacco", "nahin leta"]
+  current_smoke: ["bidi", "beedi", "cigarette", "smoke", "smoking", "sutta", "hookah"]
+  current_chew: ["gutka", "khaini", "paan masala", "tambaku khata", "chew", "zarda", "surti"]
+  current_both: ["dono", "both", "smoke and chew"]
+  former: ["chhod diya", "quit", "stopped", "used to", "pehle leta tha"]
+
+ph.alcohol:
+  never: ["kabhi nahin", "never", "no alcohol", "nahin peeta", "teetotal"]
+  occasional: ["kabhi kabhi", "occasionally", "sometimes", "party me"]
+  weekly: ["har hafte", "weekly", "most weeks", "weekend"]
+  daily: ["roz", "daily", "every day", "har din"]
+  former: ["chhod diya", "quit", "stopped drinking", "pehle peeta tha"]
+
+ros.cardio:
+  chest_pain: ["chhaati me dard", "chest pain", "seene me dard"]
+  chest_pain_exertion: ["chalne par dard", "chest pain when walking", "on climbing", "chadhne par"]
+  palpitations: ["dhadkan tez", "palpitation", "heart racing", "fluttering"]
+  ankle_swelling: ["pair me sujan", "ankle swelling", "swollen feet", "takhne me sujan"]
+  orthopnoea: ["lete par saans", "breathless lying", "cannot lie flat", "takiya laga kar"]
+
+ros.resp:
+  cough: ["khansi", "cough"]
+  cough_3wk: ["teen hafte se khansi", "cough for three weeks", "long cough", "purani khansi"]
+  haemoptysis: ["balgam me khoon", "blood in sputum", "coughing blood", "khoon ki khansi"]
+  breathlessness: ["saans phool", "breathless", "short of breath"]
+  wheeze: ["seeti", "wheeze", "whistling", "ghar ghar"]
+  night_sweats: ["raat me paseena", "night sweat", "night sweats"]
+
+ros.gi:
+  nausea: ["ji michla", "nausea", "feeling sick", "matli"]
+  vomiting: ["ulti", "vomit", "vomiting"]
+  haematemesis: ["khoon ki ulti", "vomiting blood", "blood in vomit"]
+  melaena: ["kala pakhana", "black stool", "tarry stool", "kala mal"]
+  blood_stool: ["mal me khoon", "blood in stool", "bleeding per rectum"]
+  appetite_loss: ["bhookh nahin", "no appetite", "loss of appetite", "khana nahin bhaata"]
+  weight_loss: ["vajan kam", "weight loss", "losing weight"]
+  swallowing: ["nigalne me", "trouble swallowing", "dysphagia", "khana atakta"]
+  jaundice: ["piliya", "jaundice", "yellow eyes", "aankh peeli"]
+
+ros.neuro:
+  headache: ["sirdard", "sar dard", "headache"]
+  thunderclap: ["sabse tez sirdard", "worst headache", "sudden severe headache", "thunderclap"]
+  fits: ["daura", "fits", "seizure", "mirgi", "convulsion"]
+  fainting: ["behosh", "fainting", "blackout", "gir gaya"]
+  limb_weakness: ["haath pair kamzor", "limb weakness", "cannot move arm", "one side weak"]
+  facial_droop: ["muh tedha", "face droop", "mouth deviated", "chehra tedha"]
+  speech: ["bolne me dikkat", "slurred speech", "cannot speak properly"]
+  vision_loss: ["dikhna band", "vision loss", "cannot see", "andhera"]
+  numbness: ["sunn", "numbness", "tingling", "jhunjhuni"]
+  neck_stiff: ["gardan akad", "stiff neck", "neck stiffness"]
+
+ros.gu:
+  burning: ["peshab me jalan", "burning urine", "burning micturition"]
+  frequency: ["baar baar peshab", "frequent urination", "frequency"]
+  nocturia: ["raat me peshab", "nocturia", "get up at night to urinate"]
+  haematuria: ["peshab me khoon", "blood in urine", "haematuria"]
+  retention: ["peshab nahin aa raha", "cannot pass urine", "retention"]
+  incontinence: ["peshab rok nahin", "incontinence", "leaking urine"]
+
+ros.general:
+  fever: ["bukhar", "fever"]
+  fever_persistent: ["hafte se bukhar", "fever for a week", "long fever", "purana bukhar"]
+  fatigue: ["thakan", "fatigue", "very tired", "kamzori"]
+  weight_loss: ["vajan kam", "weight loss", "losing weight"]
+  night_sweats: ["raat me paseena", "night sweats"]
+  lumps: ["ganth", "lump", "gaanth", "swelling"]
+  rash: ["daane", "rash", "chakatte"]
+  bleeding_any: ["khoon aa raha", "bleeding", "blood coming"]
+
+ayush.agni:
+  sama: ["sahi samay par bhookh", "regular hunger", "good digestion"]
+  vishama: ["kabhi kabhi bhookh", "irregular", "sometimes good sometimes not"]
+  tikshna: ["hamesha bhookh", "always hungry", "very strong hunger", "jaldi bhookh"]
+  manda: ["bhaari lagta", "slow digestion", "food sits heavy", "der se pachta"]
+
+ayush.koshtha:
+  mridu: ["aasani se", "easily", "loose", "soft stool"]
+  madhya: ["normal", "samanya", "theek"]
+  krura: ["kabz", "constipation", "hard stool", "mushkil se"]
