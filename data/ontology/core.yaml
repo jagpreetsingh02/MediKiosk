@@ -106,11 +106,22 @@ sections:
         path: hpi.character
         kind: single_choice
         socrates: "C — Character"
+        # "What does it feel like?" is a question about pain, so a patient who came in with
+        # a cough should not be asked it — that is the mechanical questioning the problem
+        # statement warns against.
+        #
+        # But the exclusion is by DENY-LIST, not allow-list, and that asymmetry is the whole
+        # point. An earlier version required the complaint to BE one of the pain options,
+        # which silently dropped this question for anyone whose complaint did not map —
+        # including "just a little discomfort, my wife made me come", which is an acute
+        # coronary syndrome. The eval caught it. Not knowing the complaint means asking MORE,
+        # never less.
         ask_if:
-          any:
-            - {path: chief_complaint.text, contains: "pain"}
-            - {path: chief_complaint.text, eq: "pain"}
+          all:
             - {path: hpi.site, recorded: true}
+            - any:
+                - {path: chief_complaint.text, not_recorded: true}
+                - {path: chief_complaint.text, not_in: ["fever", "cough", "weakness", "skin", "checkup"]}
         prompt:
           en: "What does it feel like?"
           hi: "यह कैसा महसूस होता है?"
@@ -128,9 +139,15 @@ sections:
         kind: single_choice
         socrates: "R — Radiation"
         red_flag_scan: true
+        # Radiation matters for pain at a site that can refer. A cough located in the chest
+        # is not asked whether it travels to the jaw — but an UNKNOWN complaint still is,
+        # for the reason given on hpi.character above.
         ask_if:
-          any:
+          all:
             - {path: hpi.site, in: ["chest", "abdomen", "back", "head"]}
+            - any:
+                - {path: chief_complaint.text, not_recorded: true}
+                - {path: chief_complaint.text, not_in: ["fever", "cough", "weakness", "skin", "checkup"]}
         prompt:
           en: "Does it travel anywhere else in your body?"
           hi: "क्या यह शरीर में कहीं और जाता है?"
@@ -185,6 +202,8 @@ sections:
         label: "Aggravating / relieving"
         kind: multi_choice
         socrates: "E — Exacerbating / relieving"
+        # Applies to any complaint: what makes a cough or a fever worse is as useful as what
+        # makes a pain worse.
         prompt:
           en: "Does anything make it worse, or make it better?"
           hi: "किसी चीज़ से यह बढ़ता है, या कम होता है?"

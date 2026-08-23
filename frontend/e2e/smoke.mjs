@@ -33,6 +33,9 @@ console.log('KIOSK');
 const page = await ctx.newPage();
 track(page, 'kiosk');
 await page.goto(BASE, { waitUntil: 'networkidle' });
+check('landing renders', await page.locator('.landing-title').count() > 0);
+await page.getByRole('link', { name: /^Start$/ }).click();
+await page.waitForSelector('.language-option', { timeout: 8000 });
 
 await page.getByRole('button', { name: /^English/ }).click();
 check('language picker advances', await page.locator('text=Your ABHA number').count() > 0);
@@ -80,6 +83,29 @@ await page.waitForFunction(() => document.querySelectorAll('.upload-item').lengt
 check('document uploaded and read', await page.locator('.upload-item').count() > 0);
 
 await page.getByRole('button', { name: /Done — continue|I have no papers/ }).click();
+await page.waitForSelector('.review-row', { timeout: 10000 });
+check('patient review screen reached', await page.locator('.review-row').count() > 5,
+  `${await page.locator('.review-row').count()} answers read back`);
+
+// Correcting one answer must re-present that question and return to review, not restart.
+const firstQuestion = await page.locator('.review-row .review-q').first().innerText();
+await page.locator('.review-row').first().getByRole('button', { name: /Change this/ }).click();
+await page.waitForSelector('.kiosk-prompt', { timeout: 8000 });
+check('correction re-presents that question',
+  (await page.locator('.kiosk-prompt').innerText()).trim() === firstQuestion.trim(),
+  firstQuestion.slice(0, 46));
+if (await page.locator('.tap-option').count()) {
+  await page.locator('.tap-option').nth(1).click();
+  const cont = page.getByRole('button', { name: /^Continue$|^Continue with/ });
+  if (await cont.count()) await cont.first().click();
+} else {
+  await page.locator('.typed-answer textarea').first().fill('corrected answer');
+  await page.getByRole('button', { name: /Send what I typed/ }).click();
+}
+await page.waitForSelector('.review-row', { timeout: 10000 });
+check('correction returns to review, not to documents', await page.locator('.review-row').count() > 5);
+
+await page.getByRole('button', { name: /Yes, this is right/ }).click();
 await page.waitForSelector('text=What happens now', { timeout: 8000 });
 check('done screen reached', true);
 

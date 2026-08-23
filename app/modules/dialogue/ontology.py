@@ -69,10 +69,23 @@ class Condition(BaseModel):
     not_recorded: bool | None = None
 
 
+class AnyOf(BaseModel):
+    """A nested disjunction, usable as one clause of an `all`.
+
+    One level of nesting, deliberately. It is the minimum needed to express "this AND (that
+    OR the other)", which is what recall-biased branching requires — and a fully general
+    boolean tree in YAML is a language a clinician cannot read.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    any: list[Condition]
+
+
 class ConditionGroup(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    all: list[Condition] | None = None
+    all: list[Condition | AnyOf] | None = None
     any: list[Condition] | None = None
 
     @model_validator(mode="after")
@@ -305,13 +318,19 @@ def _numeric(value: Any) -> float | None:
         return None
 
 
+def evaluate_clause(clause: Condition | AnyOf, values: dict[str, Any]) -> bool:
+    if isinstance(clause, AnyOf):
+        return any(evaluate_condition(c, values) for c in clause.any)
+    return evaluate_condition(clause, values)
+
+
 def should_ask(question: Question, values: dict[str, Any]) -> bool:
     """Deterministic. Same values in, same answer out, every time, with no model involved."""
     if question.ask_if is None:
         return True
     group = question.ask_if
     if group.all is not None:
-        return all(evaluate_condition(c, values) for c in group.all)
+        return all(evaluate_clause(c, values) for c in group.all)
     assert group.any is not None
     return any(evaluate_condition(c, values) for c in group.any)
 

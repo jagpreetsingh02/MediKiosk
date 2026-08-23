@@ -236,3 +236,82 @@ def test_exclusive_option_clears_the_others(machine, ledger) -> None:
         modality=Modality.TOUCH,
     )
     assert facts[0].value == ["none"]
+
+
+# ------------------------------------------------------------------ corrections
+
+
+def test_reopening_a_question_asks_it_again(machine, ledger) -> None:
+    """The review screen's correction path. An already-answered path is normally skipped, so
+    reopening has to override that — exactly once."""
+    first = machine.next_question()
+    assert first is not None
+    record_answer(
+        machine, ledger, turn_id=first.turn_id, question_id=first.question_id,
+        value="fever", modality=Modality.TOUCH,
+    )
+    following = machine.next_question()
+    assert following is not None and following.question_id != first.question_id
+
+    assert machine.reopen(first.question_id) is True
+    again = machine.next_question()
+    assert again is not None
+    assert again.question_id == first.question_id, "the reopened question must come back"
+
+
+def test_a_correction_supersedes_rather_than_deletes(machine, ledger) -> None:
+    """The physician must be able to see the correction and what it corrected."""
+    first = machine.next_question()
+    assert first is not None
+    record_answer(
+        machine, ledger, turn_id=first.turn_id, question_id=first.question_id,
+        value="fever", modality=Modality.TOUCH,
+    )
+    machine.reopen(first.question_id)
+    again = machine.next_question()
+    assert again is not None
+    record_answer(
+        machine, ledger, turn_id=again.turn_id, question_id=again.question_id,
+        value="pain", modality=Modality.TOUCH,
+    )
+
+    at_path = ledger.at_path("chief_complaint.text", active_only=False)
+    assert len(at_path) == 2, "the original answer must be kept, not overwritten"
+    assert [f for f in at_path if f.active][0].value == "pain"
+    assert [f for f in at_path if not f.active][0].value == "fever"
+
+
+def test_a_reopened_question_is_not_asked_forever(machine, ledger) -> None:
+    first = machine.next_question()
+    assert first is not None
+    record_answer(
+        machine, ledger, turn_id=first.turn_id, question_id=first.question_id,
+        value="fever", modality=Modality.TOUCH,
+    )
+    machine.reopen(first.question_id)
+    again = machine.next_question()
+    assert again is not None
+    record_answer(
+        machine, ledger, turn_id=again.turn_id, question_id=again.question_id,
+        value="pain", modality=Modality.TOUCH,
+    )
+    third = machine.next_question()
+    assert third is not None and third.question_id != first.question_id
+
+
+def test_reopening_an_unknown_question_is_refused(machine) -> None:
+    assert machine.reopen("no.such.question") is False
+
+
+def test_review_reads_back_the_words_the_patient_saw(machine, ledger) -> None:
+    question = machine.next_question()
+    assert question is not None
+    record_answer(
+        machine, ledger, turn_id=question.turn_id, question_id=question.question_id,
+        value="fever", modality=Modality.TOUCH,
+    )
+    summary = machine.answered_summary()
+    assert summary
+    entry = summary[0]
+    assert entry["answer"] == "Fever", "the review shows the label, not the option key"
+    assert entry["canCorrect"] is True

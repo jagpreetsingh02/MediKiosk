@@ -66,15 +66,24 @@ Two misses, both in `hpi`:
 | Path | Utterance | Expected | Got |
 |---|---|---|---|
 | `hpi.radiation` | "it shoots into my left shoulder and arm" | `left_arm` | nothing |
-| `hpi.onset` | "it came on abruptly while I was at rest" | `sudden` | nothing |
+| `hpi.onset` | "it happened out of nowhere" | `sudden` | `after_event` |
 
-Both are missing phrasings, not wrong answers — the extractor recorded nothing rather than
-recording something incorrect, which is the failure direction we want. Neither changed the
-red flag: `h01` still escalated to `immediate` on the other recorded facts.
+The first is a missing phrasing: the extractor recorded nothing rather than something wrong,
+which is the failure direction we want.
 
-**These have deliberately not been fixed.** Adding "shoulder and arm" and "came on abruptly"
-to the lexicon would raise held-out extraction to 1.00 and make the held-out set worthless.
-They are listed here so the next person can see exactly what the 9.5-point gap consists of.
+The second is more interesting and worth the diagnosis. `sudden` has "out of nowhere" in its
+lexicon and *does* match — but `after_event` matches too, on the word **"happened"**, which
+the extractor harvested automatically from that option's own label, *"After something happened
+(fall, food, effort)"*. "happened" is a generic verb, it appears earlier in the sentence, and
+the positional tiebreak hands it the win. The mechanism at fault is deriving match phrases
+from label words without filtering generic ones.
+
+**Neither has been fixed, including the mechanism.** Fixing the label-word filter would raise
+held-out extraction and burn the only unbiased number in this document. The correct sequence
+is to fix it *and then write new held-out scripts*, not to fix it against these. Recorded here
+so the next person inherits the diagnosis rather than rediscovering it.
+
+Neither miss changed a red flag: `h01` still escalated to `immediate` on its other facts.
 
 ---
 

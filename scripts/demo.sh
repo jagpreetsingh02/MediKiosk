@@ -67,6 +67,9 @@ cat <<BANNER
      Patient   any listed ABHA address, OTP 123456
      Staff     any name, role "clinician"
 
+   The frontend hot-reloads. The API does NOT — restart this script after a
+   Python change, or use `make api` (which runs uvicorn --reload) while editing.
+
    Logs: /tmp/medikiosk-api.log  /tmp/medikiosk-web.log
    Ctrl-C to stop both.
   ────────────────────────────────────────────────────────────────

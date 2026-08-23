@@ -289,6 +289,54 @@ async def edit_fact(
     return {"factId": fact.fact_id, "path": path, "supersededPrior": True}
 
 
+@router.get(
+    "/sessions/{session_ref}/fhir/preview",
+    dependencies=[Depends(require_action("summary.read"))],
+)
+async def fhir_preview(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """Build the bundle WITHOUT committing, so it can be inspected before it is sent.
+
+    Invariant 4 is untouched: this route builds and returns the document, and sends it
+    nowhere. Nothing reaches the HIS or the ABHA record until `POST /commit`, which is the
+    only route that transmits and the only one restricted to `summary.commit`.
+    """
+    context = await load_context(db, session_ref)
+    history, escalation = await _history_for(db, context)
+    result = generate(history, context.ledger, escalation=escalation)
+
+    summary_text = "\n".join(
+        f"{section.title}\n" + "\n".join(f"  - {line.text}" for line in section.lines)
+        for section in result.summary.sections
+    )
+    bundle = build_bundle(
+        history,
+        context.ledger,
+        summary_text=summary_text,
+        consent_ref=context.row.consent_ref or "unknown",
+        committed_by=f"PREVIEW — not committed (requested by {identity.actor})",
+        abha_ref=context.row.abha_ref,
+    )
+    payload = bundle_json(bundle)
+    counts: dict[str, int] = {}
+    for entry in payload.get("entry", []):
+        kind = entry.get("resource", {}).get("resourceType", "?")
+        counts[kind] = counts.get(kind, 0) + 1
+
+    return {
+        "committed": False,
+        "notice": (
+            "Preview only. This bundle has not been transmitted and is not in any record. "
+            "A physician must confirm before anything is sent."
+        ),
+        "fhirVersion": payload.get("_fhirVersion"),
+        "resourceCounts": counts,
+        "entries": len(payload.get("entry", [])),
+        "bundle": payload,
+    }
+
+
 @router.post(
     "/sessions/{session_ref}/commit",
     dependencies=[Depends(require_action("summary.commit"))],

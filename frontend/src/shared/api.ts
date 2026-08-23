@@ -224,6 +224,15 @@ export interface ContradictionSide {
   origin: string;
 }
 
+export interface ReviewAnswer {
+  questionId: string;
+  sectionTitle: string;
+  question: string;
+  answer: string;
+  tier: Tier;
+  canCorrect: boolean;
+}
+
 export interface Inspect {
   sessionRef: string;
   stateMachine: {
@@ -367,6 +376,15 @@ export const api = {
     request<StepResponse>(`/api/v1/sessions/${ref}/dialogue/answer/voice`, {
       method: 'POST',
       body: JSON.stringify({ turnId, questionId, transcript, confidence, bargeIn }),
+    }),
+  review: (ref: string) =>
+    request<{ answers: ReviewAnswer[]; language: string }>(
+      `/api/v1/sessions/${ref}/dialogue/review`,
+    ),
+  reopen: (ref: string, questionId: string) =>
+    request<StepResponse & { reopened: string }>(`/api/v1/sessions/${ref}/dialogue/reopen`, {
+      method: 'POST',
+      body: JSON.stringify({ questionId }),
     }),
   skip: (ref: string, questionId: string) =>
     request<StepResponse>(`/api/v1/sessions/${ref}/dialogue/skip`, {

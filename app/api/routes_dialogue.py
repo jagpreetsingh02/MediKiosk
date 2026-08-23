@@ -205,6 +205,41 @@ async def skip(
     return {**result, "declined": question_id}
 
 
+@router.get("/review")
+async def review(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """What the patient told us, in the words they saw — for them to check before it is sent.
+
+    This is not the doctor's summary. It is the cheapest possible guard against a mishearing
+    reaching a physician: the person who said it reads it back.
+    """
+    context = await load_context(db, session_ref)
+    return {
+        "sessionRef": session_ref,
+        "answers": context.machine.answered_summary(),
+        "language": context.row.language,
+    }
+
+
+@router.post("/reopen")
+async def reopen(
+    db: DbSession,
+    session_ref: str,
+    identity: CurrentIdentity,
+    payload: Annotated[dict, Body()],
+) -> dict[str, Any]:
+    """Re-present one question so the patient can correct it. The old answer is superseded,
+    not deleted — the physician sees the correction and what it corrected."""
+    context = await load_context(db, session_ref)
+    question_id = str(payload.get("questionId") or "")
+    if not context.machine.reopen(question_id):
+        raise ValidationError(f"{question_id!r} is not a question in this interview.")
+    result = await _next_payload(db, context)
+    await save_context(db, context)
+    return {**result, "reopened": question_id}
+
+
 @router.post("/speak")
 async def speak(
     db: DbSession,

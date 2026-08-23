@@ -393,3 +393,20 @@
   line-height: 1.45;
   margin-bottom: 20px;
 }
+
+/* --- patient review ------------------------------------------------------- */
+
+.review-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  background: var(--paper);
+}
+
+.review-q { font-size: 17px; color: var(--ink-3); line-height: 1.35; margin-bottom: 5px; }
+.review-a { font-size: 24px; font-weight: 700; line-height: 1.3; }

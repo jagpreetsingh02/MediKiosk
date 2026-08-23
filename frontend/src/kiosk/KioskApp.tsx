@@ -1,5 +1,5 @@
 /**
- * The kiosk flow: language → ABHA → consent → interview → documents → done.
+ * The kiosk flow: language → ABHA → consent → interview → documents → review → done.
  *
  * The component holds no clinical logic. Which question comes next is the backend's decision
  * (the deterministic state machine in Module A), and this file only renders what it is given
@@ -13,11 +13,12 @@ import { AbhaLogin } from './AbhaLogin';
 import { ConsentGate } from './ConsentGate';
 import { DocumentUpload } from './DocumentUpload';
 import { DoneScreen } from './DoneScreen';
+import { PatientReview } from './PatientReview';
 import { ProgressRail } from './ProgressRail';
 import { QuestionCard } from './QuestionCard';
 import { LanguagePicker } from './LanguagePicker';
 
-type Stage = 'language' | 'login' | 'consent' | 'interview' | 'documents' | 'done';
+type Stage = 'language' | 'login' | 'consent' | 'interview' | 'documents' | 'review' | 'done';
 
 export function KioskApp(): JSX.Element {
   const [stage, setStage] = useState<Stage>('language');
@@ -29,19 +30,25 @@ export function KioskApp(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [answered, setAnswered] = useState(0);
   const [documentCount, setDocumentCount] = useState(0);
+  /** Once the document step is behind us, finishing the interview again — which happens
+   *  whenever the patient corrects an answer from the review screen — must return to review,
+   *  not walk them back through the upload step. */
+  const [documentsDone, setDocumentsDone] = useState(false);
   /** What the patient actually consented to. The kiosk must never offer a capture path they
    *  declined: the backend correctly refuses it with a 403, and a 403 the patient cannot act
    *  on is a worse experience than simply not offering the feature. */
   const [scopes, setScopes] = useState<string[]>([]);
 
-  const canScanDocuments = scopes.includes('documents');
+  const canScanDocuments = scopes.includes('documents') && !documentsDone;
 
   const apply = useCallback(
     (response: StepResponse) => {
       setStep(response);
       setVoice(response.voice ?? null);
-      // Skip the document stage entirely when the patient declined that scope.
-      if (response.complete) setStage(canScanDocuments ? 'documents' : 'done');
+      // Skip the document stage when the patient declined that scope, or has already done
+      // it. Review always runs: it is the last chance to catch a mishearing before a
+      // physician sees it.
+      if (response.complete) setStage(canScanDocuments ? 'documents' : 'review');
     },
     [canScanDocuments],
   );
@@ -73,6 +80,7 @@ export function KioskApp(): JSX.Element {
     setVoice(null);
     setAnswered(0);
     setDocumentCount(0);
+    setDocumentsDone(false);
     setScopes([]);
     setError(null);
     setStage('language');
@@ -170,8 +178,20 @@ export function KioskApp(): JSX.Element {
             sessionRef={sessionRef}
             onDone={(uploaded) => {
               setDocumentCount(uploaded);
-              setStage('done');
+              setDocumentsDone(true);
+              setStage('review');
             }}
+          />
+        )}
+
+        {stage === 'review' && sessionRef && (
+          <PatientReview
+            sessionRef={sessionRef}
+            onCorrect={(questionId) => {
+              setStage('interview');
+              void guard(() => api.reopen(sessionRef, questionId));
+            }}
+            onConfirm={() => setStage('done')}
           />
         )}
 

@@ -72,6 +72,9 @@ class DialogueState:
     declined: list[str] = field(default_factory=list)
     #: Set when a question must fall back to touch because ASR confidence was too low.
     forced_touch: list[str] = field(default_factory=list)
+    #: Questions the patient asked to correct from the review screen. An already-answered
+    #: path is normally skipped; one in here is deliberately asked again, exactly once.
+    reopened: list[str] = field(default_factory=list)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -112,6 +115,7 @@ class DialogueState:
             completed=payload.get("completed", False),
             declined=payload.get("declined", []),
             forced_touch=payload.get("forced_touch", []),
+            reopened=payload.get("reopened", []),
         )
         state.turns = [Turn(**t) for t in payload.get("turns", [])]
         return state
@@ -199,7 +203,7 @@ class DialogueMachine:
         while self.state.cursor < len(self._flat):
             section_id, section_title, question = self._flat[self.state.cursor]
 
-            if question.path in answered:
+            if question.path in answered and question.id not in self.state.reopened:
                 self.state.cursor += 1
                 continue
             if self.state.visits.get(question.id, 0) >= MAX_VISITS_PER_QUESTION:
@@ -274,10 +278,15 @@ class DialogueMachine:
 
     def mark_answered(self, turn_id: str, raw_answer: Any, modality: str) -> None:
         turn = self.current_turn(turn_id)
-        if turn is not None:
-            turn.answered = True
-            turn.raw_answer = raw_answer
-            turn.modality = modality
+        if turn is None:
+            return
+        turn.answered = True
+        turn.raw_answer = raw_answer
+        turn.modality = modality
+        # A reopened question has now been re-answered, so it goes back to being skippable.
+        # Without this the interview would offer it forever.
+        if turn.question_id in self.state.reopened:
+            self.state.reopened.remove(turn.question_id)
 
     def decline(self, question_id: str) -> None:
         """The patient chose not to answer. Recorded as `declined`, never guessed at."""
@@ -301,6 +310,51 @@ class DialogueMachine:
                 self.state.cursor,
             ),
         )
+
+    def reopen(self, question_id: str) -> bool:
+        """Put one already-answered question back in front of the patient.
+
+        Used by the review screen: a patient who sees a mishearing must be able to fix that
+        one answer without walking the whole interview again. The old fact is NOT deleted —
+        re-answering supersedes it through the ordinary ledger path, so the correction and
+        what it corrected both stay visible to the physician.
+        """
+        index = next(
+            (i for i, (_, _, q) in enumerate(self._flat) if q.id == question_id), None
+        )
+        if index is None:
+            return False
+        if question_id in self.state.declined:
+            self.state.declined.remove(question_id)
+        # An already-answered path is skipped by next_question(); marking it reopened is what
+        # lets it be asked once more. The revisit cap is cleared for the same reason.
+        if question_id not in self.state.reopened:
+            self.state.reopened.append(question_id)
+        self.state.visits[question_id] = 0
+        self.state.cursor = index
+        return True
+
+    def answered_summary(self) -> list[dict[str, Any]]:
+        """What the patient told us, in the words they saw, for the review screen."""
+        out: list[dict[str, Any]] = []
+        latest = {fact.path: fact for fact in self.ledger.active_facts()}
+
+        for section in self.ontology.sections:
+            for question in section.questions:
+                recorded = latest.get(question.path)
+                if recorded is None:
+                    continue
+                out.append(
+                    {
+                        "questionId": question.id,
+                        "sectionTitle": section.title,
+                        "question": question.text(self.state.language)[0],
+                        "answer": recorded.source.verbatim,
+                        "tier": recorded.tier.value,
+                        "canCorrect": question.kind != "derived",
+                    }
+                )
+        return out
 
     def derived_questions(self) -> list[tuple[Question, str, str | None]]:
         """Every `derived` question whose input is available. Evaluated deterministically."""

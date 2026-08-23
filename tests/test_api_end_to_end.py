@@ -456,3 +456,75 @@ async def test_no_endpoint_returns_an_assessment(client) -> None:
     for path in spec["paths"]:
         assert "diagnos" not in path.casefold()
         assert "differential" not in path.casefold()
+
+
+async def test_fhir_preview_does_not_commit_or_transmit(client) -> None:
+    """A jury can inspect the bundle before confirmation. Invariant 4 is untouched: preview
+    builds the document and sends it nowhere."""
+    token, _ = await _patient_token(client)
+    session_ref = (
+        await client.post(
+            "/api/v1/sessions",
+            json={"language": "en", "consentScopes": ["history", "abdm_share"]},
+            headers=_auth(token),
+        )
+    ).json()["sessionRef"]
+
+    step = (
+        await client.get(
+            f"/api/v1/sessions/{session_ref}/dialogue/next", headers=_auth(token)
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/sessions/{session_ref}/dialogue/answer",
+        json={
+            "turnId": step["question"]["turnId"],
+            "questionId": step["question"]["questionId"],
+            "value": "pain",
+            "modality": "touch",
+        },
+        headers=_auth(token),
+    )
+
+    clinician = await _clinician_token(client)
+    # The stub receiver accumulates across the module, so measure the delta rather than
+    # asserting an absolute count.
+    before = (await client.get("/api/v1/stub-his/received")).json()["count"]
+
+    preview = await client.get(
+        f"/api/v1/sessions/{session_ref}/fhir/preview", headers=_auth(clinician)
+    )
+    assert preview.status_code == 200
+    body = preview.json()
+    assert body["committed"] is False
+    assert body["fhirVersion"] == "4.0.1"
+    assert "Composition" in body["resourceCounts"]
+    assert "not been transmitted" in body["notice"]
+
+    # Nothing was sent and nothing was stored: the committed-bundle route still 404s.
+    stored = await client.get(
+        f"/api/v1/sessions/{session_ref}/bundle", headers=_auth(clinician)
+    )
+    assert stored.status_code == 400
+    after = (await client.get("/api/v1/stub-his/received")).json()["count"]
+    assert after == before, "preview must not transmit"
+
+    # And the session is still live — preview does not purge.
+    assert (
+        await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(token))
+    ).status_code == 200
+
+
+async def test_a_patient_cannot_preview_the_bundle(client) -> None:
+    token, _ = await _patient_token(client)
+    session_ref = (
+        await client.post(
+            "/api/v1/sessions",
+            json={"language": "en", "consentScopes": ["history"]},
+            headers=_auth(token),
+        )
+    ).json()["sessionRef"]
+    response = await client.get(
+        f"/api/v1/sessions/{session_ref}/fhir/preview", headers=_auth(token)
+    )
+    assert response.status_code == 403
