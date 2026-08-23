@@ -1,0 +1,144 @@
+# Review of systems. A separate file because it is the part a clinician most wants to tune,
+# and because it is the part the state machine may legitimately shorten under time pressure
+# (see machine.py::ros_budget — a deterministic budget, never a model deciding to skip).
+#
+# Structure: one screening question per system. A positive screen opens its drill-downs.
+# A negative screen is recorded as a real, provenance-bearing fact — "patient denies chest
+# pain" is clinical information, not an absence.
+
+version: "1.0.0"
+title: "Review of systems"
+
+sections:
+  - id: review_of_systems
+    title: "Review of systems"
+    title_hi: "सभी प्रणालियों की जाँच"
+    intro:
+      en: "A few quick questions about the rest of your body. Most people answer no to all of them."
+      hi: "आपके बाक़ी शरीर के बारे में कुछ छोटे सवाल। ज़्यादातर लोग सब में 'नहीं' कहते हैं।"
+    questions:
+
+      - id: ros.cardio
+        path: review_of_systems.cardiovascular
+        kind: multi_choice
+        system: "Cardiovascular"
+        red_flag_scan: true
+        prompt:
+          en: "In the last month, have you had any of these?"
+          hi: "पिछले महीने में क्या आपको इनमें से कुछ हुआ?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "chest_pain", label_en: "Chest pain", label_hi: "छाती में दर्द"}
+          - {value: "chest_pain_exertion", label_en: "Chest pain when walking or climbing", label_hi: "चलने या चढ़ने पर छाती में दर्द"}
+          - {value: "palpitations", label_en: "Heart racing or fluttering", label_hi: "दिल तेज़ या अनियमित धड़कना"}
+          - {value: "ankle_swelling", label_en: "Swollen ankles", label_hi: "टखनों में सूजन"}
+          - {value: "orthopnoea", label_en: "Breathless when lying flat", label_hi: "सीधा लेटने पर साँस फूलना"}
+
+      - id: ros.resp
+        path: review_of_systems.respiratory
+        kind: multi_choice
+        system: "Respiratory"
+        red_flag_scan: true
+        prompt:
+          en: "And any of these?"
+          hi: "और इनमें से कुछ?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "cough", label_en: "Cough", label_hi: "खाँसी"}
+          - {value: "cough_3wk", label_en: "Cough lasting more than 3 weeks", label_hi: "3 हफ़्ते से ज़्यादा की खाँसी"}
+          - {value: "haemoptysis", label_en: "Blood in the sputum", label_hi: "बलगम में खून"}
+          - {value: "breathlessness", label_en: "Getting breathless easily", label_hi: "जल्दी साँस फूलना"}
+          - {value: "wheeze", label_en: "Whistling in the chest", label_hi: "छाती में सीटी की आवाज़"}
+          - {value: "night_sweats", label_en: "Sweating at night", label_hi: "रात में पसीना"}
+
+      - id: ros.gi
+        path: review_of_systems.gastrointestinal
+        kind: multi_choice
+        system: "Gastrointestinal"
+        red_flag_scan: true
+        prompt:
+          en: "Anything to do with your stomach or digestion?"
+          hi: "पेट या पाचन से जुड़ी कोई बात?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "nausea", label_en: "Feeling sick", label_hi: "जी मिचलाना"}
+          - {value: "vomiting", label_en: "Vomiting", label_hi: "उल्टी"}
+          - {value: "haematemesis", label_en: "Vomiting blood", label_hi: "खून की उल्टी"}
+          - {value: "melaena", label_en: "Black, tarry stools", label_hi: "काला, लसदार मल"}
+          - {value: "blood_stool", label_en: "Blood in the stool", label_hi: "मल में खून"}
+          - {value: "appetite_loss", label_en: "Not feeling hungry", label_hi: "भूख न लगना"}
+          - {value: "weight_loss", label_en: "Losing weight without trying", label_hi: "बिना कोशिश वज़न घटना"}
+          - {value: "swallowing", label_en: "Trouble swallowing", label_hi: "निगलने में तकलीफ़"}
+          - {value: "jaundice", label_en: "Yellow eyes or skin", label_hi: "आँखें या त्वचा पीली"}
+
+      - id: ros.neuro
+        path: review_of_systems.neurological
+        kind: multi_choice
+        system: "Neurological"
+        red_flag_scan: true
+        prompt:
+          en: "Anything to do with your head, senses or nerves?"
+          hi: "सिर, इंद्रियों या नसों से जुड़ी कोई बात?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "headache", label_en: "Headache", label_hi: "सिरदर्द"}
+          - {value: "thunderclap", label_en: "A sudden, worst-ever headache", label_hi: "अचानक, अब तक का सबसे तेज़ सिरदर्द"}
+          - {value: "fits", label_en: "Fits or seizures", label_hi: "दौरे"}
+          - {value: "fainting", label_en: "Fainting", label_hi: "बेहोशी"}
+          - {value: "limb_weakness", label_en: "Sudden weakness of an arm or leg", label_hi: "हाथ या पैर में अचानक कमज़ोरी"}
+          - {value: "facial_droop", label_en: "Face pulling to one side", label_hi: "चेहरा एक तरफ़ खिंचना"}
+          - {value: "speech", label_en: "Sudden trouble speaking", label_hi: "अचानक बोलने में तकलीफ़"}
+          - {value: "vision_loss", label_en: "Sudden loss of eyesight", label_hi: "अचानक दिखाई देना बंद"}
+          - {value: "numbness", label_en: "Numbness or tingling", label_hi: "सुन्नपन या झुनझुनी"}
+          - {value: "neck_stiff", label_en: "Stiff neck with fever", label_hi: "बुख़ार के साथ गर्दन अकड़ना"}
+
+      - id: ros.gu
+        path: review_of_systems.genitourinary
+        kind: multi_choice
+        system: "Genitourinary"
+        red_flag_scan: true
+        prompt:
+          en: "Anything to do with passing urine?"
+          hi: "पेशाब से जुड़ी कोई बात?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "burning", label_en: "Burning when passing urine", label_hi: "पेशाब में जलन"}
+          - {value: "frequency", label_en: "Going very often", label_hi: "बार-बार जाना"}
+          - {value: "nocturia", label_en: "Getting up at night to pass urine", label_hi: "रात में पेशाब के लिए उठना"}
+          - {value: "haematuria", label_en: "Blood in the urine", label_hi: "पेशाब में खून"}
+          - {value: "retention", label_en: "Cannot pass urine at all", label_hi: "पेशाब बिलकुल नहीं आ रहा"}
+          - {value: "incontinence", label_en: "Cannot hold urine", label_hi: "पेशाब रोक नहीं पाते"}
+
+      - id: ros.msk
+        path: review_of_systems.musculoskeletal
+        kind: multi_choice
+        system: "Musculoskeletal"
+        prompt:
+          en: "Anything to do with your joints or muscles?"
+          hi: "जोड़ों या मांसपेशियों से जुड़ी कोई बात?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "joint_pain", label_en: "Joint pain", label_hi: "जोड़ों में दर्द"}
+          - {value: "joint_swelling", label_en: "Swollen joints", label_hi: "जोड़ों में सूजन"}
+          - {value: "morning_stiffness", label_en: "Stiff in the morning", label_hi: "सुबह अकड़न"}
+          - {value: "back_pain", label_en: "Back pain", label_hi: "पीठ दर्द"}
+          - {value: "walking_difficulty", label_en: "Trouble walking", label_hi: "चलने में तकलीफ़"}
+
+      - id: ros.general
+        path: review_of_systems.general
+        kind: multi_choice
+        system: "General"
+        red_flag_scan: true
+        prompt:
+          en: "And last, any of these?"
+          hi: "और आख़िर में, इनमें से कुछ?"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "fever", label_en: "Fever", label_hi: "बुख़ार"}
+          - {value: "fever_persistent", label_en: "Fever for more than a week", label_hi: "एक हफ़्ते से ज़्यादा बुख़ार"}
+          - {value: "fatigue", label_en: "Feeling very tired", label_hi: "बहुत थकान"}
+          - {value: "weight_loss", label_en: "Losing weight", label_hi: "वज़न घटना"}
+          - {value: "night_sweats", label_en: "Night sweats", label_hi: "रात में पसीना"}
+          - {value: "lumps", label_en: "A new lump anywhere", label_hi: "कहीं नई गाँठ"}
+          - {value: "rash", label_en: "Rash", label_hi: "दाने"}
+          - {value: "bleeding_any", label_en: "Bleeding from anywhere", label_hi: "कहीं से खून आना"}

@@ -1,0 +1,18 @@
+# MediKiosk runtime dependencies. Plain venv + pip, per the build brief.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.8
+pydantic-settings>=2.4
+sqlalchemy[asyncio]>=2.0.30
+asyncpg>=0.29
+aiosqlite>=0.20
+greenlet>=3.0
+alembic>=1.13
+httpx>=0.27
+redis>=5.0
+fhir.resources>=7.1
+pyyaml>=6.0
+pyjwt>=2.9
+structlog>=24.4
+python-multipart>=0.0.9
+pypdf>=5.0

@@ -1,0 +1,214 @@
+# AYUSH extended interview — Dashavidha Pariksha (tenfold examination) and Ahara-Vihara.
+#
+# Loaded only when the session runs in AYUSH mode. Every answer maps to a code in the
+# Dashavidha CodeSystem (data/terminology/dashavidha.json) via `code:` below — the ontology
+# NAMES the code, the terminology sidecar RETRIEVES it, and nothing constructs one (Invariant 5).
+#
+# Scope note, honestly stated: Prakriti assessment in classical practice rests on
+# observation and pulse examination by a vaidya, not on self-report. What this section
+# collects is the patient-reportable subset, and the physician screen labels it
+# "patient-reported, pending vaidya examination". See docs/adr/ADR-0009.
+
+version: "1.0.0"
+title: "Dashavidha Pariksha and Ahara-Vihara"
+
+sections:
+  - id: ayush
+    title: "Ayurvedic assessment (patient-reported)"
+    title_hi: "आयुर्वेदिक आकलन (रोगी द्वारा बताया गया)"
+    intro:
+      en: "A few questions about your body and habits, used in Ayurvedic assessment."
+      hi: "आपके शरीर और आदतों के बारे में कुछ सवाल, जो आयुर्वेदिक आकलन में काम आते हैं।"
+    questions:
+
+      - id: ayush.prakriti_build
+        path: ayush.prakriti_build
+        kind: single_choice
+        parameter: "Prakriti"
+        parameter_code: "DVP-01"
+        prompt:
+          en: "How would you describe your body build, all your life?"
+          hi: "आप जीवन भर अपने शरीर की बनावट कैसी बताएँगे?"
+        options:
+          - {value: "thin_light", label_en: "Thin and light, hard to gain weight", label_hi: "पतला और हल्का, वज़न बढ़ाना मुश्किल", code: "DVP-01.VATA"}
+          - {value: "medium_warm", label_en: "Medium build, warm body, good appetite", label_hi: "मध्यम बनावट, गर्म शरीर, अच्छी भूख", code: "DVP-01.PITTA"}
+          - {value: "heavy_steady", label_en: "Heavy and steady, gain weight easily", label_hi: "भारी और स्थिर, वज़न जल्दी बढ़ता है", code: "DVP-01.KAPHA"}
+          - {value: "thin_warm", label_en: "Thin but warm-bodied", label_hi: "पतला पर गर्म शरीर", code: "DVP-01.VATA-PITTA"}
+          - {value: "warm_heavy", label_en: "Warm-bodied and heavy", label_hi: "गर्म शरीर और भारी", code: "DVP-01.PITTA-KAPHA"}
+          - {value: "thin_heavy", label_en: "Thin in some ways, heavy in others", label_hi: "कुछ मामलों में पतला, कुछ में भारी", code: "DVP-01.VATA-KAPHA"}
+          - {value: "balanced", label_en: "Well balanced", label_hi: "संतुलित", code: "DVP-01.SAMA"}
+
+      - id: ayush.vikriti
+        path: ayush.vikriti
+        kind: single_choice
+        parameter: "Vikriti"
+        parameter_code: "DVP-02"
+        prompt:
+          en: "Right now, what troubles you most about your body?"
+          hi: "इस समय आपके शरीर में सबसे ज़्यादा क्या परेशान करता है?"
+        options:
+          - {value: "dryness_gas", label_en: "Dryness, gas, cold hands and feet", label_hi: "रूखापन, गैस, ठंडे हाथ-पैर", code: "DVP-02.VATA"}
+          - {value: "burning_acid", label_en: "Burning, acidity, too much heat", label_hi: "जलन, अम्लता, ज़्यादा गर्मी", code: "DVP-02.PITTA"}
+          - {value: "heaviness_mucus", label_en: "Heaviness, mucus, sluggishness", label_hi: "भारीपन, कफ़, सुस्ती", code: "DVP-02.KAPHA"}
+
+      - id: ayush.sara
+        path: ayush.sara
+        kind: single_choice
+        parameter: "Sara"
+        parameter_code: "DVP-03"
+        prompt:
+          en: "How strong do you feel your body has always been?"
+          hi: "आपको लगता है आपका शरीर हमेशा से कितना मज़बूत रहा है?"
+        options:
+          - {value: "pravara", label_en: "Very strong", label_hi: "बहुत मज़बूत", code: "DVP-03.PRAVARA"}
+          - {value: "madhyama", label_en: "Average", label_hi: "औसत", code: "DVP-03.MADHYAMA"}
+          - {value: "avara", label_en: "Weak", label_hi: "कमज़ोर", code: "DVP-03.AVARA"}
+
+      - id: ayush.samhanana
+        path: ayush.samhanana
+        kind: single_choice
+        parameter: "Samhanana"
+        parameter_code: "DVP-04"
+        prompt:
+          en: "How is your body build — compact and well set, or loose?"
+          hi: "आपके शरीर की बनावट कैसी है — कसी हुई और गठी, या ढीली?"
+        options:
+          - {value: "pravara", label_en: "Compact and well set", label_hi: "कसी हुई और गठी", code: "DVP-04.PRAVARA"}
+          - {value: "madhyama", label_en: "In between", label_hi: "बीच की", code: "DVP-04.MADHYAMA"}
+          - {value: "avara", label_en: "Loose, poorly set", label_hi: "ढीली, कमज़ोर गठन", code: "DVP-04.AVARA"}
+
+      - id: ayush.pramana
+        path: ayush.pramana
+        kind: single_choice
+        parameter: "Pramana"
+        parameter_code: "DVP-05"
+        prompt:
+          en: "Compared to others your age, are you taller, shorter, or about the same?"
+          hi: "अपनी उम्र के दूसरों की तुलना में, आप लंबे, छोटे, या लगभग बराबर हैं?"
+        options:
+          - {value: "pravara", label_en: "Taller / larger", label_hi: "लंबा / बड़ा", code: "DVP-05.PRAVARA"}
+          - {value: "madhyama", label_en: "About the same", label_hi: "लगभग बराबर", code: "DVP-05.MADHYAMA"}
+          - {value: "avara", label_en: "Shorter / smaller", label_hi: "छोटा", code: "DVP-05.AVARA"}
+
+      - id: ayush.satmya
+        path: ayush.satmya
+        kind: single_choice
+        parameter: "Satmya"
+        parameter_code: "DVP-06"
+        prompt:
+          en: "Can you eat all kinds of food, or only a few kinds suit you?"
+          hi: "क्या आप हर तरह का खाना खा सकते हैं, या सिर्फ़ कुछ ही चीज़ें आपको सूट करती हैं?"
+        options:
+          - {value: "pravara", label_en: "All kinds suit me", label_hi: "हर तरह का खाना सूट करता है", code: "DVP-06.PRAVARA"}
+          - {value: "madhyama", label_en: "Most kinds", label_hi: "ज़्यादातर तरह का", code: "DVP-06.MADHYAMA"}
+          - {value: "avara", label_en: "Only a few kinds", label_hi: "सिर्फ़ कुछ ही तरह का", code: "DVP-06.AVARA"}
+
+      - id: ayush.sattva
+        path: ayush.sattva
+        kind: single_choice
+        parameter: "Sattva"
+        parameter_code: "DVP-07"
+        prompt:
+          en: "When something difficult happens, how well do you cope?"
+          hi: "जब कोई मुश्किल आती है, तो आप कितनी अच्छी तरह सँभाल लेते हैं?"
+        options:
+          - {value: "pravara", label_en: "I stay steady", label_hi: "मैं स्थिर रहता हूँ", code: "DVP-07.PRAVARA"}
+          - {value: "madhyama", label_en: "I manage, with effort", label_hi: "कोशिश करके सँभाल लेता हूँ", code: "DVP-07.MADHYAMA"}
+          - {value: "avara", label_en: "I get upset easily", label_hi: "मैं जल्दी परेशान हो जाता हूँ", code: "DVP-07.AVARA"}
+
+      - id: ayush.ahara_shakti
+        path: ayush.ahara_shakti
+        kind: single_choice
+        parameter: "Ahara Shakti"
+        parameter_code: "DVP-08"
+        prompt:
+          en: "How much can you eat at one meal, and does it digest well?"
+          hi: "एक बार में आप कितना खा सकते हैं, और क्या वह अच्छे से पचता है?"
+        options:
+          - {value: "pravara", label_en: "A lot, and it digests well", label_hi: "बहुत, और अच्छे से पचता है", code: "DVP-08.PRAVARA"}
+          - {value: "madhyama", label_en: "A normal amount", label_hi: "सामान्य मात्रा", code: "DVP-08.MADHYAMA"}
+          - {value: "avara", label_en: "Very little, or it does not digest", label_hi: "बहुत कम, या पचता नहीं", code: "DVP-08.AVARA"}
+
+      - id: ayush.vyayama_shakti
+        path: ayush.vyayama_shakti
+        kind: single_choice
+        parameter: "Vyayama Shakti"
+        parameter_code: "DVP-09"
+        prompt:
+          en: "How much physical work can you do before you get tired?"
+          hi: "थकने से पहले आप कितना शारीरिक काम कर सकते हैं?"
+        options:
+          - {value: "pravara", label_en: "A full day of hard work", label_hi: "पूरे दिन की कड़ी मेहनत", code: "DVP-09.PRAVARA"}
+          - {value: "madhyama", label_en: "A moderate amount", label_hi: "मध्यम", code: "DVP-09.MADHYAMA"}
+          - {value: "avara", label_en: "I tire very quickly", label_hi: "मैं बहुत जल्दी थक जाता हूँ", code: "DVP-09.AVARA"}
+
+      # Vaya is derived deterministically from the ABHA date of birth, never asked. Asking a
+      # patient their age band when the token already carries their age is a wasted question
+      # in a two-minute consultation.
+      - id: ayush.vaya
+        path: ayush.vaya
+        kind: derived
+        parameter: "Vaya"
+        parameter_code: "DVP-10"
+        derive_from: demographics.age_years
+        derive_rules:
+          - {lt: 16, value: "balya", code: "DVP-10.BALYA"}
+          - {lt: 60, value: "madhya", code: "DVP-10.MADHYA"}
+          - {gte: 60, value: "vriddha", code: "DVP-10.VRIDDHA"}
+        prompt:
+          en: "(derived from your date of birth)"
+          hi: "(आपकी जन्मतिथि से लिया गया)"
+
+      # ---------------------------------------------------------- Ahara-Vihara
+      - id: ayush.agni
+        path: ayush.agni
+        kind: single_choice
+        parameter: "Agni"
+        parameter_code: "AV-02"
+        prompt:
+          en: "How is your digestion, generally?"
+          hi: "आम तौर पर आपका पाचन कैसा है?"
+        options:
+          - {value: "sama", label_en: "Regular — I feel hungry at the right times", label_hi: "नियमित — सही समय पर भूख लगती है", code: "AV-02.SAMA"}
+          - {value: "vishama", label_en: "Irregular — sometimes good, sometimes not", label_hi: "अनियमित — कभी अच्छा, कभी नहीं", code: "AV-02.VISHAMA"}
+          - {value: "tikshna", label_en: "Very strong — I feel hungry all the time", label_hi: "बहुत तेज़ — हर समय भूख लगती है", code: "AV-02.TIKSHNA"}
+          - {value: "manda", label_en: "Slow — food sits heavy", label_hi: "धीमा — खाना भारी लगता है", code: "AV-02.MANDA"}
+
+      - id: ayush.koshtha
+        path: ayush.koshtha
+        kind: single_choice
+        parameter: "Koshtha"
+        parameter_code: "AV-05"
+        prompt:
+          en: "How do your bowels usually move?"
+          hi: "आपका पेट आमतौर पर कैसे साफ़ होता है?"
+        options:
+          - {value: "mridu", label_en: "Easily, sometimes loose", label_hi: "आसानी से, कभी-कभी पतला", code: "AV-05.MRIDU"}
+          - {value: "madhya", label_en: "Normally", label_hi: "सामान्य", code: "AV-05.MADHYA"}
+          - {value: "krura", label_en: "With difficulty, hard stools", label_hi: "मुश्किल से, कड़ा मल", code: "AV-05.KRURA"}
+
+      - id: ayush.vihara
+        path: ayush.vihara
+        kind: single_choice
+        parameter: "Vihara"
+        parameter_code: "AV-03"
+        prompt:
+          en: "How active is your daily life?"
+          hi: "आपका रोज़ का जीवन कितना सक्रिय है?"
+        options:
+          - {value: "sedentary", label_en: "Mostly sitting", label_hi: "ज़्यादातर बैठे रहना", code: "AV-03.SEDENTARY"}
+          - {value: "moderate", label_en: "Moderately active", label_hi: "मध्यम सक्रिय", code: "AV-03.MODERATE"}
+          - {value: "heavy", label_en: "Heavy physical work", label_hi: "भारी शारीरिक काम", code: "AV-03.HEAVY"}
+
+      - id: ayush.nidra
+        path: ayush.nidra
+        kind: single_choice
+        parameter: "Nidra"
+        parameter_code: "AV-04"
+        prompt:
+          en: "How is your sleep, in Ayurvedic terms — sound, disturbed, or too little?"
+          hi: "आपकी नींद कैसी है — गहरी, बाधित, या बहुत कम?"
+        options:
+          - {value: "sound", label_en: "Sound", label_hi: "गहरी", code: "AV-04.SOUND"}
+          - {value: "disturbed", label_en: "Disturbed", label_hi: "बाधित", code: "AV-04.DISTURBED"}
+          - {value: "insufficient", label_en: "Too little", label_hi: "बहुत कम", code: "AV-04.INSUFFICIENT"}

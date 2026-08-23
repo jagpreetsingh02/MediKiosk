@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.db
+*.sqlite3
+.env
+.DS_Store
+node_modules/
+frontend/dist/
+eval/reports/*.json
+!eval/reports/.gitkeep
+data/uploads/

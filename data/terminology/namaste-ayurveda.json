@@ -1,0 +1,25 @@
+{
+  "url": "https://ayush.gov.in/fhir/CodeSystem/namaste-ayurveda",
+  "name": "NAMASTEAyurveda",
+  "title": "NAMASTE Ayurveda (demo subset — ingested from the SIH 25026 pipeline)",
+  "version": "1.0",
+  "publisher": "Ministry of Ayush",
+  "module": "NAMC",
+  "concepts": [
+    {"code": "AAE-16", "display": "Amlapitta", "definition": "Hyperacidity / sour gastric reflux."},
+    {"code": "AAE-17", "display": "Grahani", "definition": "Malabsorption / irritable bowel."},
+    {"code": "AAA-2", "display": "Jvara", "definition": "Fever."},
+    {"code": "AAC-6", "display": "Kasa", "definition": "Cough."},
+    {"code": "AAC-7", "display": "Shvasa", "definition": "Dyspnoea / asthma."},
+    {"code": "AAJ-1", "display": "Sandhivata", "definition": "Osteoarthritis."},
+    {"code": "AAJ-4", "display": "Amavata", "definition": "Rheumatoid-type joint disorder."},
+    {"code": "AAB-11", "display": "Shiroroga", "definition": "Disorder of the head; headache."},
+    {"code": "AAE-3", "display": "Ajirna", "definition": "Indigestion."},
+    {"code": "AAF-2", "display": "Prameha", "definition": "Polyuric disorder; diabetes spectrum."},
+    {"code": "AAH-1", "display": "Pandu", "definition": "Anaemia / pallor."},
+    {"code": "AAD-5", "display": "Hridroga", "definition": "Cardiac disorder."},
+    {"code": "AAK-2", "display": "Anidra", "definition": "Insomnia."},
+    {"code": "AAG-8", "display": "Vibandha", "definition": "Constipation."},
+    {"code": "AAE-21", "display": "Atisara", "definition": "Diarrhoea."}
+  ]
+}

@@ -1,0 +1,496 @@
+# The clinical history ontology. DATA, not code.
+#
+# The state machine in app/modules/dialogue/machine.py walks this file and nothing else. The
+# LLM never reads it and never decides what comes next (Invariant: Module A). A clinician can
+# change the interview by editing this file, with no Python touched and no model retrained.
+#
+# `prompt` carries en + hi for every question. Other languages fall back to English and the
+# API marks the response `translationMissing: true` so a missing translation is visible in the
+# UI rather than silently served — see docs/adr/ADR-0007.
+#
+# Condition DSL (`ask_if`): {all|any: [...]} of {path, eq|ne|in|not_in|gt|lt|recorded|
+# not_recorded|contains}. Deterministic, total, and unit-tested in tests/test_conditions.py.
+
+version: "1.0.0"
+title: "OPD general history — allopathic core"
+
+sections:
+
+  # ------------------------------------------------------------------ chief complaint
+  - id: chief_complaint
+    title: "Chief complaint"
+    title_hi: "मुख्य शिकायत"
+    questions:
+      - id: cc.text
+        path: chief_complaint.text
+        kind: open_text
+        required: true
+        red_flag_scan: true
+        prompt:
+          en: "What is troubling you today? Tell me in your own words."
+          hi: "आज आपको क्या तकलीफ़ है? अपने शब्दों में बताइए।"
+          ta: "இன்று உங்களுக்கு என்ன பிரச்சினை? உங்கள் சொந்த வார்த்தைகளில் சொல்லுங்கள்."
+        help:
+          en: "You can speak, or tap a picture below."
+          hi: "आप बोल सकते हैं, या नीचे चित्र दबा सकते हैं।"
+        # Tap options are ALWAYS present. Speech is never the only way to answer anything.
+        options:
+          - {value: "pain", label_en: "Pain", label_hi: "दर्द", icon: "pain"}
+          - {value: "fever", label_en: "Fever", label_hi: "बुख़ार", icon: "fever"}
+          - {value: "cough", label_en: "Cough or breathing trouble", label_hi: "खाँसी या साँस की तकलीफ़", icon: "cough"}
+          - {value: "stomach", label_en: "Stomach problem", label_hi: "पेट की समस्या", icon: "stomach"}
+          - {value: "weakness", label_en: "Weakness or tiredness", label_hi: "कमज़ोरी या थकान", icon: "weakness"}
+          - {value: "injury", label_en: "Injury", label_hi: "चोट", icon: "injury"}
+          - {value: "skin", label_en: "Skin problem", label_hi: "त्वचा की समस्या", icon: "skin"}
+          - {value: "checkup", label_en: "Routine check-up", label_hi: "नियमित जाँच", icon: "checkup"}
+          - {value: "other", label_en: "Something else", label_hi: "कुछ और", icon: "other"}
+
+      - id: cc.duration
+        path: chief_complaint.duration
+        kind: duration
+        required: true
+        prompt:
+          en: "How long has this been going on?"
+          hi: "यह कब से हो रहा है?"
+          ta: "இது எவ்வளவு காலமாக உள்ளது?"
+        options:
+          - {value: "today", label_en: "Started today", label_hi: "आज शुरू हुआ", days: 0}
+          - {value: "days_1_3", label_en: "1–3 days", label_hi: "1–3 दिन", days: 2}
+          - {value: "week_1", label_en: "About a week", label_hi: "लगभग एक हफ़्ता", days: 7}
+          - {value: "weeks_2_4", label_en: "2–4 weeks", label_hi: "2–4 हफ़्ते", days: 21}
+          - {value: "months_1_6", label_en: "1–6 months", label_hi: "1–6 महीने", days: 90}
+          - {value: "months_6_plus", label_en: "More than 6 months", label_hi: "6 महीने से ज़्यादा", days: 240}
+
+  # ------------------------------------------------------------------ HPI via SOCRATES
+  - id: hpi
+    title: "History of presenting illness"
+    title_hi: "वर्तमान बीमारी का विवरण"
+    questions:
+
+      - id: hpi.site
+        path: hpi.site
+        kind: single_choice
+        socrates: "S — Site"
+        required: true
+        prompt:
+          en: "Where in your body do you feel it? Tap the part, or tell me."
+          hi: "शरीर में कहाँ महसूस होता है? उस भाग को दबाइए, या बताइए।"
+        options:
+          - {value: "head", label_en: "Head", label_hi: "सिर", icon: "head"}
+          - {value: "chest", label_en: "Chest", label_hi: "छाती", icon: "chest"}
+          - {value: "abdomen", label_en: "Stomach / abdomen", label_hi: "पेट", icon: "abdomen"}
+          - {value: "back", label_en: "Back", label_hi: "पीठ", icon: "back"}
+          - {value: "limbs", label_en: "Arms or legs", label_hi: "हाथ या पैर", icon: "limbs"}
+          - {value: "joints", label_en: "Joints", label_hi: "जोड़", icon: "joints"}
+          - {value: "throat", label_en: "Throat or neck", label_hi: "गला या गर्दन", icon: "throat"}
+          - {value: "whole_body", label_en: "All over", label_hi: "पूरे शरीर में", icon: "whole_body"}
+          - {value: "other", label_en: "Somewhere else", label_hi: "कहीं और", icon: "other"}
+
+      - id: hpi.onset
+        path: hpi.onset
+        kind: single_choice
+        socrates: "O — Onset"
+        prompt:
+          en: "Did it start suddenly, or slowly over time?"
+          hi: "क्या यह अचानक शुरू हुआ, या धीरे-धीरे?"
+        red_flag_scan: true
+        options:
+          - {value: "sudden", label_en: "All at once, suddenly", label_hi: "अचानक, एकदम से"}
+          - {value: "gradual", label_en: "Slowly, over days or weeks", label_hi: "धीरे-धीरे, दिनों या हफ़्तों में"}
+          - {value: "after_event", label_en: "After something happened (fall, food, effort)", label_hi: "किसी घटना के बाद (गिरना, खाना, मेहनत)"}
+          - {value: "unsure", label_en: "I am not sure", label_hi: "मुझे पक्का नहीं पता"}
+
+      - id: hpi.character
+        path: hpi.character
+        kind: single_choice
+        socrates: "C — Character"
+        ask_if:
+          any:
+            - {path: chief_complaint.text, contains: "pain"}
+            - {path: chief_complaint.text, eq: "pain"}
+            - {path: hpi.site, recorded: true}
+        prompt:
+          en: "What does it feel like?"
+          hi: "यह कैसा महसूस होता है?"
+        options:
+          - {value: "sharp", label_en: "Sharp, like a knife", label_hi: "तेज़, चाकू जैसा"}
+          - {value: "dull", label_en: "Dull ache", label_hi: "हल्का दर्द"}
+          - {value: "burning", label_en: "Burning", label_hi: "जलन"}
+          - {value: "cramping", label_en: "Cramping, comes in waves", label_hi: "मरोड़, लहरों में आता है"}
+          - {value: "pressure", label_en: "Heavy, like pressure", label_hi: "भारी, दबाव जैसा"}
+          - {value: "throbbing", label_en: "Throbbing", label_hi: "धड़कता हुआ"}
+          - {value: "tingling", label_en: "Tingling or numb", label_hi: "झुनझुनी या सुन्न"}
+
+      - id: hpi.radiation
+        path: hpi.radiation
+        kind: single_choice
+        socrates: "R — Radiation"
+        red_flag_scan: true
+        ask_if:
+          any:
+            - {path: hpi.site, in: ["chest", "abdomen", "back", "head"]}
+        prompt:
+          en: "Does it travel anywhere else in your body?"
+          hi: "क्या यह शरीर में कहीं और जाता है?"
+        options:
+          - {value: "none", label_en: "No, it stays in one place", label_hi: "नहीं, एक ही जगह रहता है"}
+          - {value: "left_arm", label_en: "To my left arm", label_hi: "बाएँ हाथ में"}
+          - {value: "jaw_neck", label_en: "To my jaw or neck", label_hi: "जबड़े या गर्दन में"}
+          - {value: "back", label_en: "To my back", label_hi: "पीठ में"}
+          - {value: "leg", label_en: "Down my leg", label_hi: "पैर की ओर"}
+          - {value: "groin", label_en: "To my groin", label_hi: "जांघ के जोड़ की ओर"}
+          - {value: "other", label_en: "Somewhere else", label_hi: "कहीं और"}
+
+      - id: hpi.associated
+        path: hpi.associated
+        kind: multi_choice
+        socrates: "A — Associations"
+        red_flag_scan: true
+        prompt:
+          en: "Is anything else happening along with it? Choose all that apply."
+          hi: "साथ में और कुछ हो रहा है? जो भी लागू हो सब चुनिए।"
+        options:
+          - {value: "none", label_en: "Nothing else", label_hi: "और कुछ नहीं", exclusive: true}
+          - {value: "fever", label_en: "Fever", label_hi: "बुख़ार"}
+          - {value: "vomiting", label_en: "Vomiting", label_hi: "उल्टी"}
+          - {value: "breathlessness", label_en: "Trouble breathing", label_hi: "साँस लेने में तकलीफ़"}
+          - {value: "sweating", label_en: "Cold sweating", label_hi: "ठंडा पसीना"}
+          - {value: "dizziness", label_en: "Dizziness or fainting", label_hi: "चक्कर या बेहोशी"}
+          - {value: "palpitations", label_en: "Heart racing", label_hi: "दिल तेज़ धड़कना"}
+          - {value: "weight_loss", label_en: "Losing weight without trying", label_hi: "बिना कोशिश वज़न घटना"}
+          - {value: "bleeding", label_en: "Bleeding", label_hi: "खून आना"}
+          - {value: "weakness_limb", label_en: "Weakness in an arm or leg", label_hi: "हाथ या पैर में कमज़ोरी"}
+          - {value: "speech_trouble", label_en: "Trouble speaking", label_hi: "बोलने में तकलीफ़"}
+          - {value: "vision_change", label_en: "Change in eyesight", label_hi: "दिखाई देने में बदलाव"}
+
+      - id: hpi.timing
+        path: hpi.timing
+        kind: single_choice
+        socrates: "T — Time course"
+        prompt:
+          en: "Is it there all the time, or does it come and go?"
+          hi: "क्या यह हर समय रहता है, या आता-जाता है?"
+        options:
+          - {value: "constant", label_en: "All the time", label_hi: "हर समय"}
+          - {value: "intermittent", label_en: "Comes and goes", label_hi: "आता-जाता है"}
+          - {value: "worsening", label_en: "Getting worse each day", label_hi: "हर दिन बढ़ रहा है"}
+          - {value: "improving", label_en: "Slowly getting better", label_hi: "धीरे-धीरे ठीक हो रहा है"}
+          - {value: "night_worse", label_en: "Worse at night", label_hi: "रात में ज़्यादा"}
+
+      - id: hpi.exacerbating
+        path: hpi.exacerbating
+        kind: multi_choice
+        socrates: "E — Exacerbating / relieving"
+        prompt:
+          en: "Does anything make it worse, or make it better?"
+          hi: "किसी चीज़ से यह बढ़ता है, या कम होता है?"
+        options:
+          - {value: "worse_movement", label_en: "Worse when I move", label_hi: "चलने-फिरने से बढ़ता है"}
+          - {value: "worse_effort", label_en: "Worse on effort or walking uphill", label_hi: "मेहनत या चढ़ाई से बढ़ता है"}
+          - {value: "worse_food", label_en: "Worse after eating", label_hi: "खाने के बाद बढ़ता है"}
+          - {value: "worse_empty", label_en: "Worse on an empty stomach", label_hi: "खाली पेट बढ़ता है"}
+          - {value: "worse_lying", label_en: "Worse lying down", label_hi: "लेटने पर बढ़ता है"}
+          - {value: "better_rest", label_en: "Better with rest", label_hi: "आराम से कम होता है"}
+          - {value: "better_medicine", label_en: "Better with medicine", label_hi: "दवा से कम होता है"}
+          - {value: "nothing_helps", label_en: "Nothing changes it", label_hi: "किसी चीज़ से फ़र्क नहीं पड़ता"}
+
+      - id: hpi.severity
+        path: hpi.severity
+        kind: scale
+        socrates: "S — Severity"
+        scale:
+          min: 0
+          max: 10
+          #: A 0–10 number means nothing to a patient who has never been asked one. The kiosk
+          #: renders faces; the number is what gets recorded.
+          faces: true
+          anchors_en: ["No trouble at all", "Mild", "Uncomfortable", "Bad", "Very bad", "Worst I can imagine"]
+          anchors_hi: ["बिलकुल तकलीफ़ नहीं", "हल्का", "असहज", "बुरा", "बहुत बुरा", "सबसे बुरा"]
+        prompt:
+          en: "How bad is it right now? Touch the face that matches."
+          hi: "अभी कितना बुरा है? जो चेहरा मिलता है उसे दबाइए।"
+
+  # ------------------------------------------------------------------ past medical
+  - id: past_medical
+    title: "Past medical history"
+    title_hi: "पिछली बीमारियाँ"
+    questions:
+      - id: pmh.conditions
+        path: past_medical.conditions
+        kind: multi_choice
+        prompt:
+          en: "Has a doctor ever told you that you have any of these?"
+          hi: "क्या किसी डॉक्टर ने कभी बताया कि आपको इनमें से कुछ है?"
+        help:
+          en: "Only what a doctor has told you. If you are not sure, that is fine."
+          hi: "सिर्फ़ वह जो डॉक्टर ने बताया हो। पक्का नहीं पता तो कोई बात नहीं।"
+        options:
+          - {value: "none", label_en: "None of these", label_hi: "इनमें से कोई नहीं", exclusive: true}
+          - {value: "diabetes", label_en: "Diabetes (sugar)", label_hi: "मधुमेह (शुगर)", term: "Type 2 diabetes mellitus"}
+          - {value: "hypertension", label_en: "High blood pressure", label_hi: "उच्च रक्तचाप", term: "Essential hypertension"}
+          - {value: "heart", label_en: "Heart problem", label_hi: "दिल की बीमारी", term: "Angina pectoris"}
+          - {value: "asthma", label_en: "Asthma", label_hi: "दमा", term: "Asthma"}
+          - {value: "tb", label_en: "Tuberculosis (TB)", label_hi: "तपेदिक (टीबी)", term: "Tuberculosis of the respiratory system"}
+          - {value: "thyroid", label_en: "Thyroid problem", label_hi: "थायराइड की समस्या", term: "Hypothyroidism"}
+          - {value: "kidney", label_en: "Kidney problem", label_hi: "गुर्दे की समस्या", term: "Chronic kidney disease"}
+          - {value: "stroke", label_en: "Stroke or paralysis", label_hi: "लकवा या स्ट्रोक", term: "Cerebrovascular accident, unspecified"}
+          - {value: "arthritis", label_en: "Joint disease / arthritis", label_hi: "गठिया / जोड़ों की बीमारी", term: "Osteoarthritis of knee"}
+          - {value: "anaemia", label_en: "Low blood (anaemia)", label_hi: "खून की कमी", term: "Anaemia due to iron deficiency"}
+          - {value: "ulcer", label_en: "Stomach ulcer", label_hi: "पेट का अल्सर", term: "Peptic ulcer"}
+          - {value: "unsure", label_en: "I do not know", label_hi: "मुझे नहीं पता"}
+
+      - id: pmh.hospitalised
+        path: past_medical.hospitalised
+        kind: boolean
+        prompt:
+          en: "Have you ever been admitted to a hospital overnight?"
+          hi: "क्या आप कभी रात भर अस्पताल में भर्ती हुए हैं?"
+
+      - id: pmh.hospital_reason
+        path: past_medical.hospital_reason
+        kind: open_text
+        ask_if:
+          all: [{path: past_medical.hospitalised, eq: true}]
+        prompt:
+          en: "What was that for?"
+          hi: "वह किस वजह से था?"
+
+  # ------------------------------------------------------------------ past surgical
+  - id: past_surgical
+    title: "Past surgical history"
+    title_hi: "पिछले ऑपरेशन"
+    questions:
+      - id: psh.any
+        path: past_surgical.any
+        kind: boolean
+        prompt:
+          en: "Have you ever had an operation?"
+          hi: "क्या आपका कभी ऑपरेशन हुआ है?"
+
+      - id: psh.which
+        path: past_surgical.which
+        kind: multi_choice
+        ask_if:
+          all: [{path: past_surgical.any, eq: true}]
+        prompt:
+          en: "Which operation? Choose all that apply."
+          hi: "कौन सा ऑपरेशन? जो भी लागू हो सब चुनिए।"
+        options:
+          - {value: "appendix", label_en: "Appendix removed", label_hi: "अपेंडिक्स निकाला"}
+          - {value: "gallbladder", label_en: "Gall bladder", label_hi: "पित्ताशय"}
+          - {value: "caesarean", label_en: "Caesarean section", label_hi: "सिज़ेरियन"}
+          - {value: "hysterectomy", label_en: "Uterus removed", label_hi: "गर्भाशय निकाला"}
+          - {value: "hernia", label_en: "Hernia repair", label_hi: "हर्निया"}
+          - {value: "cataract", label_en: "Eye / cataract", label_hi: "आँख / मोतियाबिंद"}
+          - {value: "bone", label_en: "Bone or joint", label_hi: "हड्डी या जोड़"}
+          - {value: "heart_surgery", label_en: "Heart operation", label_hi: "दिल का ऑपरेशन"}
+          - {value: "other", label_en: "Something else", label_hi: "कुछ और"}
+
+      - id: psh.year
+        path: past_surgical.year
+        kind: open_text
+        ask_if:
+          all: [{path: past_surgical.any, eq: true}]
+        prompt:
+          en: "Roughly which year was that?"
+          hi: "लगभग किस साल?"
+
+  # ------------------------------------------------------------------ drugs & allergy
+  - id: drug_allergy
+    title: "Medicines and allergies"
+    title_hi: "दवाइयाँ और एलर्जी"
+    questions:
+      - id: med.taking
+        path: drug_allergy.taking_medicines
+        kind: boolean
+        prompt:
+          en: "Are you taking any medicines at the moment?"
+          hi: "क्या आप इस समय कोई दवा ले रहे हैं?"
+        help:
+          en: "Including anything from a chemist, and any Ayurvedic or home medicine."
+          hi: "दुकान से ली गई दवा और आयुर्वेदिक या घरेलू दवा भी शामिल।"
+
+      - id: med.list
+        path: drug_allergy.medicines
+        kind: open_text
+        repeatable: true
+        entry_of: medications
+        ask_if:
+          all: [{path: drug_allergy.taking_medicines, eq: true}]
+        prompt:
+          en: "Tell me the name of one medicine you take. You can also show me the strip or the prescription."
+          hi: "आप जो एक दवा लेते हैं उसका नाम बताइए। आप पत्ता या पर्ची भी दिखा सकते हैं।"
+        help:
+          en: "If you do not know the name, that is fine — scan the paper instead."
+          hi: "नाम नहीं पता तो कोई बात नहीं — काग़ज़ स्कैन कर दीजिए।"
+
+      - id: med.ayush_taking
+        path: drug_allergy.ayush_medicines
+        kind: boolean
+        prompt:
+          en: "Are you taking any Ayurvedic, Siddha, Unani or homeopathic medicine?"
+          hi: "क्या आप कोई आयुर्वेदिक, सिद्ध, यूनानी या होम्योपैथिक दवा ले रहे हैं?"
+
+      - id: allergy.any
+        path: drug_allergy.has_allergy
+        kind: boolean
+        red_flag_scan: true
+        prompt:
+          en: "Has any medicine or food ever caused you a rash, swelling or breathing trouble?"
+          hi: "क्या किसी दवा या खाने से आपको कभी दाने, सूजन या साँस की तकलीफ़ हुई है?"
+
+      - id: allergy.what
+        path: drug_allergy.allergy_substance
+        kind: open_text
+        repeatable: true
+        entry_of: allergies
+        ask_if:
+          all: [{path: drug_allergy.has_allergy, eq: true}]
+        prompt:
+          en: "Which medicine or food was it?"
+          hi: "कौन सी दवा या कौन सा खाना था?"
+
+      - id: allergy.reaction
+        path: drug_allergy.allergy_reaction
+        kind: single_choice
+        red_flag_scan: true
+        ask_if:
+          all: [{path: drug_allergy.has_allergy, eq: true}]
+        prompt:
+          en: "What happened to you?"
+          hi: "आपके साथ क्या हुआ?"
+        options:
+          - {value: "rash", label_en: "Rash or itching", label_hi: "दाने या खुजली"}
+          - {value: "swelling", label_en: "Swelling of face or lips", label_hi: "चेहरे या होंठों की सूजन"}
+          - {value: "breathing", label_en: "Trouble breathing", label_hi: "साँस लेने में तकलीफ़"}
+          - {value: "collapse", label_en: "I collapsed / became unconscious", label_hi: "मैं गिर गया / बेहोश हो गया"}
+          - {value: "stomach", label_en: "Stomach upset only", label_hi: "सिर्फ़ पेट खराब"}
+
+  # ------------------------------------------------------------------ family
+  - id: family_history
+    title: "Family history"
+    title_hi: "पारिवारिक इतिहास"
+    questions:
+      - id: fh.conditions
+        path: family_history.conditions
+        kind: multi_choice
+        prompt:
+          en: "Does anyone in your close family have any of these?"
+          hi: "क्या आपके नज़दीकी परिवार में किसी को इनमें से कुछ है?"
+        help:
+          en: "Parents, brothers, sisters or children."
+          hi: "माता-पिता, भाई, बहन या बच्चे।"
+        options:
+          - {value: "none", label_en: "No one", label_hi: "कोई नहीं", exclusive: true}
+          - {value: "diabetes", label_en: "Diabetes", label_hi: "मधुमेह"}
+          - {value: "hypertension", label_en: "High blood pressure", label_hi: "उच्च रक्तचाप"}
+          - {value: "heart", label_en: "Heart attack before age 55", label_hi: "55 की उम्र से पहले दिल का दौरा"}
+          - {value: "stroke", label_en: "Stroke", label_hi: "लकवा"}
+          - {value: "cancer", label_en: "Cancer", label_hi: "कैंसर"}
+          - {value: "tb", label_en: "Tuberculosis", label_hi: "तपेदिक"}
+          - {value: "asthma", label_en: "Asthma", label_hi: "दमा"}
+          - {value: "mental", label_en: "Mental illness", label_hi: "मानसिक बीमारी"}
+          - {value: "unsure", label_en: "I do not know", label_hi: "मुझे नहीं पता"}
+
+  # ------------------------------------------------------------------ personal
+  - id: personal_history
+    title: "Personal history"
+    title_hi: "व्यक्तिगत इतिहास"
+    questions:
+      - id: ph.tobacco
+        path: personal_history.tobacco
+        kind: single_choice
+        prompt:
+          en: "Do you use tobacco in any form?"
+          hi: "क्या आप किसी भी रूप में तंबाकू लेते हैं?"
+        help:
+          en: "Smoking, chewing, gutka, khaini, or snuff."
+          hi: "बीड़ी-सिगरेट, खाने वाला तंबाकू, गुटखा, खैनी या सूँघने वाला।"
+        options:
+          - {value: "never", label_en: "Never", label_hi: "कभी नहीं"}
+          - {value: "current_smoke", label_en: "Yes, I smoke", label_hi: "हाँ, मैं पीता हूँ"}
+          - {value: "current_chew", label_en: "Yes, I chew tobacco", label_hi: "हाँ, मैं खाता हूँ"}
+          - {value: "current_both", label_en: "Yes, both", label_hi: "हाँ, दोनों"}
+          - {value: "former", label_en: "I used to, but stopped", label_hi: "पहले लेता था, अब छोड़ दिया"}
+
+      - id: ph.alcohol
+        path: personal_history.alcohol
+        kind: single_choice
+        prompt:
+          en: "Do you drink alcohol?"
+          hi: "क्या आप शराब पीते हैं?"
+        options:
+          - {value: "never", label_en: "Never", label_hi: "कभी नहीं"}
+          - {value: "occasional", label_en: "Occasionally", label_hi: "कभी-कभी"}
+          - {value: "weekly", label_en: "Most weeks", label_hi: "लगभग हर हफ़्ते"}
+          - {value: "daily", label_en: "Every day", label_hi: "रोज़"}
+          - {value: "former", label_en: "I used to, but stopped", label_hi: "पहले पीता था, अब छोड़ दिया"}
+
+      - id: ph.diet
+        path: personal_history.diet
+        kind: single_choice
+        prompt:
+          en: "What do you usually eat?"
+          hi: "आप आमतौर पर क्या खाते हैं?"
+        options:
+          - {value: "veg", label_en: "Vegetarian", label_hi: "शाकाहारी"}
+          - {value: "nonveg", label_en: "Non-vegetarian", label_hi: "मांसाहारी"}
+          - {value: "mixed", label_en: "Both", label_hi: "दोनों"}
+          - {value: "vegan", label_en: "No animal food at all", label_hi: "बिलकुल भी पशु आहार नहीं"}
+
+      - id: ph.sleep
+        path: personal_history.sleep
+        kind: single_choice
+        prompt:
+          en: "How is your sleep?"
+          hi: "आपकी नींद कैसी है?"
+        options:
+          - {value: "good", label_en: "Good", label_hi: "अच्छी"}
+          - {value: "disturbed", label_en: "I wake up often", label_hi: "बार-बार नींद खुलती है"}
+          - {value: "difficulty", label_en: "Hard to fall asleep", label_hi: "नींद आने में दिक़्क़त"}
+          - {value: "insufficient", label_en: "Too little sleep", label_hi: "बहुत कम नींद"}
+
+      - id: ph.bowel
+        path: personal_history.bowel
+        kind: single_choice
+        prompt:
+          en: "How are your bowels?"
+          hi: "आपका पेट कैसा साफ़ होता है?"
+        options:
+          - {value: "regular", label_en: "Regular", label_hi: "नियमित"}
+          - {value: "constipated", label_en: "Constipated", label_hi: "कब्ज़"}
+          - {value: "loose", label_en: "Loose motions", label_hi: "पतले दस्त"}
+          - {value: "alternating", label_en: "Sometimes one, sometimes the other", label_hi: "कभी एक, कभी दूसरा"}
+
+      - id: ph.occupation
+        path: personal_history.occupation
+        kind: single_choice
+        prompt:
+          en: "What kind of work do you do?"
+          hi: "आप किस तरह का काम करते हैं?"
+        options:
+          - {value: "farming", label_en: "Farming", label_hi: "खेती"}
+          - {value: "labour", label_en: "Physical labour", label_hi: "मज़दूरी"}
+          - {value: "shop", label_en: "Shop or business", label_hi: "दुकान या व्यापार"}
+          - {value: "office", label_en: "Office work", label_hi: "दफ़्तर का काम"}
+          - {value: "home", label_en: "Work at home", label_hi: "घर का काम"}
+          - {value: "retired", label_en: "Retired", label_hi: "सेवानिवृत्त"}
+          - {value: "none", label_en: "Not working now", label_hi: "अभी काम नहीं"}
+
+      - id: ph.pregnancy
+        path: personal_history.pregnancy
+        kind: single_choice
+        # Deterministic gating on demographics from the ABHA token. No LLM decides this.
+        ask_if:
+          all:
+            - {path: demographics.gender, eq: "female"}
+            - {path: demographics.age_years, gte: 12}
+            - {path: demographics.age_years, lte: 55}
+        prompt:
+          en: "Is there any chance you are pregnant?"
+          hi: "क्या इस बात की कोई संभावना है कि आप गर्भवती हैं?"
+        options:
+          - {value: "no", label_en: "No", label_hi: "नहीं"}
+          - {value: "yes", label_en: "Yes", label_hi: "हाँ"}
+          - {value: "maybe", label_en: "Possibly", label_hi: "हो सकता है"}
+          - {value: "na", label_en: "Not applicable", label_hi: "लागू नहीं"}

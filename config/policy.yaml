@@ -1,0 +1,79 @@
+# ABAC policy. Ported from SIH 25026 `config/policy.yaml` and re-scoped for clinical intake.
+#
+# The rules live here, not in Python, so a compliance reviewer can read the access model
+# without reading code (ADR-0004, carried across). `app/auth/policy.py` only evaluates them.
+#
+# The important asymmetry: `patient` can write their own history but can never read another
+# session, and `triage_nurse` can read red flags and queue position but NOT the clinical
+# narrative — a triage desk needs to know someone is urgent, not why.
+
+purposes:
+  TREATMENT:
+    candidates: allow
+    curated_mappings: allow
+    strip_identifiers: false
+    aggregate_only: false
+  CLAIM:
+    candidates: deny          # a claim never carries an unreviewed candidate code
+    curated_mappings: require_flag
+    strip_identifiers: false
+    aggregate_only: false
+  RESEARCH:
+    candidates: allow
+    curated_mappings: allow
+    strip_identifiers: true
+    aggregate_only: false
+  STATISTICS:
+    candidates: allow
+    curated_mappings: allow
+    strip_identifiers: true
+    aggregate_only: true
+
+roles:
+  anonymous:
+    purposes: [TREATMENT]
+    actions:
+      - terminology.search
+      - system.about
+
+  patient:
+    purposes: [TREATMENT]
+    actions:
+      - session.create
+      - session.read_own
+      - consent.grant
+      - consent.revoke
+      - dialogue.answer
+      - document.upload
+      - session.submit
+      - system.about
+
+  clinician:
+    purposes: [TREATMENT, CLAIM, RESEARCH]
+    actions:
+      - session.read
+      - summary.generate
+      - summary.read
+      - summary.edit
+      - summary.commit          # Invariant 4: only this role holds the commit action
+      - fact.read
+      - document.read
+      - document.verify
+      - queue.read
+      - terminology.search
+      - audit.read
+      - system.about
+
+  triage_nurse:
+    purposes: [TREATMENT]
+    actions:
+      - queue.read
+      - redflag.read            # deliberately NOT summary.read
+      - system.about
+
+  auditor:
+    purposes: [RESEARCH, STATISTICS]
+    actions:
+      - audit.read
+      - audit.verify
+      - system.about
