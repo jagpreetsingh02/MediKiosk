@@ -4,13 +4,19 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from app.core.config import settings
+
+# Both halves of the schema, or Alembic silently emits half a database. `durable` was
+# missing here, so the thirteen longitudinal tables — patient, encounter, clinical_fact and
+# the rest — existed only because `create_all()` runs against SQLite at startup. On any real
+# Postgres they would simply not have been created, and the patient memory would have been
+# empty with nothing in the logs to say why.
+from app.db import durable, models  # noqa: F401  (imports register the mappers)
 from app.db.base import Base
-from app.db import models  # noqa: F401  (import registers the mappers)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

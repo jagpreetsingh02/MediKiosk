@@ -37,9 +37,29 @@ log = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
+
+    # Which database is actually behind this process, said out loud. A demo that silently
+    # ran on an empty local SQLite file while everyone believed it was on Supabase would
+    # look identical right up to the moment the patient history came back empty.
+    log.info(
+        "startup.database",
+        backend=settings.database_backend,
+        host=settings.database_host,  # host only; the URL carries the password
+    )
+    if settings.require_supabase and not settings.is_supabase:
+        raise RuntimeError(
+            f"REQUIRE_SUPABASE is set but DATABASE_URL points at {settings.database_backend}. "
+            "Refusing to start on the wrong database — set DATABASE_URL to the Supabase "
+            "connection string, or unset REQUIRE_SUPABASE for a local run."
+        )
+
     if settings.is_sqlite:
         await create_all()
         log.info("startup.schema", mode="create_all", note="SQLite dev only")
+    else:
+        # Postgres is built by Alembic and nothing else. `create_all()` here would paper
+        # over a missing migration, which is precisely how the durable schema went missing.
+        log.info("startup.schema", mode="alembic", note="run `alembic upgrade head`")
 
     async with get_sessionmaker()() as session:
         from app.terminology.store import seed_all

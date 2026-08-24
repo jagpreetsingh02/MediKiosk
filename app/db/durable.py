@@ -185,6 +185,12 @@ class SourceEvidence(Base):
     bbox_json: Mapped[dict | None] = mapped_column(JSON)
     ocr_confidence: Mapped[float | None] = mapped_column(Float)
     handwritten: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: What a named human read the scrawl as, when OCR got it wrong, and who read it. The
+    #: capture-side `DocumentSpan` carries both; without these columns a physician's
+    #: correction lost its attribution the moment it became durable, which would leave the
+    #: record holding a value whose only evidence is an OCR line that disagrees with it.
+    human_reading: Mapped[str | None] = mapped_column(Text)
+    read_by: Mapped[str | None] = mapped_column(String(255))
 
     fact: Mapped[ClinicalFactRecord] = relationship(back_populates="evidence")
 

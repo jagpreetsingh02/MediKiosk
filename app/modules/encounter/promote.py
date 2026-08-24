@@ -260,6 +260,8 @@ async def promote(
                 bbox_json=bbox.model_dump() if bbox is not None else None,
                 ocr_confidence=getattr(span, "ocr_confidence", None),
                 handwritten=bool(getattr(span, "handwritten", False)),
+                human_reading=getattr(span, "human_reading", None),
+                read_by=getattr(span, "read_by", None),
             )
         )
         result.evidence += 1

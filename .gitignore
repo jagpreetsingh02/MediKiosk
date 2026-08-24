@@ -13,3 +13,6 @@ frontend/dist/
 eval/reports/*.json
 !eval/reports/.gitkeep
 data/uploads/
+
+# scratch output from local runs
+tmp/

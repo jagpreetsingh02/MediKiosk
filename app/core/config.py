@@ -56,8 +56,22 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # --- persistence ---
+    #: SQLite stays the default so `pytest` and a cold clone run with no network at all.
+    #: The demo and any deployment point this at Supabase — see docs/SUPABASE.md for which
+    #: of the two connection strings Supabase offers to use, and why.
     database_url: str = "sqlite+aiosqlite:///./medikiosk.db"
     db_echo: bool = False
+    #: Supabase project URL (`https://<ref>.supabase.co`). Used for Storage, not for SQL:
+    #: the SQL path is `database_url` through SQLAlchemy, per §4 and §23 of the brief.
+    supabase_url: str | None = None
+    #: BACKEND ONLY. Never reaches the browser — `test_no_secret_reaches_the_frontend`
+    #: fails the build if it appears anywhere under frontend/.
+    supabase_service_role_key: str | None = None
+    #: Private bucket for prescription and report images.
+    supabase_storage_bucket: str = "medical-documents"
+    #: Set when the deployment is meant to be on Supabase. With this on, falling back to
+    #: SQLite is a startup failure rather than a silent demo on an empty local file.
+    require_supabase: bool = False
     redis_url: str = "redis://localhost:6379/0"
     #: When Redis is unreachable the session store falls back to an in-process dict so the
     #: demo survives a dead container. Never enable this in prod: it is single-worker only.
@@ -136,6 +150,28 @@ class Settings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite")
+
+    @property
+    def is_supabase(self) -> bool:
+        return "supabase." in self.database_url
+
+    @property
+    def database_backend(self) -> str:
+        """A human label for the startup log. Never the URL — that carries the password."""
+        if self.is_sqlite:
+            return "SQLite (local file)"
+        if self.is_supabase:
+            pooled = "pooler" in self.database_url
+            return f"Supabase PostgreSQL ({'pooled' if pooled else 'direct'})"
+        return "PostgreSQL"
+
+    @property
+    def database_host(self) -> str:
+        """Host only, safe to log. Splitting on `@` is what drops the credentials."""
+        if self.is_sqlite:
+            return self.database_url.rsplit("/", 1)[-1]
+        tail = self.database_url.rsplit("@", 1)[-1]
+        return tail.split("/", 1)[0]
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -537,6 +537,10 @@ async def evidence_for_fact(
                 "bbox": e.bbox_json,
                 "ocrConfidence": e.ocr_confidence,
                 "handwritten": e.handwritten,
+                # Shown beside the scrawl, never instead of it: the drawer says what OCR
+                # read, what a person read it as, and whose name is on that reading.
+                "humanReading": e.human_reading,
+                "readBy": e.read_by,
             }
             for e in evidence
         ],
