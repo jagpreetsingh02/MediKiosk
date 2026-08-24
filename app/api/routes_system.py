@@ -143,7 +143,7 @@ async def inspect_session(
     from app.redflags.engine import evaluate
 
     started = time.perf_counter()
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     facts = context.ledger.active_facts()
     escalation = evaluate(
         context.ledger,

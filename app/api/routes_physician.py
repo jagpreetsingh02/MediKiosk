@@ -128,7 +128,7 @@ async def summary(
     db: DbSession, session_ref: str, identity: CurrentIdentity, prose: bool = False
 ) -> dict[str, Any]:
     """Generate the draft. Fails outright rather than returning a half-verified summary."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     history, escalation = await _history_for(db, context)
 
     result = generate(history, context.ledger, escalation=escalation, use_prose=prose)
@@ -179,7 +179,7 @@ async def contradictions(
     """Every disagreement between two sources. Both sides, never a resolution."""
     from app.contracts.contradictions import detect
 
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     found = detect(context.ledger)
     return {
         "sessionRef": session_ref,
@@ -200,7 +200,7 @@ async def fact_detail(
     db: DbSession, session_ref: str, fact_id: str, identity: CurrentIdentity
 ) -> dict[str, Any]:
     """Click-to-source: everything behind one line of the summary."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     fact = context.ledger.by_id(fact_id)
     if fact is None:
         raise ValidationError(f"No fact {fact_id} in this session.")
@@ -250,7 +250,7 @@ async def edit_fact(
     from app.contracts.provenance import Modality, SourceTier
     from app.contracts.record import record_fact, utterance_span
 
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     path = str(payload.get("path") or "")
     value = payload.get("value")
     reason = str(payload.get("reason") or "physician correction")
@@ -302,7 +302,7 @@ async def fhir_preview(
     nowhere. Nothing reaches the HIS or the ABHA record until `POST /commit`, which is the
     only route that transmits and the only one restricted to `summary.commit`.
     """
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     history, escalation = await _history_for(db, context)
     result = generate(history, context.ledger, escalation=escalation)
 
@@ -358,7 +358,7 @@ async def commit(
             "physician confirms it."
         )
 
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     history, escalation = await _history_for(db, context)
     result = generate(history, context.ledger, escalation=escalation)
 

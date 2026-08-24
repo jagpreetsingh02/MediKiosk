@@ -323,8 +323,15 @@ def test_a_correction_keeps_the_original_ocr_span(ledger, known_paths) -> None:
         known_paths=known_paths,
         corrected_text="TSH",
     )
-    if facts:
-        assert facts[0].source.verbatim == pending["sourceText"]
+    # This assertion used to read `if facts:`, which passed whether or not the correction
+    # ever reached the ledger — and it did not. `record_fact()` looked for the corrected word
+    # inside the OCR line, failed to find it, and `_record_entity` swallowed the refusal into
+    # a log line. Every correction that actually changed a word was dropped by a verification
+    # lane that reported success. A conditional assertion is not an assertion.
+    assert facts, "a verified correction must reach the ledger, not a warning log"
+    assert facts[0].source.verbatim == pending["sourceText"]
+    assert facts[0].source.human_reading == "TSH"
+    assert facts[0].source.read_by == "dr.test"
 
 
 def test_empty_and_oversized_uploads_are_refused(ledger, known_paths) -> None:

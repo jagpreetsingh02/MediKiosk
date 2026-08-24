@@ -239,6 +239,122 @@ export interface ReviewAnswer {
   canCorrect: boolean;
 }
 
+export interface ExtractedItem {
+  itemId: string;
+  kind: string;
+  text: string;
+  page: number;
+  confidence: number;
+  /** Coarse on purpose — a patient reading "81%" hears "81% likely to be the right medicine". */
+  confidenceBand: 'high' | 'medium' | 'verify';
+  pending: boolean;
+  handwritten: boolean;
+  sourceText: string;
+  detail: Record<string, string | number | null | undefined>;
+  observedOn: string | null;
+  entityIndex?: number;
+  patientReview?: 'confirm' | 'correct' | 'dispute';
+  patientReading?: string;
+  patientDisputed?: boolean;
+}
+
+export interface SessionDocument {
+  documentId: string;
+  filename: string;
+  mediaType: string;
+  pages: number;
+  backend: string;
+  meanConfidence: number;
+  needsVerification: boolean;
+  verifiedBy: string | null;
+  kind: string;
+  extracted: ExtractedItem[];
+}
+
+export interface UploadResult {
+  documentId: string;
+  filename: string;
+  backend: string;
+  meanConfidence: number;
+  factsRecorded: number;
+  lowConfidenceCount: number;
+  documentKind: string;
+  extracted: ExtractedItem[];
+  needsVerification: {
+    entityIndex: number;
+    kind: string;
+    text: string;
+    confidence: number;
+    sourceText: string;
+    page: number;
+  }[];
+}
+
+export interface PatientOverview {
+  known: boolean;
+  patientRef?: string;
+  displayName?: string | null;
+  abhaMasked?: string | null;
+  ageYears?: number | null;
+  gender?: string | null;
+  counts: {
+    encounters: number;
+    prescriptions: number;
+    labReports: number;
+    otherDocuments?: number;
+    medications?: number;
+    observations?: number;
+  };
+  recent: {
+    encounterRef: string;
+    occurredOn: string;
+    headline: string;
+    priority: Priority;
+    ayush: boolean;
+  }[];
+  note?: string;
+}
+
+export interface TimelineRow {
+  eventRef: string;
+  occurredOn: string | null;
+  datePrecision: string;
+  kind: string;
+  label: string;
+  detail: string | null;
+  documentRef: string | null;
+  factRef: string | null;
+  lowConfidence: boolean;
+  encounterRef: string | null;
+}
+
+export interface MedicationThread {
+  name: string;
+  normalized: string;
+  needsReconciliation: boolean;
+  reason: string | null;
+  mentions: {
+    status: string;
+    dose: string | null;
+    frequency: string | null;
+    observedOn: string | null;
+    documentRef: string | null;
+    encounterRef: string | null;
+    encounterOn: string | null;
+    howWeKnow: string;
+  }[];
+}
+
+export interface SimilarEncounter {
+  encounterRef: string;
+  occurredOn: string;
+  headline: string | null;
+  shared: { feature: string; value: string; path: string }[];
+  sharedCount: number;
+  band: string;
+  note: string;
+}
+
 export interface Inspect {
   sessionRef: string;
   stateMachine: {
@@ -406,16 +522,24 @@ export const api = {
   upload: (ref: string, file: File) => {
     const form = new FormData();
     form.append('file', file);
-    return request<{
-      documentId: string;
-      filename: string;
-      backend: string;
-      meanConfidence: number;
-      factsRecorded: number;
-      lowConfidenceCount: number;
-      needsVerification: { entityIndex: number; kind: string; text: string; confidence: number; sourceText: string; page: number }[];
-    }>(`/api/v1/sessions/${ref}/documents`, { method: 'POST', body: form });
+    return request<UploadResult>(`/api/v1/sessions/${ref}/documents`, {
+      method: 'POST',
+      body: form,
+    });
   },
+
+  sessionDocuments: (ref: string) =>
+    request<{ documents: SessionDocument[] }>(`/api/v1/sessions/${ref}/documents`),
+
+  reviewDocumentItem: (
+    ref: string,
+    documentId: string,
+    body: { itemId: string; action: string; correctedText?: string },
+  ) =>
+    request<{ itemId: string; action: string; disputed: boolean; factsRecorded: string[] }>(
+      `/api/v1/sessions/${ref}/documents/${documentId}/review`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   timeline: (ref: string) =>
     request<{ documents: unknown[]; periods: TimelinePeriod[]; eventCount: number }>(
       `/api/v1/sessions/${ref}/documents/timeline`,
@@ -433,6 +557,29 @@ export const api = {
     ),
 
   inspect: (ref: string) => request<Inspect>(`/api/v1/sessions/${ref}/inspect`),
+
+  myRecord: () => request<PatientOverview>('/api/v1/patients/me'),
+  patientOverview: (patientRef: string) =>
+    request<PatientOverview>(`/api/v1/patients/${patientRef}`),
+  patientTimeline: (patientRef: string, kinds?: string) =>
+    request<{ count: number; events: TimelineRow[]; availableKinds: string[] }>(
+      `/api/v1/patients/${patientRef}/timeline${kinds ? `?kinds=${kinds}` : ''}`,
+    ),
+  patientMedications: (patientRef: string) =>
+    request<{ medications: MedicationThread[]; needsReconciliation: string[]; note: string }>(
+      `/api/v1/patients/${patientRef}/medications`,
+    ),
+  encounterDetail: (patientRef: string, encounterRef: string) =>
+    request<{
+      encounterRef: string;
+      occurredOn: string;
+      headline: string | null;
+      features: Record<string, string[]>;
+      similar: SimilarEncounter[];
+      summary: Record<string, unknown> | null;
+    }>(`/api/v1/patients/${patientRef}/encounters/${encounterRef}`),
+  documentFileUrl: (patientRef: string, documentRef: string) =>
+    `/api/v1/patients/${patientRef}/documents/${documentRef}/file`,
 
   demoCases: () => request<{ cases: DemoCase[]; notice: string }>('/api/v1/demo/cases'),
   loadDemoCase: (caseId: string, sessionRef: string) =>
@@ -455,6 +602,11 @@ export const api = {
     request<{ committed: boolean; bundleId: string; entries: number; hisPush: { status: string; detail: string }; purge: Record<string, unknown> | null }>(
       `/api/v1/sessions/${ref}/commit`,
       { method: 'POST', body: JSON.stringify({ confirmed: true }) },
+    ),
+  grantScope: (ref: string, scope: string) =>
+    request<{ granted: string[]; addedScope: string }>(
+      `/api/v1/sessions/${ref}/consent/grant`,
+      { method: 'POST', body: JSON.stringify({ scope }) },
     ),
   revokeConsent: (ref: string, scopes?: string[]) =>
     request<Record<string, unknown>>(`/api/v1/sessions/${ref}/consent/revoke`, {

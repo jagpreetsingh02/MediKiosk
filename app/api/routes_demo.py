@@ -175,7 +175,7 @@ async def load_case(
     if not session_ref:
         raise ValidationError("sessionRef is required.")
 
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     script = _load_script(case.script)
 
     context.state.values.update(

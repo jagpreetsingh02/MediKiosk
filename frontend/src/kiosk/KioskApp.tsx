@@ -1,5 +1,13 @@
 /**
- * The kiosk flow: language → ABHA → consent → interview → documents → review → done.
+ * The kiosk flow:
+ *
+ *   language → ABHA → PATIENT MEMORY → consent → interview → review → done
+ *
+ * with document upload reachable from *inside* the interview at any point, not only at the
+ * end. That placement is the fix for a real usability failure: the upload step used to sit
+ * behind the `documents` consent toggle (off by default) AND behind thirty-odd questions, so
+ * the most demonstrable feature in the product was effectively unreachable. It is now a
+ * persistent action, and if the scope was declined it asks for that one permission in place.
  *
  * The component holds no clinical logic. Which question comes next is the backend's decision
  * (the deterministic state machine in Module A), and this file only renders what it is given
@@ -9,16 +17,26 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, setToken, type StepResponse, type VoiceOutcome } from '../shared/api';
+import { Icon } from '../shared/Icon';
 import { AbhaLogin } from './AbhaLogin';
 import { ConsentGate } from './ConsentGate';
 import { DocumentUpload } from './DocumentUpload';
+import { PatientHome } from './PatientHome';
 import { DoneScreen } from './DoneScreen';
 import { PatientReview } from './PatientReview';
 import { ProgressRail } from './ProgressRail';
 import { QuestionCard } from './QuestionCard';
 import { LanguagePicker } from './LanguagePicker';
 
-type Stage = 'language' | 'login' | 'consent' | 'interview' | 'documents' | 'review' | 'done';
+type Stage =
+  | 'language'
+  | 'login'
+  | 'memory'
+  | 'consent'
+  | 'interview'
+  | 'documents'
+  | 'review'
+  | 'done';
 
 /**
  * Enough state to resume after a refresh.
@@ -191,7 +209,14 @@ export function KioskApp(): JSX.Element {
         )}
 
         {stage === 'login' && (
-          <AbhaLogin onAuthenticated={() => setStage('consent')} onBack={() => setStage('language')} />
+          <AbhaLogin onAuthenticated={() => setStage('memory')} onBack={() => setStage('language')} />
+        )}
+
+        {stage === 'memory' && (
+          <PatientHome
+            onStartVisit={() => setStage('consent')}
+            onBack={() => setStage('login')}
+          />
         )}
 
         {stage === 'consent' && (
@@ -207,7 +232,20 @@ export function KioskApp(): JSX.Element {
         )}
 
         {stage === 'interview' && question && sessionRef && (
-          <QuestionCard
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <button
+                type="button"
+                className={`records-chip${documentCount ? ' has-items' : ''}`}
+                onClick={() => setStage('documents')}
+              >
+                <Icon name="camera" />
+                {documentCount
+                  ? `${documentCount} record${documentCount === 1 ? '' : 's'} added — add another`
+                  : 'Add a prescription or report'}
+              </button>
+            </div>
+            <QuestionCard
             question={question}
             voice={voice}
             busy={busy}
@@ -233,7 +271,8 @@ export function KioskApp(): JSX.Element {
               );
             }}
             onSkip={() => void guard(() => api.skip(sessionRef, question.questionId))}
-          />
+            />
+          </>
         )}
 
         {stage === 'interview' && !question && !busy && (
@@ -245,10 +284,24 @@ export function KioskApp(): JSX.Element {
         {stage === 'documents' && sessionRef && (
           <DocumentUpload
             sessionRef={sessionRef}
+            alreadyUploaded={documentCount}
+            consented={scopes.includes('documents')}
+            onGrantConsent={async () => {
+              // The patient declined this scope earlier and has now asked to use it. Ask for
+              // that one permission, in place, at the moment it is needed.
+              await api.grantScope(sessionRef, 'documents');
+              setScopes((current) => [...current, 'documents']);
+            }}
             onDone={(uploaded) => {
               setDocumentCount(uploaded);
-              setDocumentsDone(true);
-              setStage('review');
+              // Only the end-of-interview visit closes the step; an upload the patient
+              // started mid-interview returns them to the question they left.
+              if (step?.complete) {
+                setDocumentsDone(true);
+                setStage('review');
+              } else {
+                setStage('interview');
+              }
             }}
           />
         )}

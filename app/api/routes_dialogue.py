@@ -50,7 +50,7 @@ async def _next_payload(db, context) -> dict[str, Any]:
 async def next_question(
     db: DbSession, session_ref: str, identity: CurrentIdentity
 ) -> dict[str, Any]:
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     payload = await _next_payload(db, context)
     await save_context(db, context)
     return payload
@@ -64,7 +64,7 @@ async def answer(
     payload: Annotated[dict, Body()],
 ) -> dict[str, Any]:
     """Tapped or typed. The two modalities that always work, with or without a network."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     if "history" not in context.ledger.consent_scopes:
         raise ConsentRequired("The history scope was not granted for this session.")
 
@@ -118,7 +118,7 @@ async def answer_voice(
 ) -> dict[str, Any]:
     """A spoken answer. Below the confidence threshold this degrades to touch and records
     nothing — the response carries `degradedToTouch` and the re-presented question."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     if "voice" not in context.ledger.consent_scopes:
         raise ConsentRequired(
             "The voice scope was not granted. The patient can answer everything by tapping."
@@ -200,7 +200,7 @@ async def skip(
     payload: Annotated[dict, Body()],
 ) -> dict[str, Any]:
     """The patient declined. Recorded as an explicit absence, never as a value."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     question_id = str(payload.get("questionId") or "")
     if not question_id:
         raise ValidationError("questionId is required.")
@@ -219,7 +219,7 @@ async def review(
     This is not the doctor's summary. It is the cheapest possible guard against a mishearing
     reaching a physician: the person who said it reads it back.
     """
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     return {
         "sessionRef": session_ref,
         "answers": context.machine.answered_summary(),
@@ -236,7 +236,7 @@ async def reopen(
 ) -> dict[str, Any]:
     """Re-present one question so the patient can correct it. The old answer is superseded,
     not deleted — the physician sees the correction and what it corrected."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     question_id = str(payload.get("questionId") or "")
     if not context.machine.reopen(question_id):
         raise ValidationError(f"{question_id!r} is not a question in this interview.")
@@ -253,7 +253,7 @@ async def speak(
     payload: Annotated[dict, Body()],
 ) -> dict[str, Any]:
     """Synthesise a prompt. Returns `clientFallback` when the kiosk must use its own voice."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     text = str(payload.get("text", "")).strip()
     if not text:
         raise ValidationError("text is required.")

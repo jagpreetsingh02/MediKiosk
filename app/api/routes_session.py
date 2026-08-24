@@ -107,7 +107,7 @@ async def create_session(
         request_summary={"language": language, "scopes": sorted(consent.granted)},
     )
 
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     context.ledger.consent_scopes = set(consent.granted)
     # Demographics come from the ABHA token, never from the patient re-typing them.
     if identity.demographics:
@@ -132,7 +132,7 @@ async def create_session(
 async def get_session_state(
     db: DbSession, session_ref: str, identity: CurrentIdentity
 ) -> dict[str, Any]:
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     return {
         "sessionRef": context.ref,
         "status": context.row.status,
@@ -147,6 +147,49 @@ async def get_session_state(
     }
 
 
+@router.post("/sessions/{session_ref}/consent/grant")
+async def grant_scope(
+    db: DbSession,
+    session_ref: str,
+    identity: CurrentIdentity,
+    payload: Annotated[dict, Body()],
+) -> dict[str, Any]:
+    """Grant one further scope mid-session.
+
+    Consent is easier to give meaningfully at the moment it is needed than on a wall of
+    toggles before anything has happened. A patient who declined document processing and then
+    produces a prescription is asked for that one permission, in context, and nothing else.
+    """
+    context = await load_context(db, session_ref, identity=identity)
+    scope = str(payload.get("scope") or "")
+    known = {s.id for s in consent_module.load_policy().scopes}
+    if scope not in known:
+        raise ValidationError(f"Unknown consent scope {scope!r}. Known: {sorted(known)}.")
+
+    stored = (
+        await db.execute(
+            select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)
+        )
+    ).scalars().first()
+    if stored is None:
+        raise ConsentRequired(f"No consent record exists for {session_ref}.")
+
+    granted = sorted(set(stored.scopes_granted or []) | {scope})
+    stored.scopes_granted = granted
+    stored.scopes_refused = sorted(set(stored.scopes_refused or []) - {scope})
+    context.ledger.consent_scopes = set(granted)
+    if scope == "ayush":
+        context.row.ayush_mode = True
+
+    await record(
+        db, actor=identity.actor, actor_role=identity.role, purpose_of_use="TREATMENT",
+        action="consent.grant_scope", abha_ref=context.row.abha_ref,
+        consent_ref=stored.consent_ref, request_summary={"scope": scope},
+    )
+    await save_context(db, context)
+    return {"sessionRef": session_ref, "granted": granted, "addedScope": scope}
+
+
 @router.post("/sessions/{session_ref}/consent/revoke")
 async def revoke_consent(
     db: DbSession,
@@ -155,7 +198,7 @@ async def revoke_consent(
     payload: Annotated[dict | None, Body()] = None,
 ) -> dict[str, Any]:
     """Withdraw consent, wholly or per-scope. Facts under a withdrawn scope are purged."""
-    context = await load_context(db, session_ref)
+    context = await load_context(db, session_ref, identity=identity)
     stored = (
         (await db.execute(select(ConsentRecord).where(ConsentRecord.session_ref == session_ref)))
         .scalars()

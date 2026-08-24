@@ -217,10 +217,44 @@ async def test_full_patient_journey(client) -> None:
     assert upload.status_code == 201, upload.text
     assert upload.json()["factsRecorded"] > 0
 
+    assert upload.json()["extracted"], "the patient must be able to read back what was found"
+
     timeline = (
         await client.get(f"/api/v1/sessions/{session_ref}/documents/timeline", headers=_auth(token))
     ).json()
     assert timeline["eventCount"] > 0
+
+    # --- the patient reads the extraction back ------------------------------
+    listed = (
+        await client.get(f"/api/v1/sessions/{session_ref}/documents", headers=_auth(token))
+    ).json()
+    assert listed["documents"], "the physician verification lane had no route to fetch this"
+    document = listed["documents"][0]
+    assert document["kind"] == "prescription"
+
+    medicine = next(i for i in document["extracted"] if i["kind"] == "medication")
+    confirmed = await client.post(
+        f"/api/v1/sessions/{session_ref}/documents/{document['documentId']}/review",
+        json={"itemId": medicine["itemId"], "action": "confirm"},
+        headers=_auth(token),
+    )
+    assert confirmed.status_code == 200, confirmed.text
+
+    # A patient disagreeing with a clean scan does not erase what the paper says.
+    disputed = await client.post(
+        f"/api/v1/sessions/{session_ref}/documents/{document['documentId']}/review",
+        json={"itemId": medicine["itemId"], "action": "dispute"},
+        headers=_auth(token),
+    )
+    assert disputed.status_code == 200, disputed.text
+    assert disputed.json()["disputed"] is True
+
+    after = (
+        await client.get(f"/api/v1/sessions/{session_ref}/documents", headers=_auth(token))
+    ).json()["documents"][0]
+    still_there = next(i for i in after["extracted"] if i["itemId"] == medicine["itemId"])
+    assert still_there["text"] == medicine["text"], "a dispute is not a deletion"
+    assert still_there["patientDisputed"] is True
 
     # --- a patient may NOT commit ------------------------------------------
     refused = await client.post(

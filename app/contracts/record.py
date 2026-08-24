@@ -4,7 +4,8 @@ Nothing in this codebase writes a clinical fact except through this function. It
 
 * a fact with no source span;
 * a fact whose span text does not actually contain what is being recorded, when the value is
-  a string (a paraphrase is not a source);
+  a string (a paraphrase is not a source) — a *named* human reading of an OCR span counts
+  as span text, which is how a verified correction gets in;
 * a fact whose tier disagrees with its span class (``document`` tier with an utterance span);
 * a ``confirmed`` fact that names no question — "the patient affirmed" is meaningless without
   saying what they were asked;
@@ -82,6 +83,13 @@ def _value_is_echoed(value: Any, span: Span) -> bool:
     haystack = _norm(span.verbatim)
     if span.verbatim_translated:
         haystack = f"{haystack} {_norm(span.verbatim_translated)}"
+    # A named human's reading of an OCR span is evidence too — that is what verification is.
+    # The scrawl stays the verbatim; this admits "Metformin" as backed by a human reading
+    # "TAB. METFARMIN 500mg" and saying so under their own name. `DocumentSpan` refuses a
+    # reading with nobody attached, so this cannot become an anonymous free-text bypass.
+    reading = getattr(span, "human_reading", None)
+    if reading:
+        haystack = f"{haystack} {_norm(reading)}"
     if text in haystack or haystack in text:
         return True
     # Multi-word values: every token must appear somewhere in the span.

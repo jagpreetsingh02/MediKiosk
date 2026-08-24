@@ -410,3 +410,171 @@
 
 .review-q { font-size: 17px; color: var(--ink-3); line-height: 1.35; margin-bottom: 5px; }
 .review-a { font-size: 24px; font-weight: 700; line-height: 1.3; }
+
+/* --- patient memory ------------------------------------------------------- */
+
+.memory-id {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  background: var(--accent-soft);
+  border: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  margin-bottom: 28px;
+}
+
+.memory-name { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.memory-meta { font-size: 19px; color: var(--ink-2); margin-top: 5px; }
+
+.memory-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+
+.memory-count {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.memory-count strong { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.memory-count span { font-size: 18px; color: var(--ink-3); }
+
+.memory-list { display: flex; flex-direction: column; gap: 8px; }
+
+.memory-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 15px 18px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.memory-date { font-size: 18px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.memory-headline { font-size: 22px; font-weight: 600; }
+
+/* --- add records, available at any time ----------------------------------- */
+
+.records-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 3px solid var(--accent);
+  background: var(--paper);
+  color: var(--accent);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.records-chip svg { width: 26px; height: 26px; }
+.records-chip.has-items { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+
+/* --- reading the scan back to the patient --------------------------------
+ *
+ * The unsure rows are amber and physically taller, so the eye lands on the lines that need a
+ * decision first. A clean row still gets Yes/Fix/No: the whole point is that nothing on a
+ * prescription becomes clinical truth without the person holding it agreeing.
+ */
+
+.doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--paper-2);
+  border: 2px solid var(--paper-3);
+  border-radius: 999px;
+  font-size: 18px;
+  margin-bottom: 22px;
+  max-width: 100%;
+}
+
+.doc-chip svg { width: 24px; height: 24px; flex: 0 0 auto; }
+.doc-chip span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-chip-kind { color: var(--ink-3); font-weight: 700; flex: 0 0 auto; }
+
+.extract-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+
+.extract-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 16px;
+  align-items: start;
+  padding: 20px 22px;
+  background: var(--paper);
+  border: 3px solid var(--line, var(--paper-3));
+  border-radius: var(--radius-lg);
+}
+
+.extract-row.unsure { border-color: var(--warn); background: var(--warn-soft); }
+.extract-row.done-confirm { border-color: var(--ok); background: var(--ok-soft); }
+.extract-row.done-dispute { border-color: var(--ink-3); opacity: 0.75; }
+.extract-row.done-correct { border-color: var(--accent); background: var(--accent-soft); }
+
+.extract-mark svg { width: 32px; height: 32px; }
+.extract-row.unsure .extract-mark { color: var(--warn); }
+.extract-row:not(.unsure) .extract-mark { color: var(--ok); }
+
+.extract-name { font-size: 27px; font-weight: 800; line-height: 1.2; }
+.extract-detail { font-size: 21px; color: var(--ink-2); margin-top: 4px; }
+
+.extract-band { font-size: 16px; font-weight: 700; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+.band-high { color: var(--ok); }
+.band-medium { color: var(--ink-3); }
+.band-verify { color: var(--warn); }
+
+.extract-outcome { font-size: 19px; color: var(--ink-2); margin-top: 10px; font-weight: 600; }
+
+.extract-actions { display: flex; gap: 10px; }
+
+.btn-small {
+  /* Below the 96px kiosk minimum on purpose: these sit inside a row the patient has already
+     chosen to engage with, and three full-size buttons per medicine would push the second
+     medicine off the screen. 64px is still comfortably above a 44px touch target. */
+  min-height: 64px;
+  min-width: 76px;
+  padding: 0 18px;
+  font-size: 20px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  border: 3px solid var(--paper-3);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.btn-yes { border-color: var(--ok); color: var(--ok); }
+.btn-no { border-color: var(--danger); color: var(--danger); }
+.btn-small:disabled { opacity: 0.45; }
+
+.extract-correct { grid-column: 1 / -1; margin-top: 8px; }
+.extract-correct label { display: block; font-size: 19px; color: var(--ink-2); margin-bottom: 8px; }
+
+.extract-correct input {
+  width: 100%;
+  min-height: 72px;
+  padding: 0 18px;
+  font-size: 24px;
+  border: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  padding: 6px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  min-height: 0;
+}

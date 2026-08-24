@@ -134,6 +134,27 @@ class DocumentSpan(_Span):
     ocr_backend: str
     #: Handwriting goes to the low-confidence lane and is never silently merged (Module B).
     handwritten: bool = False
+    #: What a *named human* read the span as, when OCR got it wrong. The scrawl stays in
+    #: `verbatim`; this is the reading, and the two sit side by side in the evidence drawer.
+    #:
+    #: Before this existed, a correction was recorded with the corrected text as the value
+    #: and the OCR line as the span — so `record_fact()` looked for "Metformin" inside
+    #: "TAB. METFARMIN 500mg", failed to find it, and refused the fact. The verification lane
+    #: appeared to work and quietly dropped every correction that actually changed a word.
+    #: The fix is to carry the human's reading as evidence in its own right, not to relax the
+    #: echo check.
+    human_reading: str | None = None
+    #: Who read it. A correction with no name attached is exactly what Invariant 2 refuses.
+    read_by: str | None = None
+
+    @model_validator(mode="after")
+    def _reading_is_attributed(self) -> DocumentSpan:
+        if self.human_reading is not None and not (self.read_by or "").strip():
+            raise ValueError(
+                "human_reading must name who read it — an unattributed correction is not "
+                "provenance, it is an anonymous edit"
+            )
+        return self
 
 
 Span = Annotated[UtteranceSpan | DocumentSpan, Field(discriminator="kind")]

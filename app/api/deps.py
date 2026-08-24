@@ -15,11 +15,12 @@ from fastapi import Depends, Header
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.identity import Identity, identity_from_header
+from app.auth.identity import ANONYMOUS_ROLE, Identity, identity_from_header
 from app.auth.policy import Decision, Purpose, evaluate, parse_purpose
 from app.contracts.provenance import DocumentSpan, Fact, SourceTier, UtteranceSpan
 from app.contracts.record import FactLedger
-from app.core.errors import SessionExpired
+from app.core.config import settings
+from app.core.errors import PolicyDenied, SessionExpired
 from app.db.models import IntakeSession, SessionFact
 from app.db.session import get_session
 from app.modules.consent.session import assert_live, get_store
@@ -95,9 +96,50 @@ def _fact_from_row(row: SessionFact) -> Fact:
     )
 
 
-async def load_context(db: AsyncSession, session_ref: str) -> SessionContext:
-    """Load a live session: the row, its persisted facts, and its cached dialogue state."""
+#: Roles whose job is to look at sessions they did not create. A clinician reviews the queue,
+#: a triage nurse reads priority, an auditor reads the chain. Ownership is not the right
+#: constraint for them; the ABAC action check in `require_action()` is.
+_STAFF_ROLES = frozenset({"clinician", "triage_nurse", "auditor"})
+
+
+def assert_session_access(row: IntakeSession, identity: Identity) -> None:
+    """Refuse a session that does not belong to this caller.
+
+    This is the second choke point in the codebase and it exists for the same reason as the
+    first: an authorisation check that every route has to remember is an authorisation check
+    that one route will forget. Every path into a session's facts runs through
+    `load_context()`, so the check belongs there rather than on thirty route decorators.
+
+    A patient token carries a pseudonymous `abha_ref` and may reach exactly the sessions
+    created under it. Staff roles are governed by ABAC actions instead. `anonymous` is let
+    through **only** when `AUTH_REQUIRED=false`, which is the local demo and is labelled as
+    such in `/about`. With auth on, anonymous reaches nothing.
+    """
+    if identity.role in _STAFF_ROLES:
+        return
+    if identity.role == "patient":
+        if identity.abha_ref and row.abha_ref and identity.abha_ref == row.abha_ref:
+            return
+        raise PolicyDenied(
+            "This session belongs to another patient. A patient token may only reach "
+            "sessions created under its own ABHA reference."
+        )
+    if identity.role == ANONYMOUS_ROLE and not settings.auth_required:
+        return
+    raise PolicyDenied(f"Role {identity.role!r} may not open an intake session.")
+
+
+async def load_context(
+    db: AsyncSession, session_ref: str, *, identity: Identity
+) -> SessionContext:
+    """Load a live session: the row, its persisted facts, and its cached dialogue state.
+
+    `identity` is keyword-only and has no default, deliberately. A default would be a
+    bypass, and `tests/test_authorization.py` scans the source tree for a call site that
+    omits it — the same treatment `record_fact()` gets.
+    """
     row = await assert_live(db, session_ref)
+    assert_session_access(row, identity)
 
     ledger = FactLedger(session_ref)
     rows = (
@@ -175,8 +217,6 @@ async def save_context(db: AsyncSession, context: SessionContext) -> None:
     context.row.state_json = context.state.to_json()
 
     store = await get_store()
-    from app.core.config import settings
-
     await store.put(
         context.ref,
         {
@@ -189,8 +229,10 @@ async def save_context(db: AsyncSession, context: SessionContext) -> None:
     await db.flush()
 
 
-async def session_or_410(db: AsyncSession, session_ref: str) -> SessionContext:
+async def session_or_410(
+    db: AsyncSession, session_ref: str, *, identity: Identity
+) -> SessionContext:
     try:
-        return await load_context(db, session_ref)
+        return await load_context(db, session_ref, identity=identity)
     except SessionExpired:
         raise

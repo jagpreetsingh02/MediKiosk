@@ -6,26 +6,33 @@
  * lane either way.
  */
 import { useRef, useState } from 'react';
-import { ApiError, api } from '../shared/api';
+import { ApiError, api, type UploadResult } from '../shared/api';
+import { DocumentReview } from './DocumentReview';
 import { Icon } from '../shared/Icon';
-
-interface Uploaded {
-  documentId: string;
-  filename: string;
-  backend: string;
-  meanConfidence: number;
-  factsRecorded: number;
-  lowConfidenceCount: number;
-}
 
 interface Props {
   sessionRef: string;
+  /** How many records this session already holds, so a return visit reads correctly. */
+  alreadyUploaded: number;
+  /** Whether the `documents` consent scope is granted. */
+  consented: boolean;
+  /** Ask for the documents scope in place, at the moment the patient wants to use it. */
+  onGrantConsent: () => Promise<void>;
   onDone: (uploaded: number) => void;
 }
 
-export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
-  const [uploads, setUploads] = useState<Uploaded[]>([]);
+export function DocumentUpload({
+  sessionRef,
+  alreadyUploaded,
+  consented,
+  onGrantConsent,
+  onDone,
+}: Props): JSX.Element {
+  const [uploads, setUploads] = useState<UploadResult[]>([]);
+  /** The document just scanned, held on screen until the patient has read it back. */
+  const [reviewing, setReviewing] = useState<UploadResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [granting, setGranting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
@@ -37,11 +44,27 @@ export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
       try {
         const result = await api.upload(sessionRef, file);
         setUploads((current) => [...current, result]);
+        // Straight into the readback. An extraction the patient never saw is an extraction
+        // that became true without anybody agreeing to it.
+        setReviewing(result);
       } catch (exc) {
         setError(exc instanceof ApiError ? exc.message : `Could not read ${file.name}.`);
       }
     }
     setBusy(false);
+  }
+
+  if (reviewing) {
+    return (
+      <DocumentReview
+        sessionRef={sessionRef}
+        documentId={reviewing.documentId}
+        filename={reviewing.filename}
+        kind={reviewing.documentKind}
+        items={reviewing.extracted}
+        onDone={() => setReviewing(null)}
+      />
+    );
   }
 
   return (
@@ -54,12 +77,54 @@ export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
 
       {error && <div className="kiosk-error">{error}</div>}
 
+      {!consented && (
+        <div
+          style={{
+            border: '3px solid var(--accent)',
+            background: 'var(--accent-soft)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 22,
+            marginBottom: 20,
+            fontSize: 21,
+            lineHeight: 1.5,
+          }}
+        >
+          To read your papers I need your permission to process them. They are deleted after
+          your visit.
+          <div className="kiosk-actions" style={{ marginTop: 18 }}>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={granting}
+              onClick={async () => {
+                setGranting(true);
+                setError(null);
+                try {
+                  await onGrantConsent();
+                } catch (exc) {
+                  setError(
+                    exc instanceof ApiError ? exc.message : 'Could not record your permission.',
+                  );
+                } finally {
+                  setGranting(false);
+                }
+              }}
+            >
+              I agree — read my papers
+            </button>
+            <button type="button" className="btn-quiet" onClick={() => onDone(alreadyUploaded)}>
+              No thank you
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         className="upload-drop"
         style={{ width: '100%' }}
         onClick={() => input.current?.click()}
-        disabled={busy}
+        disabled={busy || !consented}
       >
         <Icon name="camera" />
         <div style={{ marginTop: 12 }}>
@@ -83,11 +148,18 @@ export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
           <div>
             <strong>{upload.filename}</strong>
             <div style={{ fontSize: 18, color: 'var(--ink-2)', marginTop: 4 }}>
-              {upload.factsRecorded} item(s) read
+              {upload.extracted.length} item(s) read
               {upload.lowConfidenceCount > 0
-                ? ` · ${upload.lowConfidenceCount} unclear, a person will check these`
+                ? ` · ${upload.lowConfidenceCount} unclear`
                 : ' · read clearly'}
             </div>
+            <button
+              type="button"
+              className="btn-link"
+              onClick={() => setReviewing(upload)}
+            >
+              Check what we read
+            </button>
           </div>
           <Icon name={upload.lowConfidenceCount ? 'other' : 'check'} />
         </div>
@@ -97,10 +169,10 @@ export function DocumentUpload({ sessionRef, onDone }: Props): JSX.Element {
         <button
           type="button"
           className="btn-primary"
-          onClick={() => onDone(uploads.length)}
+          onClick={() => onDone(alreadyUploaded + uploads.length)}
           disabled={busy}
         >
-          {uploads.length ? 'Done — continue' : 'I have no papers'}
+          {uploads.length || alreadyUploaded ? 'Done — continue' : 'I have no papers'}
         </button>
       </div>
     </div>

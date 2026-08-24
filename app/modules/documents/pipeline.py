@@ -51,6 +51,38 @@ class IngestResult:
     entities: list[ExtractedEntity] = field(default_factory=list)
     ocr: OCRResult | None = None
 
+    def extracted_items(self) -> list[dict[str, Any]]:
+        """Everything OCR found, in one list the patient can read back.
+
+        The response used to carry only `needsVerification`, which is why no screen could
+        ever show a patient what was read off their prescription: the *successful*
+        extractions were dropped on the way out of the API. A verification screen that shows
+        only the failures teaches a patient that the machine got everything else right.
+
+        `itemId` addresses an item across both lanes, because "the third medicine" means
+        nothing once the two lists are interleaved by confidence.
+        """
+        items: list[dict[str, Any]] = [
+            {
+                **entity.to_dict(),
+                "itemId": f"recorded:{position}",
+                "pending": False,
+                "confidenceBand": confidence_band(entity.confidence, entity.handwritten),
+            }
+            for position, entity in enumerate(self.entities)
+        ]
+        items += [
+            {
+                **raw,
+                "itemId": f"pending:{raw['entityIndex']}",
+                "pending": True,
+                # Anything in this lane is by definition below the threshold or handwritten.
+                "confidenceBand": "verify",
+            }
+            for raw in self.needs_verification
+        ]
+        return items
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "documentId": self.document_id,
@@ -62,6 +94,8 @@ class IngestResult:
             "timeline": [api_dump(e) for e in self.timeline],
             "needsVerification": self.needs_verification,
             "lowConfidenceCount": len(self.needs_verification),
+            "extracted": self.extracted_items(),
+            "documentKind": classify_document(self.extracted_items()),
         }
 
     def document_ref(self) -> DocumentRef:
@@ -74,6 +108,30 @@ class IngestResult:
             low_confidence_pages=sorted({int(e["page"]) for e in self.needs_verification}),
             uploaded_at=datetime.now(UTC),
         )
+
+
+def confidence_band(confidence: float, handwritten: bool) -> str:
+    """How sure OCR is, in the three words a patient screen can actually use.
+
+    Deliberately coarse. A patient reading their own prescription back does not benefit from
+    "0.8137", and a percentage invites them to treat 81% as an 81% chance the medicine is
+    right — which is not what an OCR confidence means.
+    """
+    if handwritten or confidence <= settings.ocr_low_confidence_threshold:
+        return "verify"
+    return "high" if confidence >= 0.90 else "medium"
+
+
+def classify_document(items: list[dict[str, Any]]) -> str:
+    """Prescription, lab report or something else — from what was found, not the filename."""
+    kinds = {item.get("kind") for item in items}
+    if "medication" in kinds:
+        return "prescription"
+    if "investigation" in kinds:
+        return "lab_report"
+    if "diagnosis" in kinds:
+        return "discharge_summary"
+    return "other"
 
 
 def _next_index(ledger: FactLedger, group: str) -> int:
@@ -91,8 +149,15 @@ def _record_entity(
     document_id: str,
     known_paths: set[str],
     backend: str,
+    *,
+    human_reading: str | None = None,
+    read_by: str | None = None,
 ) -> list[Fact]:
-    """Write one entity's facts. Every one is document-tier with page and bbox."""
+    """Write one entity's facts. Every one is document-tier with page and bbox.
+
+    `human_reading` carries a verifier's correction. It travels *with* the OCR line rather
+    than replacing it, so the evidence drawer can show the scrawl and the reading together.
+    """
     group_field = _GROUP_FOR.get(entity.kind)
     if group_field is None:
         return []
@@ -108,6 +173,8 @@ def _record_entity(
             ocr_confidence=entity.confidence,
             ocr_backend=backend,
             handwritten=entity.handwritten,
+            human_reading=human_reading,
+            read_by=read_by,
         )
 
     written: list[Fact] = []
@@ -248,7 +315,15 @@ def verify_entity(
         source_text=raw["sourceText"],
         detail=dict(raw["detail"]),
     )
-    facts = _record_entity(ledger, entity, result.document_id, known_paths, result.backend)
+    facts = _record_entity(
+        ledger,
+        entity,
+        result.document_id,
+        known_paths,
+        result.backend,
+        human_reading=corrected_text or None,
+        read_by=verified_by if corrected_text else None,
+    )
     for fact in facts:
         log.info(
             "document.entity_verified",

@@ -45,6 +45,11 @@ roles:
       - consent.revoke
       - dialogue.answer
       - document.upload
+      # The patient reads back what OCR found on their OWN paper before it counts.
+      # Deliberately NOT `document.verify`: that is the physician's action over any
+      # session, this one only ever reaches a document in a session the caller owns,
+      # and `load_context()` is what proves the ownership.
+      - document.verify_own
       - session.submit
       - system.about
 
@@ -59,6 +64,7 @@ roles:
       - fact.read
       - document.read
       - document.verify
+      - document.verify_own       # a clinician may act on the patient-side lane too
       - queue.read
       - terminology.search
       - audit.read
