@@ -1,9 +1,19 @@
 /**
- * Progress.
+ * Progress, by section rather than by question count.
  *
- * The denominator is the number of questions this patient will actually be asked, not the
- * ontology's total — a branch that closed is not a question they are behind on. Showing 30%
- * to someone who is nearly finished is how you get an abandoned session.
+ * "Question 7 of 28" is a promise this flow cannot keep: the interview branches, so the
+ * denominator moves while the patient watches — and a number that goes *up* as you answer
+ * reads as punishment. Sections do not move. The patient sees which part of the visit they
+ * are in, which parts are done, and which are still ahead, and that is the honest shape of
+ * an adaptive interview.
+ *
+ * The bar stays, because "roughly how much longer" is a real question and a filling bar
+ * answers it without committing to an exact count. Its denominator is the questions this
+ * patient will actually be asked, not the ontology's total — a branch that closed is not a
+ * question they are behind on.
+ *
+ * The current section is marked on its own chip and nowhere else. Naming it again underneath
+ * put the same words twice on a screen whose design rule is one thing at a time.
  */
 import type { Progress, SectionProgress } from '../shared/api';
 
@@ -34,12 +44,12 @@ export function ProgressRail({ progress, sections, currentSectionId }: Props): J
               section.sectionId === currentSectionId ? ' current' : ''
             }`}
           >
-            {section.title} {section.answered}/{section.total}
+            <span aria-hidden="true" className="progress-mark">
+              {section.complete ? '✓' : section.sectionId === currentSectionId ? '●' : ''}
+            </span>
+            {section.title}
           </span>
         ))}
-      </div>
-      <div className="progress-count">
-        {progress.answered} of {progress.askable} questions answered
       </div>
     </div>
   );

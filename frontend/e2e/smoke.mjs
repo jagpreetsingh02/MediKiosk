@@ -66,6 +66,16 @@ const sessionRef = (await page.locator('.kiosk-top').innerText()).match(/sess_\w
 check('interview started', Boolean(sessionRef), sessionRef);
 check('microphone offered when voice consented', await page.locator('.voice-button').count() > 0);
 
+// §3: the flow branches, so a question count is a promise it cannot keep. Sections do not
+// move; a denominator does.
+{
+  const rail = await page.locator('.progress-rail').innerText();
+  check('progress is by section, not by question count', !/\d+\s*(of|\/)\s*\d+/.test(rail),
+    rail.replace(/\n/g, ' ').slice(0, 58));
+  check('and one section is marked as where we are',
+    await page.locator('.progress-chip.current').count() === 1);
+}
+
 // A dead speech engine must withdraw the microphone rather than pulse "Listening…" forever.
 // Chromium (and Brave, Electron, most kiosk browsers) construct webkitSpeechRecognition
 // successfully and then never call back — this is the exact failure that watchdog covers.
@@ -97,6 +107,7 @@ for (; asked < 90; asked++) {
   await page.waitForTimeout(140);
 }
 check('interview completes', asked > 20, `${asked} questions`);
+
 
 // A kiosk browser reloads. Losing the sessionRef used to send the patient back to the
 // language picker with their answers apparently gone.

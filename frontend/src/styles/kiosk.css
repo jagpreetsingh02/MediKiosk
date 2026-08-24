@@ -285,6 +285,9 @@
 .progress-sections { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
 
 .progress-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   padding: 5px 11px;
   border-radius: 999px;
@@ -293,10 +296,12 @@
   font-weight: 600;
 }
 
+.progress-mark:empty { display: none; }
+
 .progress-chip.complete { background: var(--ok-soft); color: var(--ok); }
 .progress-chip.current { background: var(--accent-soft); color: var(--accent); }
 
-.progress-count { font-size: 17px; color: var(--ink-3); margin-top: 10px; font-variant-numeric: tabular-nums; }
+.progress-count { font-size: 17px; color: var(--ink-2); margin-top: 10px; font-weight: 600; }
 
 /* --- panels --------------------------------------------------------------- */
 
