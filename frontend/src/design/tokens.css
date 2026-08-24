@@ -1,0 +1,325 @@
+/**
+ * MediKiosk design tokens — "Clinical Aurora".
+ *
+ * TWO SURFACES THAT DELIBERATELY INVERT. The patient kiosk is light and luminous; the
+ * physician workspace is dark and instrument-grade. That is not decoration, it is the brief's
+ * requirement that the two surfaces feel nothing alike — and each direction is chosen for its
+ * own room:
+ *
+ *   PATIENT   A kiosk stands under hospital fluorescents and is used by people in their
+ *             sixties and seventies. Contrast sensitivity falls with age, and a dark UI in a
+ *             bright room is the worst combination for it. Premium here means *luminous* —
+ *             porcelain surfaces, deep indigo ink, generous type, soft depth.
+ *
+ *   PHYSICIAN A clinician reads dense evidence for hours on a laptop. Dark reduces glare
+ *             over a long session and lets red flags and confidence states carry real weight
+ *             without shouting.
+ *
+ * The palette is rooted in Indian pigment tradition rather than generic health-tech blue:
+ * indigo (the dye), jade (vitality), saffron (AYUSH, warmth, attention). Every colour pair
+ * used for text is checked against WCAG AA at its intended size.
+ *
+ * NAMING. `--mk-` prefix throughout so these never collide with the legacy `kiosk.css` /
+ * `physician.css` variables while both exist during the rebuild.
+ */
+
+/* ============================================================ primitives ===
+ * Raw ramps. Never referenced by a component directly — components use the
+ * semantic layer below, so a re-theme touches one block instead of forty files.
+ */
+:root {
+  /* Indigo — the ink and the dark ground */
+  --mk-indigo-950: #070a16;
+  --mk-indigo-900: #0d1226;
+  --mk-indigo-850: #131a33;
+  --mk-indigo-800: #1a2342;
+  --mk-indigo-700: #253057;
+  --mk-indigo-600: #34406e;
+  --mk-indigo-500: #4a5789;
+  --mk-indigo-400: #6d7aa8;
+  --mk-indigo-300: #97a1c4;
+  --mk-indigo-200: #c2c9de;
+  --mk-indigo-100: #e0e4ef;
+  --mk-indigo-50: #eff1f8;
+
+  /* Porcelain — the light ground. Warm, not clinical grey. */
+  --mk-porcelain-0: #ffffff;
+  --mk-porcelain-50: #fcfbfa;
+  --mk-porcelain-100: #f7f5f2;
+  --mk-porcelain-200: #efece7;
+  --mk-porcelain-300: #e2ded7;
+
+  /* Jade — primary action, vitality, "this is health" */
+  --mk-jade-700: #0b6b52;
+  --mk-jade-600: #0f8a68;
+  --mk-jade-500: #14a67e;
+  --mk-jade-400: #2bc196;
+  --mk-jade-300: #5ed7b4;
+  --mk-jade-200: #a3e9d4;
+  --mk-jade-100: #d6f6ec;
+
+  /* Saffron — AYUSH, attention, warmth. Never used for destructive. */
+  --mk-saffron-700: #a35d05;
+  --mk-saffron-600: #c67608;
+  --mk-saffron-500: #e2900f;
+  --mk-saffron-400: #f2ab3c;
+  --mk-saffron-300: #f8c877;
+  --mk-saffron-200: #fce3b4;
+  --mk-saffron-100: #fef4e2;
+
+  /* Coral — red flags only. Deliberately warm rather than fire-engine red: a
+     clinical alert must read as urgent without making the whole app frightening. */
+  --mk-coral-700: #a32020;
+  --mk-coral-600: #c73434;
+  --mk-coral-500: #e04b4b;
+  --mk-coral-400: #f07070;
+  --mk-coral-300: #f8a3a3;
+  --mk-coral-200: #fcd0d0;
+  --mk-coral-100: #fdeaea;
+
+  /* Lilac — provenance and evidence. A third hue so "where did this come from"
+     is never confused with "this is good" or "this is wrong". */
+  --mk-lilac-600: #6b4ec7;
+  --mk-lilac-500: #8367dd;
+  --mk-lilac-400: #a189ea;
+  --mk-lilac-300: #c3b4f3;
+  --mk-lilac-100: #ece6fc;
+
+  /* ======================================================== typography === */
+  --mk-font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque',
+    ui-sans-serif, system-ui, sans-serif;
+  --mk-font-ui: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', sans-serif;
+  --mk-font-indic: 'Noto Sans Devanagari', 'Noto Sans Tamil', var(--mk-font-ui);
+  --mk-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  /* A major-third-ish ramp, tuned so the kiosk's reading sizes are genuinely
+     large. `--mk-text-*` are the patient scale; the physician scale steps down
+     one notch and is applied by `[data-surface='clinical']`. */
+  --mk-text-2xs: 0.75rem;   /* 12 — metadata, never body */
+  --mk-text-xs: 0.8125rem;  /* 13 */
+  --mk-text-sm: 0.9375rem;  /* 15 */
+  --mk-text-base: 1.0625rem;/* 17 */
+  --mk-text-lg: 1.25rem;    /* 20 */
+  --mk-text-xl: 1.5rem;     /* 24 */
+  --mk-text-2xl: 1.875rem;  /* 30 */
+  --mk-text-3xl: 2.375rem;  /* 38 */
+  --mk-text-4xl: 3rem;      /* 48 */
+  --mk-text-5xl: 3.75rem;   /* 60 */
+
+  --mk-leading-tight: 1.1;
+  --mk-leading-snug: 1.25;
+  --mk-leading-normal: 1.5;
+  --mk-leading-relaxed: 1.65;
+
+  --mk-tracking-tight: -0.025em;
+  --mk-tracking-snug: -0.015em;
+  --mk-tracking-normal: 0;
+  --mk-tracking-wide: 0.06em;
+
+  --mk-weight-normal: 400;
+  --mk-weight-medium: 500;
+  --mk-weight-semibold: 600;
+  --mk-weight-bold: 700;
+  --mk-weight-black: 800;
+
+  /* ============================================================ space === */
+  /* 4px base. Named by step, not by use, so nothing is mis-sized by analogy. */
+  --mk-space-1: 0.25rem;
+  --mk-space-2: 0.5rem;
+  --mk-space-3: 0.75rem;
+  --mk-space-4: 1rem;
+  --mk-space-5: 1.25rem;
+  --mk-space-6: 1.5rem;
+  --mk-space-8: 2rem;
+  --mk-space-10: 2.5rem;
+  --mk-space-12: 3rem;
+  --mk-space-16: 4rem;
+  --mk-space-20: 5rem;
+  --mk-space-24: 6rem;
+
+  /* =========================================================== radius === */
+  --mk-radius-xs: 6px;
+  --mk-radius-sm: 10px;
+  --mk-radius-md: 14px;
+  --mk-radius-lg: 20px;
+  --mk-radius-xl: 28px;
+  --mk-radius-2xl: 36px;
+  --mk-radius-pill: 999px;
+
+  /* ======================================================== elevation === */
+  /* Shadows carry a hint of the indigo ground rather than neutral black, which
+     is what stops layered light surfaces looking dusty. */
+  --mk-shadow-xs: 0 1px 2px rgba(13, 18, 38, 0.06);
+  --mk-shadow-sm: 0 2px 8px rgba(13, 18, 38, 0.07), 0 1px 2px rgba(13, 18, 38, 0.05);
+  --mk-shadow-md: 0 8px 24px -6px rgba(13, 18, 38, 0.12), 0 2px 6px rgba(13, 18, 38, 0.06);
+  --mk-shadow-lg: 0 20px 48px -12px rgba(13, 18, 38, 0.18), 0 4px 12px rgba(13, 18, 38, 0.07);
+  --mk-shadow-xl: 0 32px 72px -16px rgba(13, 18, 38, 0.24), 0 8px 20px rgba(13, 18, 38, 0.09);
+  --mk-shadow-focus: 0 0 0 4px var(--mk-focus-ring);
+
+  /* =========================================================== motion === */
+  /* Durations are perceptual. Anything a finger triggers is under 200ms or it
+     feels laggy; anything that moves a whole screen gets longer or it feels
+     jumpy. `--mk-ease-out` is the workhorse for entrances. */
+  --mk-dur-instant: 90ms;
+  --mk-dur-fast: 160ms;
+  --mk-dur-normal: 240ms;
+  --mk-dur-slow: 380ms;
+  --mk-dur-slower: 560ms;
+
+  --mk-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --mk-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --mk-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  /* Generated by Motion's easing tool: a spring with a small overshoot, for
+     things that should feel physically arrived-at rather than faded-in. */
+  --mk-ease-spring: linear(
+    0, 0.0033 0.8%, 0.0263 2.39%, 0.0896 4.77%, 0.4165 12.12%, 0.5314, 0.6316,
+    0.7181, 0.7929 21.06%, 0.8593, 0.9142, 0.9584 27.61%, 0.9933 31.19%,
+    1.0176 34.77%, 1.0289 36.86%, 1.0369 39.25%, 1.0405 42.23%, 1.0388 45.8%,
+    1.0322 49.98%, 1.0044 62.5%, 0.9971 67.28%, 0.9946 72.06%, 0.9987 85.18%, 1
+  );
+
+  --mk-z-base: 0;
+  --mk-z-sticky: 10;
+  --mk-z-header: 20;
+  --mk-z-drawer: 40;
+  --mk-z-modal: 50;
+  --mk-z-toast: 60;
+}
+
+/* ==================================================== PATIENT SURFACE ===
+ * Light, luminous, touch-first. This is the default because the kiosk is the
+ * front door of the product.
+ */
+:root,
+[data-surface='kiosk'] {
+  color-scheme: light;
+
+  --mk-bg: var(--mk-porcelain-100);
+  /* The ambient wash. Two very soft radial pools of jade and saffron over
+     porcelain — enough to stop a full-bleed screen reading as flat paper,
+     nowhere near enough to compete with content. */
+  --mk-bg-ambient:
+    radial-gradient(1100px 620px at 12% -8%, rgba(20, 166, 126, 0.09), transparent 62%),
+    radial-gradient(900px 560px at 92% 4%, rgba(226, 144, 15, 0.08), transparent 58%),
+    radial-gradient(700px 700px at 50% 108%, rgba(107, 78, 199, 0.05), transparent 60%);
+
+  --mk-surface: var(--mk-porcelain-0);
+  --mk-surface-raised: var(--mk-porcelain-0);
+  --mk-surface-sunken: var(--mk-porcelain-200);
+  --mk-surface-muted: var(--mk-porcelain-50);
+  /* Glass, used sparingly: the sticky header and the option-sheet backdrop. */
+  --mk-surface-glass: rgba(255, 255, 255, 0.78);
+  --mk-glass-blur: saturate(180%) blur(20px);
+
+  --mk-ink: var(--mk-indigo-900);
+  --mk-ink-strong: var(--mk-indigo-950);
+  --mk-ink-muted: var(--mk-indigo-600);
+  --mk-ink-subtle: var(--mk-indigo-500);
+  --mk-ink-inverse: var(--mk-porcelain-0);
+
+  --mk-line: var(--mk-porcelain-300);
+  --mk-line-strong: var(--mk-indigo-200);
+  --mk-line-hairline: rgba(13, 18, 38, 0.07);
+
+  --mk-accent: var(--mk-jade-600);
+  --mk-accent-hover: var(--mk-jade-700);
+  --mk-accent-soft: var(--mk-jade-100);
+  --mk-accent-ink: var(--mk-jade-700);
+  --mk-accent-contrast: #ffffff;
+
+  --mk-warm: var(--mk-saffron-600);
+  --mk-warm-soft: var(--mk-saffron-100);
+  --mk-warm-ink: var(--mk-saffron-700);
+
+  --mk-danger: var(--mk-coral-600);
+  --mk-danger-soft: var(--mk-coral-100);
+  --mk-danger-ink: var(--mk-coral-700);
+
+  --mk-evidence: var(--mk-lilac-600);
+  --mk-evidence-soft: var(--mk-lilac-100);
+
+  --mk-focus-ring: rgba(20, 166, 126, 0.35);
+
+  /* Touch targets. The kiosk minimum is 60px, well above the 44px guideline,
+     because the user may be elderly, standing, and unfamiliar with the device. */
+  --mk-touch-min: 60px;
+  --mk-touch-lg: 76px;
+
+  --mk-body-font: var(--mk-font-ui);
+  --mk-body-size: var(--mk-text-base);
+}
+
+/* ================================================== PHYSICIAN SURFACE ===
+ * Dark, dense, keyboard-first. Applied with `data-surface='clinical'` on the
+ * physician root, so the two can coexist during the rebuild and in screenshots.
+ */
+[data-surface='clinical'] {
+  color-scheme: dark;
+
+  --mk-bg: var(--mk-indigo-950);
+  --mk-bg-ambient:
+    radial-gradient(1200px 700px at 8% -10%, rgba(20, 166, 126, 0.1), transparent 60%),
+    radial-gradient(1000px 600px at 96% 0%, rgba(107, 78, 199, 0.1), transparent 58%);
+
+  --mk-surface: var(--mk-indigo-900);
+  --mk-surface-raised: var(--mk-indigo-850);
+  --mk-surface-sunken: var(--mk-indigo-950);
+  --mk-surface-muted: var(--mk-indigo-850);
+  --mk-surface-glass: rgba(13, 18, 38, 0.72);
+  --mk-glass-blur: saturate(160%) blur(18px);
+
+  --mk-ink: #e7ebf6;
+  --mk-ink-strong: #f7f9fd;
+  --mk-ink-muted: var(--mk-indigo-300);
+  --mk-ink-subtle: var(--mk-indigo-400);
+  --mk-ink-inverse: var(--mk-indigo-950);
+
+  --mk-line: var(--mk-indigo-800);
+  --mk-line-strong: var(--mk-indigo-700);
+  --mk-line-hairline: rgba(255, 255, 255, 0.07);
+
+  --mk-accent: var(--mk-jade-400);
+  --mk-accent-hover: var(--mk-jade-300);
+  --mk-accent-soft: rgba(20, 166, 126, 0.16);
+  --mk-accent-ink: var(--mk-jade-300);
+  --mk-accent-contrast: var(--mk-indigo-950);
+
+  --mk-warm: var(--mk-saffron-400);
+  --mk-warm-soft: rgba(226, 144, 15, 0.16);
+  --mk-warm-ink: var(--mk-saffron-300);
+
+  --mk-danger: var(--mk-coral-400);
+  --mk-danger-soft: rgba(224, 75, 75, 0.16);
+  --mk-danger-ink: var(--mk-coral-300);
+
+  --mk-evidence: var(--mk-lilac-400);
+  --mk-evidence-soft: rgba(131, 103, 221, 0.18);
+
+  --mk-focus-ring: rgba(43, 193, 150, 0.45);
+
+  --mk-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --mk-shadow-md: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
+  --mk-shadow-lg: 0 24px 56px -14px rgba(0, 0, 0, 0.62);
+  --mk-shadow-xl: 0 36px 80px -18px rgba(0, 0, 0, 0.7);
+
+  /* A clinician uses a mouse and a keyboard, and wants more on screen. */
+  --mk-touch-min: 38px;
+  --mk-touch-lg: 44px;
+  --mk-body-size: var(--mk-text-sm);
+}
+
+/* ============================================== semantic status colours ===
+ * Used by badges, confidence bands and red flags on both surfaces. Defined
+ * once against the semantic layer so they follow whichever surface is active.
+ */
+:root {
+  --mk-status-ok-bg: var(--mk-accent-soft);
+  --mk-status-ok-fg: var(--mk-accent-ink);
+  --mk-status-warn-bg: var(--mk-warm-soft);
+  --mk-status-warn-fg: var(--mk-warm-ink);
+  --mk-status-alert-bg: var(--mk-danger-soft);
+  --mk-status-alert-fg: var(--mk-danger-ink);
+  --mk-status-info-bg: var(--mk-evidence-soft);
+  --mk-status-info-fg: var(--mk-evidence);
+}

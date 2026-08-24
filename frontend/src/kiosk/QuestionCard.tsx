@@ -22,6 +22,9 @@ import { FaceScale } from './FaceScale';
 import { TapGrid } from './TapGrid';
 import { TypedAnswer } from './TypedAnswer';
 import { VoiceButton } from './VoiceButton';
+import { Button } from '../design/ui';
+import { motion } from 'motion/react';
+import { press } from '../design/motion';
 
 interface Props {
   question: Question;
@@ -115,39 +118,39 @@ export function QuestionCard({
 
   return (
     <>
-      <div className="question-topbar">
-        <button
-          type="button"
-          className="btn-back"
+      <div className="kx-question-bar">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onBack}
           disabled={busy || canGoBack === false}
           aria-label="Go back to the previous question"
+          icon={<Icon name="arrowLeft" />}
         >
-          <Icon name="cross" />
           Back
-        </button>
+        </Button>
 
         {speech.canSpeak && (
-          <button
-            type="button"
-            className={`audio-button${speech.speaking ? ' speaking' : ''}`}
+          <Button
+            variant={speech.speaking ? 'secondary' : 'quiet'}
+            size="sm"
+            icon={<Icon name="speaker" />}
             onClick={speech.speaking ? speech.cancelSpeech : hearQuestion}
           >
-            <Icon name="speaker" />
             {speech.speaking ? 'Stop' : 'Hear the question'}
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="kiosk-section-label">
+      <p className="kx-eyebrow">
         {question.sectionTitle}
         {question.socrates && ` · ${question.socrates}`}
-      </div>
+      </p>
 
-      <h1 className="kiosk-prompt" lang={question.language}>
+      <h1 className="kx-question" lang={question.language}>
         {question.prompt}
       </h1>
-      {question.help && <p className="kiosk-help">{question.help}</p>}
+      {question.help && <p className="kx-question__hint">{question.help}</p>}
 
       {reopened && (
         <div className="reopened-note" role="status">
@@ -198,33 +201,30 @@ export function QuestionCard({
 
       <div style={{ marginTop: 24 }}>
         {question.kind === 'boolean' ? (
-          <div className="tap-grid">
-            <button
-              type="button"
-              className="tap-option"
-              aria-pressed={selected[0] === 'true'}
-              disabled={busy}
-              onClick={() => {
-                setSelected(['true']);
-                onAnswer(true);
-              }}
-            >
-              <Icon name="check" />
-              <span>Yes</span>
-            </button>
-            <button
-              type="button"
-              className="tap-option"
-              aria-pressed={selected[0] === 'false'}
-              disabled={busy}
-              onClick={() => {
-                setSelected(['false']);
-                onAnswer(false);
-              }}
-            >
-              <Icon name="cross" />
-              <span>No</span>
-            </button>
+          <div className="kx-options kx-options--pair" role="radiogroup">
+            {[
+              { value: 'true', label: 'Yes', icon: 'check', answer: true },
+              { value: 'false', label: 'No', icon: 'cross', answer: false },
+            ].map((choice) => (
+              <motion.button
+                key={choice.value}
+                type="button"
+                className="kx-option"
+                role="radio"
+                aria-checked={selected[0] === choice.value}
+                disabled={busy}
+                whileTap={busy ? undefined : press}
+                onClick={() => {
+                  setSelected([choice.value]);
+                  onAnswer(choice.answer);
+                }}
+              >
+                <span className="kx-option__glyph" aria-hidden="true">
+                  <Icon name={choice.icon} />
+                </span>
+                <span>{choice.label}</span>
+              </motion.button>
+            ))}
           </div>
         ) : question.kind === 'scale' && question.scale ? (
           <FaceScale
@@ -288,22 +288,19 @@ export function QuestionCard({
         </div>
       )}
 
-      <div className="kiosk-actions">
+      <div className="kx-actions">
         {/* The ONLY closing action left, and only where the interface genuinely cannot know
             the patient has finished choosing. */}
         {multi && selected.length > 0 && (
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={busy}
-            onClick={() => onAnswer(selected)}
-          >
+          <Button size="lg" disabled={busy} onClick={() => onAnswer(selected)}>
             Done — {selected.length} selected
-          </button>
+          </Button>
         )}
-        <button type="button" className="btn-quiet" disabled={busy} onClick={onSkip}>
+        {/* Deliberately small and quiet. Declining is always available and never
+            the suggested path; at full button size it competed with the answers. */}
+        <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
           I would rather not answer
-        </button>
+        </Button>
       </div>
     </>
   );

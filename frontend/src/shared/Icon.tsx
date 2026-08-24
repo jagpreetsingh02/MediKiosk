@@ -143,6 +143,10 @@ const paths: Record<string, JSX.Element> = {
   ),
   check: <path d="M4.5 12.5l5 5 10-11" />,
   cross: <path d="M6 6l12 12M18 6L6 18" />,
+  // Navigation, distinct from the `back` body-part glyph. A ✕ on the Back control
+  // read as "close the interview", which is not what it does.
+  arrowLeft: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
 };
 
 const FACES: Record<number, JSX.Element> = {

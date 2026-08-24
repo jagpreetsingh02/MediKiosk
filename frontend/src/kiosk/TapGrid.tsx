@@ -14,6 +14,8 @@
  */
 import type { Option } from '../shared/api';
 import { Icon } from '../shared/Icon';
+import { AnimatePresence, motion } from 'motion/react';
+import { press, springPop } from '../design/motion';
 
 interface Props {
   options: Option[];
@@ -61,21 +63,52 @@ export function TapGrid({
     );
   }
 
+  // Short labels tile into two columns; long ones stay in a single column, because
+  // a two-column grid of wrapping sentences is harder to scan than a list.
+  const compact = options.every((o) => o.label.length <= 22);
+
   return (
-    <div className="tap-grid" role={multi ? 'group' : 'radiogroup'}>
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          className={`tap-option${option.exclusive ? ' exclusive' : ''}`}
-          aria-pressed={selected.includes(option.value)}
-          disabled={busy}
-          onClick={() => choose(option)}
-        >
-          {option.icon && <Icon name={option.icon} />}
-          <span>{option.label}</span>
-        </button>
-      ))}
+    <div
+      className={`kx-options${compact ? ' kx-options--pair' : ''}`}
+      role={multi ? 'group' : 'radiogroup'}
+    >
+      {options.map((option) => {
+        const chosen = selected.includes(option.value);
+        return (
+          <motion.button
+            key={option.value}
+            type="button"
+            className="kx-option"
+            role={multi ? undefined : 'radio'}
+            aria-checked={multi ? undefined : chosen}
+            aria-pressed={multi ? chosen : undefined}
+            disabled={busy}
+            whileTap={busy ? undefined : press}
+            onClick={() => choose(option)}
+          >
+            {option.icon && (
+              <span className="kx-option__glyph" aria-hidden="true">
+                <Icon name={option.icon} />
+              </span>
+            )}
+            <span>{option.label}</span>
+            <AnimatePresence>
+              {chosen && (
+                <motion.span
+                  className="kx-option__tick"
+                  aria-hidden="true"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={springPop}
+                >
+                  <Icon name="check" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        );
+      })}
     </div>
   );
 }

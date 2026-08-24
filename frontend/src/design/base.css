@@ -1,0 +1,228 @@
+/**
+ * Base layer: reset, document typography, focus, scrollbars, motion policy.
+ *
+ * Loaded once after `tokens.css`. Everything here is unconditional — component
+ * styles live with their components, never in this file.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--mk-body-font, var(--mk-font-ui));
+  font-size: var(--mk-body-size, var(--mk-text-base));
+  line-height: var(--mk-leading-normal);
+  color: var(--mk-ink);
+  background-color: var(--mk-bg);
+  background-image: var(--mk-bg-ambient);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Indic scripts need their own face; Manrope has no Devanagari or Tamil
+   coverage and the browser's fallback is usually ugly and badly sized. */
+:lang(hi),
+:lang(bn),
+:lang(mr),
+:lang(ta),
+:lang(te),
+:lang(kn),
+:lang(ml),
+:lang(gu),
+:lang(pa) {
+  font-family: var(--mk-font-indic);
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--mk-font-display);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+  /* Bricolage has real optical sizing; using it is most of why headings read
+     as designed rather than merely large. */
+  font-optical-sizing: auto;
+}
+
+a {
+  color: var(--mk-accent-ink);
+  text-underline-offset: 0.2em;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+/* --------------------------------------------------------------- focus ---
+ * Focus is visible for keyboards and invisible for pointers. A kiosk being
+ * poked by a finger should not flash rings; a physician driving the review
+ * from the keyboard depends on them entirely.
+ */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mk-accent);
+  outline-offset: 3px;
+  border-radius: var(--mk-radius-xs);
+}
+
+/* ---------------------------------------------------------- scrollbars --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mk-line-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mk-line-strong);
+  border-radius: var(--mk-radius-pill);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--mk-ink-subtle);
+  background-clip: content-box;
+}
+
+/* ------------------------------------------------------------- utility --- */
+
+/* Visible to a screen reader, invisible on screen. Used for live regions that
+   announce voice state and OCR progress. */
+.mk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.mk-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.mk-row {
+  display: flex;
+  align-items: center;
+}
+
+/* Wide content — tables, timelines, code — scrolls inside its own box so the
+   page body never scrolls sideways. */
+.mk-scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* --------------------------------------------------------- reduced motion ---
+ * Honoured properly rather than by disabling transitions wholesale: motion is
+ * reduced to near-instant, so state changes still register but nothing travels.
+ * `AnimatePresence` exits still run, which matters — an element that vanishes
+ * with no transition at all is harder to follow, not easier.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mk-dur-instant: 1ms;
+    --mk-dur-fast: 1ms;
+    --mk-dur-normal: 1ms;
+    --mk-dur-slow: 1ms;
+    --mk-dur-slower: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------ printing ---
+ * A physician printing a summary should get the summary, not the workspace.
+ */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .mk-no-print {
+    display: none !important;
+  }
+}

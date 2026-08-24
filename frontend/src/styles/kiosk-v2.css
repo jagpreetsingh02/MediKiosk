@@ -1,0 +1,996 @@
+/**
+ * The rebuilt kiosk surface.
+ *
+ * Layout and screen-level composition only — anything reusable lives in the
+ * design system. Class prefix `kx-` so nothing here collides with the legacy
+ * `kiosk-` rules while both stylesheets are loaded.
+ *
+ * The governing constraint on every measurement below: this is read at arm's
+ * length, standing, possibly by someone in their seventies who has never used a
+ * touchscreen. Type is large, targets are large, and there is never more than one
+ * obvious thing to do.
+ */
+
+.kx {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------ disclaimer --- */
+
+.kx-disclaimer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-2) var(--mk-space-4);
+  background: var(--mk-indigo-900);
+  color: var(--mk-saffron-300);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.kx-disclaimer__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mk-saffron-400);
+  flex: none;
+  /* The one loop on the patient side that is not a process indicator. It is here
+     because a synthetic-data warning that reads as static chrome gets ignored,
+     and this one must not be. Slow and low-contrast enough not to nag. */
+  animation: kx-breathe 2.8s var(--mk-ease-in-out) infinite;
+}
+
+@keyframes kx-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kx-disclaimer__dot {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------- header --- */
+
+.kx-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--mk-z-header);
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-6);
+  padding: var(--mk-space-4) var(--mk-space-8);
+  background: var(--mk-surface-glass);
+  backdrop-filter: var(--mk-glass-blur);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  border-bottom: 1px solid var(--mk-line-hairline);
+}
+
+.kx-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  flex: none;
+}
+
+.kx-brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.kx-brand__name {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+}
+
+.kx-brand__context {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  font-weight: var(--mk-weight-medium);
+}
+
+.kx-header__progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.kx-header__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  margin-left: auto;
+}
+
+/* ----------------------------------------------------------------- stage --- */
+
+.kx-stage {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--mk-space-12) var(--mk-space-6) var(--mk-space-20);
+  display: flex;
+  flex-direction: column;
+}
+
+.kx-stage--wide {
+  max-width: 1080px;
+}
+
+/* ------------------------------------------------------------ typography --- */
+
+.kx-eyebrow {
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  margin-bottom: var(--mk-space-3);
+}
+
+.kx-title {
+  font-size: var(--mk-text-3xl);
+  line-height: var(--mk-leading-tight);
+  margin-bottom: var(--mk-space-3);
+  text-wrap: balance;
+}
+
+.kx-title--hero {
+  font-size: var(--mk-text-5xl);
+}
+
+.kx-lead {
+  font-size: var(--mk-text-lg);
+  line-height: var(--mk-leading-relaxed);
+  color: var(--mk-ink-muted);
+  max-width: 56ch;
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------- question ---
+ * The question itself is the largest text in the product. Everything else on the
+ * screen is subordinate to it, including the brand.
+ */
+
+.kx-question {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-4xl);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-tight);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+  text-wrap: balance;
+  margin-bottom: var(--mk-space-3);
+}
+
+.kx-question__hint {
+  font-size: var(--mk-text-lg);
+  color: var(--mk-ink-muted);
+  line-height: var(--mk-leading-snug);
+  margin-bottom: var(--mk-space-8);
+}
+
+/* ---------------------------------------------------------------- options ---
+ * A single column at kiosk width. Two columns only when the options are short
+ * enough that a column split does not create a scanning problem.
+ */
+
+.kx-options {
+  display: grid;
+  gap: var(--mk-space-3);
+  margin-bottom: var(--mk-space-8);
+}
+
+.kx-options--pair {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.kx-option {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  width: 100%;
+  min-height: var(--mk-touch-lg);
+  padding: var(--mk-space-4) var(--mk-space-5);
+  text-align: left;
+  background: var(--mk-surface);
+  border: 2px solid var(--mk-line);
+  border-radius: var(--mk-radius-lg);
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink);
+  transition:
+    border-color var(--mk-dur-fast) var(--mk-ease-out),
+    background-color var(--mk-dur-fast) var(--mk-ease-out),
+    box-shadow var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.kx-option:hover {
+  border-color: var(--mk-accent);
+  background: var(--mk-surface-muted);
+}
+
+.kx-option[aria-checked='true'],
+.kx-option[aria-pressed='true'] {
+  border-color: var(--mk-accent);
+  background: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+  box-shadow: var(--mk-shadow-sm);
+}
+
+/* The tick that appears on a chosen option. It animates in, which is the only
+   confirmation the patient gets before the screen advances. */
+.kx-option__tick {
+  margin-left: auto;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--mk-accent);
+  color: var(--mk-accent-contrast);
+}
+
+.kx-option__tick svg {
+  width: 17px;
+  height: 17px;
+}
+
+.kx-option__glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface-sunken);
+  color: var(--mk-ink-muted);
+}
+
+.kx-option[aria-checked='true'] .kx-option__glyph,
+.kx-option[aria-pressed='true'] .kx-option__glyph {
+  background: var(--mk-accent);
+  color: var(--mk-accent-contrast);
+}
+
+.kx-option__glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* --------------------------------------------------------------- actions --- */
+
+.kx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mk-space-3);
+  margin-top: var(--mk-space-6);
+}
+
+.kx-actions--split {
+  justify-content: space-between;
+}
+
+/* The input-mode row: speak / type, offered alongside the options rather than
+   instead of them. */
+.kx-modes {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  padding-top: var(--mk-space-5);
+  margin-top: var(--mk-space-2);
+  border-top: 1px solid var(--mk-line-hairline);
+}
+
+/* --------------------------------------------------------------- progress ---
+ * Section names, not "question 7 of 28" — the interview branches, so a
+ * denominator would be a lie.
+ */
+
+.kx-rail {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.kx-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.kx-rail__step {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  padding: var(--mk-space-1) var(--mk-space-3);
+  border-radius: var(--mk-radius-pill);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-subtle);
+  white-space: nowrap;
+  transition: color var(--mk-dur-normal) var(--mk-ease-out);
+}
+
+.kx-rail__step[data-state='done'] {
+  color: var(--mk-accent-ink);
+}
+
+.kx-rail__step[data-state='active'] {
+  color: var(--mk-ink-strong);
+  position: relative;
+}
+
+/* The travelling highlight behind the active section. A layoutId moves the same
+   node between chips, so the eye follows one object instead of watching two
+   chips blink. */
+.kx-rail__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-surface);
+  box-shadow: var(--mk-shadow-xs);
+  border: 1px solid var(--mk-line-hairline);
+  z-index: 0;
+}
+
+.kx-rail__text,
+.kx-rail__pip {
+  position: relative;
+  z-index: 1;
+}
+
+.kx-rail__pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mk-line-strong);
+  flex: none;
+  transition: background-color var(--mk-dur-normal) var(--mk-ease-out);
+}
+
+.kx-rail__step[data-state='done'] .kx-rail__pip {
+  background: var(--mk-accent);
+}
+
+.kx-rail__step[data-state='active'] .kx-rail__pip {
+  background: var(--mk-accent);
+  box-shadow: 0 0 0 4px var(--mk-accent-soft);
+}
+
+/* ---------------------------------------------------------------- memory ---
+ * The patient home screen: the product's whole argument in one view.
+ */
+
+.kx-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-5);
+  padding: var(--mk-space-6);
+  border-radius: var(--mk-radius-xl);
+  background: linear-gradient(
+    135deg,
+    var(--mk-indigo-900) 0%,
+    var(--mk-indigo-800) 60%,
+    var(--mk-jade-700) 190%
+  );
+  color: #fff;
+  box-shadow: var(--mk-shadow-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* A soft jade bloom in the corner, so the identity card has depth without a
+   second border or a heavier shadow. */
+.kx-identity::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -10%;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(43, 193, 150, 0.35), transparent 68%);
+  pointer-events: none;
+}
+
+.kx-identity__avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--mk-radius-lg);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+}
+
+.kx-identity__name {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+  line-height: 1.1;
+}
+
+.kx-identity__meta {
+  font-size: var(--mk-text-sm);
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: var(--mk-space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.kx-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--mk-space-3);
+}
+
+.kx-count {
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line);
+}
+
+.kx-count__value {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-black);
+  line-height: 1;
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.kx-count__label {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+  margin-top: var(--mk-space-2);
+}
+
+/* A vertical timeline with a real spine, rather than a list of bordered rows. */
+.kx-history {
+  position: relative;
+  padding-left: var(--mk-space-8);
+}
+
+.kx-history::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    var(--mk-accent) 0%,
+    var(--mk-line-strong) 40%,
+    transparent 100%
+  );
+  border-radius: 1px;
+}
+
+.kx-history__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: var(--mk-space-4);
+  align-items: baseline;
+  padding: var(--mk-space-4) 0;
+}
+
+.kx-history__row + .kx-history__row {
+  border-top: 1px solid var(--mk-line-hairline);
+}
+
+.kx-history__row::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--mk-space-8) + 6px);
+  top: calc(var(--mk-space-4) + 7px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mk-surface);
+  border: 2.5px solid var(--mk-line-strong);
+}
+
+.kx-history__row[data-kind='encounter']::before {
+  border-color: var(--mk-accent);
+}
+
+.kx-history__row[data-kind='prescription']::before {
+  border-color: var(--mk-warm);
+}
+
+.kx-history__date {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kx-history__label {
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink);
+}
+
+/* --------------------------------------------------------------- consent --- */
+
+.kx-consent-group {
+  border: 1px solid var(--mk-line);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-surface);
+  overflow: hidden;
+}
+
+.kx-consent-group + .kx-consent-group {
+  margin-top: var(--mk-space-4);
+}
+
+.kx-consent-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-3) var(--mk-space-5);
+  background: var(--mk-surface-muted);
+  border-bottom: 1px solid var(--mk-line-hairline);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-muted);
+}
+
+.kx-consent-required {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  padding: var(--mk-space-5);
+}
+
+.kx-consent-required__check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--mk-accent);
+  color: var(--mk-accent-contrast);
+}
+
+.kx-consent-required__check svg {
+  width: 19px;
+  height: 19px;
+}
+
+.kx-consent-list > * + * {
+  border-top: 1px solid var(--mk-line-hairline);
+}
+
+/* ------------------------------------------------------------ responsive --- */
+
+@media (max-width: 720px) {
+  .kx-header {
+    padding: var(--mk-space-3) var(--mk-space-4);
+    flex-wrap: wrap;
+  }
+
+  .kx-header__progress {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  .kx-stage {
+    padding: var(--mk-space-8) var(--mk-space-4) var(--mk-space-16);
+  }
+
+  .kx-title {
+    font-size: var(--mk-text-2xl);
+  }
+
+  .kx-title--hero {
+    font-size: var(--mk-text-3xl);
+  }
+
+  .kx-question {
+    font-size: var(--mk-text-2xl);
+  }
+
+  .kx-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .kx-history__row {
+    grid-template-columns: 1fr;
+    gap: var(--mk-space-1);
+  }
+}
+
+/* ============================================================== landing ===
+ * The one screen in the product that is allowed to be an argument rather than a
+ * task. It still obeys the same tokens — the difference is scale, not vocabulary.
+ */
+
+.lx {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--mk-space-16) var(--mk-space-6);
+}
+
+.lx-inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.lx-mark {
+  margin-bottom: var(--mk-space-5);
+}
+
+.lx-title {
+  font-size: clamp(3rem, 9vw, 4.5rem);
+  font-weight: var(--mk-weight-black);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  /* A restrained ink-to-jade wash. The gradient runs across the wordmark only —
+     gradient body text is a legibility problem, and this is the one place the
+     type is large enough for it to be safe. */
+  background: linear-gradient(120deg, var(--mk-indigo-950) 28%, var(--mk-jade-600) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: var(--mk-space-4);
+}
+
+.lx-tagline {
+  font-size: var(--mk-text-xl);
+  line-height: var(--mk-leading-snug);
+  color: var(--mk-ink-muted);
+  max-width: 30ch;
+  text-wrap: balance;
+  margin-bottom: var(--mk-space-5);
+}
+
+.lx-tagline em {
+  font-style: normal;
+  color: var(--mk-ink-strong);
+  font-weight: var(--mk-weight-bold);
+}
+
+.lx-disclaimer {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+  margin-bottom: var(--mk-space-10);
+}
+
+/* ------------------------------------------------------------- the spine --- */
+
+.lx-spine {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+  padding-left: var(--mk-space-8);
+  margin-bottom: var(--mk-space-10);
+}
+
+.lx-spine::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--mk-line-strong), var(--mk-accent));
+}
+
+.lx-spine__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: var(--mk-space-4);
+  align-items: baseline;
+  padding: var(--mk-space-3) 0;
+}
+
+.lx-spine__row::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--mk-space-8));
+  top: calc(var(--mk-space-3) + 6px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mk-bg);
+  border: 2.5px solid var(--mk-line-strong);
+}
+
+.lx-spine__row[data-kind='prescription']::before {
+  border-color: var(--mk-warm);
+}
+
+.lx-spine__row[data-kind='encounter']::before {
+  border-color: var(--mk-evidence);
+}
+
+/* Today is the live one: filled, with a soft halo. */
+.lx-spine__row[data-kind='current']::before {
+  background: var(--mk-accent);
+  border-color: var(--mk-accent);
+  box-shadow: 0 0 0 5px var(--mk-accent-soft);
+}
+
+.lx-spine__year {
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+}
+
+.lx-spine__row[data-kind='current'] .lx-spine__year {
+  color: var(--mk-accent-ink);
+}
+
+.lx-spine__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lx-spine__label {
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink);
+}
+
+.lx-spine__detail {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+}
+
+/* ----------------------------------------------------------------- cta --- */
+
+.lx-cta-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mk-space-3);
+  margin-bottom: var(--mk-space-16);
+}
+
+.lx-cta {
+  min-width: 240px;
+  text-decoration: none;
+  /* A jade glow rather than a heavier drop shadow: it reads as lit rather than
+     as floating, which suits an action that starts something. */
+  box-shadow:
+    0 12px 32px -10px rgba(15, 138, 104, 0.55),
+    var(--mk-shadow-sm);
+}
+
+.lx-cta:hover {
+  box-shadow:
+    0 16px 40px -10px rgba(15, 138, 104, 0.65),
+    var(--mk-shadow-md);
+}
+
+.lx-cta-note {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-subtle);
+}
+
+/* --------------------------------------------------------------- steps --- */
+
+.lx-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mk-space-4);
+  width: 100%;
+  text-align: left;
+  margin-bottom: var(--mk-space-12);
+}
+
+.lx-step {
+  position: relative;
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line);
+}
+
+.lx-step__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+  margin-bottom: var(--mk-space-4);
+}
+
+.lx-step__icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.lx-step__n {
+  position: absolute;
+  top: var(--mk-space-5);
+  right: var(--mk-space-5);
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-black);
+  line-height: 1;
+  color: var(--mk-line-strong);
+}
+
+.lx-step__title {
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  line-height: var(--mk-leading-snug);
+  margin-bottom: var(--mk-space-2);
+}
+
+.lx-step__body {
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-relaxed);
+  color: var(--mk-ink-muted);
+}
+
+/* --------------------------------------------------------------- links --- */
+
+.lx-links {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-subtle);
+}
+
+.lx-links a {
+  color: var(--mk-ink-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--mk-line-strong);
+  padding-bottom: 1px;
+  transition: color var(--mk-dur-fast) var(--mk-ease-out),
+    border-color var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.lx-links a:hover {
+  color: var(--mk-accent-ink);
+  border-color: var(--mk-accent);
+}
+
+@media (max-width: 720px) {
+  .lx {
+    padding: var(--mk-space-10) var(--mk-space-4);
+  }
+
+  .lx-spine {
+    max-width: 100%;
+  }
+}
+
+/* ------------------------------------------------- consent, supporting --- */
+
+.kx-consent-why {
+  padding: 0 var(--mk-space-4) var(--mk-space-4) calc(52px + var(--mk-space-4) + var(--mk-space-4));
+}
+
+.kx-linkish {
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  min-height: 32px;
+}
+
+.kx-linkish:hover {
+  color: var(--mk-accent-hover);
+}
+
+.kx-consent-detail {
+  overflow: hidden;
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-relaxed);
+  color: var(--mk-ink-muted);
+}
+
+.kx-consent-detail > span {
+  display: block;
+  padding-top: var(--mk-space-2);
+  max-width: 60ch;
+}
+
+.kx-notice {
+  margin-top: var(--mk-space-4);
+  padding: var(--mk-space-3) var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-warm-soft);
+  color: var(--mk-warm-ink);
+  font-size: var(--mk-text-sm);
+  border: 1px solid var(--mk-saffron-200);
+}
+
+.kx-footnote {
+  margin-top: var(--mk-space-6);
+  font-size: var(--mk-text-sm);
+  line-height: var(--mk-leading-relaxed);
+  color: var(--mk-ink-subtle);
+  max-width: 62ch;
+}
+
+@media (max-width: 720px) {
+  .kx-consent-why {
+    padding-left: var(--mk-space-4);
+  }
+}
+
+/* ---------------------------------------------------- question topbar --- */
+
+.kx-question-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-3);
+  margin-bottom: var(--mk-space-6);
+}
+
+.kx-records-slot {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--mk-space-4);
+}

@@ -7,15 +7,17 @@
  * are in, which parts are done, and which are still ahead, and that is the honest shape of
  * an adaptive interview.
  *
- * The bar stays, because "roughly how much longer" is a real question and a filling bar
- * answers it without committing to an exact count. Its denominator is the questions this
- * patient will actually be asked, not the ontology's total — a branch that closed is not a
- * question they are behind on.
+ * It now lives in the header rather than pinned to the bottom of the page, which is why the
+ * separate progress bar is gone: a filling bar and a row of section chips were answering the
+ * same question twice, and the chips answer it better because they name the thing. The
+ * numeric percentage survives for screen readers on the container, where it costs nothing.
  *
- * The current section is marked on its own chip and nowhere else. Naming it again underneath
- * put the same words twice on a screen whose design rule is one thing at a time.
+ * The active chip is marked by a travelling highlight (`layoutId`), so moving between
+ * sections reads as one indicator sliding rather than two chips blinking.
  */
+import { motion, useReducedMotion } from 'motion/react';
 import type { Progress, SectionProgress } from '../shared/api';
+import { springSoft } from '../design/motion';
 
 interface Props {
   progress: Progress;
@@ -24,33 +26,45 @@ interface Props {
 }
 
 export function ProgressRail({ progress, sections, currentSectionId }: Props): JSX.Element {
+  const prefersReduced = useReducedMotion() ?? false;
+
   return (
-    <div className="progress-rail">
-      <div
-        className="progress-bar"
-        role="progressbar"
-        aria-valuenow={progress.percent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="How far through the questions you are"
-      >
-        <div className="progress-fill" style={{ width: `${progress.percent}%` }} />
-      </div>
-      <div className="progress-sections">
-        {sections.map((section) => (
-          <span
-            key={section.sectionId}
-            className={`progress-chip${section.complete ? ' complete' : ''}${
-              section.sectionId === currentSectionId ? ' current' : ''
-            }`}
-          >
-            <span aria-hidden="true" className="progress-mark">
-              {section.complete ? '✓' : section.sectionId === currentSectionId ? '●' : ''}
-            </span>
-            {section.title}
-          </span>
-        ))}
-      </div>
+    <div
+      className="kx-rail"
+      role="progressbar"
+      aria-valuenow={progress.percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="How far through the questions you are"
+    >
+      {sections.map((section) => {
+        const active = section.sectionId === currentSectionId;
+        const done = !active && section.answered > 0 && section.answered >= section.total;
+        const state = active ? 'active' : done ? 'done' : 'ahead';
+        return (
+          <div key={section.sectionId} className="kx-rail__step" data-state={state}>
+            {active && !prefersReduced && (
+              <motion.span
+                layoutId="kx-rail-active"
+                className="kx-rail__halo"
+                transition={springSoft}
+                aria-hidden="true"
+              />
+            )}
+            <span className="kx-rail__pip" aria-hidden="true" />
+            {/* Only the current section is named. Eight labels in a header row
+                overflowed and truncated mid-word, which told the patient less
+                than a single clear "you are here" does. The rest keep their pips
+                so the shape of the whole interview stays visible, and every
+                title is still available to a screen reader. */}
+            {active ? (
+              <span className="kx-rail__text">{section.title}</span>
+            ) : (
+              <span className="mk-sr-only">{section.title}</span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

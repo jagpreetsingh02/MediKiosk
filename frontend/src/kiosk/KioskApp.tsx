@@ -28,6 +28,8 @@ import { PatientReview } from './PatientReview';
 import { ProgressRail } from './ProgressRail';
 import { QuestionCard } from './QuestionCard';
 import { LanguagePicker } from './LanguagePicker';
+import { KioskShell } from '../design/KioskShell';
+import { Button, Chip } from '../design/ui';
 
 type Stage =
   | 'language'
@@ -181,27 +183,26 @@ export function KioskApp(): JSX.Element {
     // kiosk's first prompt speaks by itself as soon as a question renders. Priming the
     // speech engine from the first tap anywhere — a language, a consent toggle, a keypad
     // digit — is what makes that prompt audible. `unlock()` is idempotent and inaudible.
-    <div className="kiosk" onPointerDownCapture={() => unlock()}>
-      <div className="mock-banner">
-        Demo identity — mock ABHA issuer, synthetic patients only. Not an ABDM integration.
-      </div>
-
-      <header className="kiosk-top">
-        <span className="kiosk-brand">MediKiosk</span>
-        <span className="kiosk-top-spacer" />
-        {sessionRef && (
-          <span style={{ fontSize: 15, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
-            {sessionRef}
-          </span>
-        )}
-        {stage !== 'language' && (
-          <button type="button" className="btn-quiet" style={{ minHeight: 52, fontSize: 18 }} onClick={restart}>
+    <KioskShell
+      onPointerDownCapture={() => unlock()}
+      progress={
+        stage === 'interview' && step ? (
+          <ProgressRail
+            progress={step.progress}
+            sections={step.sections}
+            currentSectionId={question?.sectionId ?? null}
+          />
+        ) : undefined
+      }
+      actions={
+        stage !== 'language' ? (
+          <Button variant="quiet" size="sm" onClick={restart}>
             Start over
-          </button>
-        )}
-      </header>
-
-      <main className="kiosk-body">
+          </Button>
+        ) : undefined
+      }
+    >
+      <>
         {error && <div className="kiosk-error">{error}</div>}
 
         {stage === 'language' && (
@@ -238,17 +239,19 @@ export function KioskApp(): JSX.Element {
 
         {stage === 'interview' && question && sessionRef && (
           <>
-            <div style={{ marginBottom: 20 }}>
-              <button
-                type="button"
-                className={`records-chip${documentCount ? ' has-items' : ''}`}
+            {/* Reachable from every question, never blocking one. It sits above the
+                Back row as a quiet chip rather than a button, because it is an
+                aside — the question is the task. */}
+            <div className="kx-records-slot">
+              <Chip
+                active={documentCount > 0}
+                icon={<Icon name="camera" />}
                 onClick={() => setStage('documents')}
               >
-                <Icon name="camera" />
                 {documentCount
                   ? `${documentCount} record${documentCount === 1 ? '' : 's'} added — add another`
                   : 'Add a prescription or report'}
-              </button>
+              </Chip>
             </div>
             <QuestionCard
             question={question}
@@ -334,15 +337,7 @@ export function KioskApp(): JSX.Element {
             onRestart={restart}
           />
         )}
-      </main>
-
-      {stage === 'interview' && step && (
-        <ProgressRail
-          progress={step.progress}
-          sections={step.sections}
-          currentSectionId={question?.sectionId ?? null}
-        />
-      )}
-    </div>
+      </>
+    </KioskShell>
   );
 }

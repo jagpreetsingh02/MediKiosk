@@ -23,6 +23,9 @@ import { ApiError, api, type ConsentPresentation } from '../shared/api';
 import { Icon } from '../shared/Icon';
 import { unlock } from '../shared/tts';
 import { useSpeech } from '../shared/useSpeech';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { Button, Skeleton, Toggle } from '../design/ui';
+import { expand, reduced, rise, stagger } from '../design/motion';
 
 interface Props {
   language: string;
@@ -38,6 +41,9 @@ export function ConsentGate({ language, onGranted, onBack }: Props): JSX.Element
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const speech = useSpeech(language);
+  const prefersReduced = useReducedMotion() ?? false;
+  const riseV = reduced(prefersReduced, rise);
+  const expandV = reduced(prefersReduced, expand);
 
   useEffect(() => {
     api
@@ -91,8 +97,11 @@ export function ConsentGate({ language, onGranted, onBack }: Props): JSX.Element
 
   if (!presentation) {
     return (
-      <div className="kiosk-panel">
-        <p className="kiosk-lead">Loading…</p>
+      <div className="mk-stack" style={{ gap: 'var(--mk-space-5)' }} aria-busy="true">
+        <span className="mk-sr-only" role="status">Loading your permissions</span>
+        <Skeleton height={44} width="60%" radius="var(--mk-radius-md)" />
+        <Skeleton height={92} radius="var(--mk-radius-lg)" />
+        <Skeleton height={240} radius="var(--mk-radius-lg)" />
       </div>
     );
   }
@@ -101,92 +110,116 @@ export function ConsentGate({ language, onGranted, onBack }: Props): JSX.Element
   const optional = presentation.scopes.filter((s) => !s.required);
 
   return (
-    <div className="kiosk-panel">
-      <div className="consent-head">
-        <div>
-          <h1 className="kiosk-title">Your permission</h1>
-          <p className="consent-lead">
-            Everything you tell me is deleted when your visit ends. Only the doctor sees it.
-          </p>
-        </div>
-        {speech.canSpeak && (
-          <button
-            type="button"
-            className={`audio-button${speech.speaking ? ' speaking' : ''}`}
+    <motion.div variants={stagger(0.05)} initial="hidden" animate="visible">
+      <motion.p className="kx-eyebrow" variants={riseV}>
+        Before we begin
+      </motion.p>
+      <motion.h1 className="kx-title" variants={riseV}>
+        Your permission
+      </motion.h1>
+      <motion.p className="kx-lead" variants={riseV}>
+        Everything you tell us is deleted when your visit ends. Only the doctor sees it.
+      </motion.p>
+
+      {speech.canSpeak && (
+        <motion.div variants={riseV} style={{ marginTop: 'var(--mk-space-5)' }}>
+          <Button
+            variant="secondary"
+            icon={<Icon name="speaker" />}
             onClick={() => void readPage()}
+            aria-live="polite"
           >
-            <Icon name="speaker" />
-            {speech.speaking ? 'Stop' : 'Hear this page'}
-          </button>
-        )}
-      </div>
+            {speech.speaking ? 'Stop reading' : 'Hear this page'}
+          </Button>
+        </motion.div>
+      )}
 
       {speech.speechNotice && (
-        <p className="kiosk-help" style={{ color: 'var(--warn)' }}>
+        <p className="kx-notice" role="status">
           {speech.speechNotice}
         </p>
       )}
-      {error && (
-        <div className="kiosk-error" style={{ marginTop: 16 }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="kiosk-error" style={{ marginTop: 16 }}>{error}</div>}
 
-      <div className="consent-group-label">Needed to continue</div>
-      {required.map((scope) => (
-        <div key={scope.id} className="consent-row required">
-          <Icon name="check" />
-          <div className="consent-row-body">
-            <div className="consent-row-title">{scope.short ?? scope.title}</div>
-            <div className="consent-row-detail">{scope.title}</div>
+      <motion.div variants={riseV} style={{ marginTop: 'var(--mk-space-8)' }}>
+        <div className="kx-consent-group">
+          <div className="kx-consent-group__head">
+            <span>Needed to continue</span>
+            <span>Always on</span>
           </div>
-        </div>
-      ))}
-
-      <div className="consent-group-label">Optional — your choice</div>
-      {optional.map((scope) => {
-        const on = granted.has(scope.id);
-        const open = expanded === scope.id;
-        return (
-          <div key={scope.id} className={`consent-row${on ? ' granted' : ''}`}>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={on}
-              aria-label={scope.short ?? scope.title}
-              className={`consent-switch${on ? ' on' : ''}`}
-              onClick={() => toggle(scope.id, scope.required)}
-            >
-              <span className="consent-knob" />
-            </button>
-            <div className="consent-row-body">
-              <div className="consent-row-title">{scope.short ?? scope.title}</div>
-              {open && <div className="consent-row-detail">{scope.audio}</div>}
-              <button
-                type="button"
-                className="consent-why"
-                onClick={() => setExpanded(open ? null : scope.id)}
-              >
-                {open ? 'Hide' : 'What does this mean?'}
-              </button>
+          {required.map((scope) => (
+            <div key={scope.id} className="kx-consent-required">
+              <span className="kx-consent-required__check" aria-hidden="true">
+                <Icon name="check" />
+              </span>
+              <div>
+                <div className="mk-toggle__title">{scope.short ?? scope.title}</div>
+                <div className="mk-toggle__hint">{scope.title}</div>
+              </div>
             </div>
+          ))}
+        </div>
+
+        <div className="kx-consent-group">
+          <div className="kx-consent-group__head">
+            <span>Optional — your choice</span>
+            <span>{granted.size - required.length} on</span>
           </div>
-        );
-      })}
+          <div className="kx-consent-list">
+            {optional.map((scope) => {
+              const on = granted.has(scope.id);
+              const open = expanded === scope.id;
+              return (
+                <div key={scope.id}>
+                  <Toggle
+                    checked={on}
+                    onChange={() => toggle(scope.id, scope.required)}
+                    title={scope.short ?? scope.title}
+                    hint={scope.title}
+                  />
+                  <div className="kx-consent-why">
+                    <button
+                      type="button"
+                      className="kx-linkish"
+                      aria-expanded={open}
+                      onClick={() => setExpanded(open ? null : scope.id)}
+                    >
+                      {open ? 'Hide' : 'What does this mean?'}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {open && (
+                        <motion.p
+                          className="kx-consent-detail"
+                          variants={expandV}
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                        >
+                          <span>{scope.audio}</span>
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
 
-      <div className="kiosk-actions">
-        <button type="button" className="btn-primary" disabled={busy} onClick={() => void begin()}>
-          {busy ? 'Starting…' : 'Start intake'}
-        </button>
-        <button type="button" className="btn-quiet" onClick={onBack}>
+      <motion.div className="kx-actions" variants={riseV}>
+        <Button size="lg" loading={busy} onClick={() => void begin()}>
+          Start intake
+        </Button>
+        <Button variant="quiet" onClick={onBack}>
           Cancel
-        </button>
-      </div>
+        </Button>
+      </motion.div>
 
-      <p className="consent-footnote">
+      <motion.p className="kx-footnote" variants={riseV}>
         You can change your mind at any time. Anything recorded under a permission you withdraw
         is deleted. Policy version {presentation.policyVersion}.
-      </p>
-    </div>
+      </motion.p>
+    </motion.div>
   );
 }

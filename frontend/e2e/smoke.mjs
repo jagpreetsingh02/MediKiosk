@@ -33,7 +33,7 @@ console.log('KIOSK');
 const page = await ctx.newPage();
 track(page, 'kiosk');
 await page.goto(BASE, { waitUntil: 'networkidle' });
-check('landing renders', await page.locator('.landing-title').count() > 0);
+check('landing renders', await page.locator('.lx-title').count() > 0);
 await page.getByRole('link', { name: /^Start$/ }).click();
 await page.waitForSelector('.language-option', { timeout: 8000 });
 
@@ -49,32 +49,38 @@ await page.getByRole('button', { name: /^Continue$/ }).click();
 // Wait for the record to arrive, not merely for the panel: the loading state is a
 // .kiosk-lead too, and asserting against it raced the fetch.
 await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout: 10000 });
-check('patient memory screen reached', await page.locator('.memory-id').count() > 0);
+check('patient memory screen reached', await page.locator('.kx-identity').count() > 0);
 await page.getByRole('button', { name: /Start today's visit/ }).click();
 
-await page.waitForSelector('.consent-row', { timeout: 8000 });
+await page.waitForSelector('.mk-toggle', { timeout: 8000 });
 check('consent screen reached', true);
 
 // Every optional scope on, so the rest of the smoke run exercises voice and documents.
 for (let i = 0; i < 6; i++) {
-  const off = page.locator('.consent-switch:not(.on)');
+  const off = page.locator('.mk-toggle[aria-checked="false"]');
   if (!(await off.count())) break;
   await off.first().click();
 }
 await page.getByRole('button', { name: /Start intake/ }).click();
-await page.waitForSelector('.kiosk-prompt', { timeout: 12000 });
-const sessionRef = (await page.locator('.kiosk-top').innerText()).match(/sess_\w+/)?.[0];
-check('interview started', Boolean(sessionRef), sessionRef);
+await page.waitForSelector('.kx-question', { timeout: 12000 });
+// The session ref is no longer printed in the header: it was developer chrome on a
+// patient-facing screen. A rendered question is the real proof the interview started,
+// and the physician half of this test reads the ref from the resume record instead.
+check('interview started', await page.locator('.kx-question').count() > 0);
+const sessionRef = await page.evaluate(
+  () => JSON.parse(sessionStorage.getItem('medikiosk.resume') ?? '{}').sessionRef,
+);
+check('session ref recorded for resume', Boolean(sessionRef), sessionRef);
 check('microphone offered when voice consented', await page.locator('.voice-button').count() > 0);
 
 // §3: the flow branches, so a question count is a promise it cannot keep. Sections do not
 // move; a denominator does.
 {
-  const rail = await page.locator('.progress-rail').innerText();
+  const rail = await page.locator('.kx-rail').innerText();
   check('progress is by section, not by question count', !/\d+\s*(of|\/)\s*\d+/.test(rail),
     rail.replace(/\n/g, ' ').slice(0, 58));
   check('and one section is marked as where we are',
-    await page.locator('.progress-chip.current').count() === 1);
+    await page.locator('.kx-rail__step[data-state="active"]').count() === 1);
 }
 
 // A dead speech engine must withdraw the microphone rather than pulse "Listening…" forever.
@@ -86,18 +92,18 @@ if (await page.locator('.voice-button').count()) {
   check('dead speech engine withdraws the microphone', await page.locator('.voice-button').count() === 0);
   check('and tells the patient why',
     (await page.locator('.kiosk-error').first().innerText()).includes('not available'));
-  check('and tapping still works', await page.locator('.tap-option').count() > 0);
+  check('and tapping still works', await page.locator('.kx-option').count() > 0);
 }
 
 let asked = 0;
 for (; asked < 90; asked++) {
   if (await page.locator('.upload-drop').count()) break;
-  if (!(await page.locator('.kiosk-prompt').count())) break;
+  if (!(await page.locator('.kx-question').count())) break;
   if (await page.locator('.face-option').count()) {
     await page.locator('.face-option').nth(3).click();
-  } else if (await page.locator('.tap-option').count()) {
+  } else if (await page.locator('.kx-option').count()) {
     // One tap is the whole answer now. A multi-select still needs its Done.
-    await page.locator('.tap-option').first().click();
+    await page.locator('.kx-option').first().click();
     const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
     if (await done.count()) await done.first().click();
   } else {
@@ -119,7 +125,7 @@ check('interview completes', asked > 20, `${asked} questions`);
   await page.waitForTimeout(1500);
   const stillHere =
     (await page.locator('.doc-actions').count()) > 0 ||
-    (await page.locator('.kiosk-prompt').count()) > 0 ||
+    (await page.locator('.kx-question').count()) > 0 ||
     (await page.locator('.review-row').count()) > 0;
   check('refresh resumes the session', stillHere,
     beforeReload ? 'was at the document step' : 'was mid-interview');
@@ -161,12 +167,12 @@ check('patient review screen reached', await page.locator('.review-row').count()
 // Correcting one answer must re-present that question and return to review, not restart.
 const firstQuestion = await page.locator('.review-row .review-q').first().innerText();
 await page.locator('.review-row').first().getByRole('button', { name: /Change this/ }).click();
-await page.waitForSelector('.kiosk-prompt', { timeout: 8000 });
+await page.waitForSelector('.kx-question', { timeout: 8000 });
 check('correction re-presents that question',
-  (await page.locator('.kiosk-prompt').innerText()).trim() === firstQuestion.trim(),
+  (await page.locator('.kx-question').innerText()).trim() === firstQuestion.trim(),
   firstQuestion.slice(0, 46));
-if (await page.locator('.tap-option').count()) {
-  await page.locator('.tap-option').nth(1).click();
+if (await page.locator('.kx-option').count()) {
+  await page.locator('.kx-option').nth(1).click();
   const cont = page.getByRole('button', { name: /^Continue$|^Continue with/ });
   if (await cont.count()) await cont.first().click();
 } else {
