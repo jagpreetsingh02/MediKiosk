@@ -293,3 +293,95 @@ def test_the_interview_completes_with_the_model_dead(monkeypatch) -> None:
     assert spoken_attempts >= 5, "the test did not actually exercise the failing model"
     assert len(ledger.active_facts()) == len(taps)
     assert state.completed
+
+
+# ---------------------------------------------- unmeasured confidence (§20 of the brief)
+#
+# The kiosk audit found a browser confidence of 0 being converted into an invented 0.7. The
+# frontend fix shipped without a test on either side of the wire; these are that test.
+
+
+def test_an_unmeasured_transcript_is_not_a_low_confidence_one() -> None:
+    """`None` and `0.0` are different claims and must not collapse into each other.
+
+    A confidence nobody measured, attached to a clinical fact, is fabricated provenance — and
+    downstream it is indistinguishable from a measured one.
+    """
+    unmeasured = Transcript(text="chest pain", confidence=None, language="en", backend="client")
+    assert unmeasured.measured is False
+    assert unmeasured.confidence_status == "unavailable"
+    assert unmeasured.reliable is False
+
+    scored = Transcript(text="chest pain", confidence=0.0, language="en", backend="client")
+    assert scored.measured is True
+    assert scored.confidence_status == "measured"
+
+
+def test_an_unmeasured_answer_to_a_safety_critical_question_degrades_to_touch(
+    machine, ledger
+) -> None:
+    """Allergies, medicines and red-flag screens are exactly the answers §20 names."""
+    q = _advance_to(machine, "allergy.any")
+    before = len(ledger.facts)
+    outcome = handle_spoken_answer(
+        machine,
+        ledger,
+        turn_id=q.turn_id,
+        question_id="allergy.any",
+        transcript=Transcript(
+            text="no allergies", confidence=None, language="en", backend="client"
+        ),
+    )
+    assert outcome.degraded_to_touch, "an unscored allergy answer must not be trusted"
+    assert outcome.reason == "unmeasured"
+    assert len(ledger.facts) == before, "nothing may be recorded from an unscored critical answer"
+    assert outcome.prompt and "tap" in outcome.prompt.lower()
+
+
+def test_an_unmeasured_answer_elsewhere_is_recorded_without_a_confidence(
+    machine, ledger
+) -> None:
+    """Discarding every unscored transcript would throw away most spoken answers on the
+    browsers that report nothing. It is recorded — with `None`, never with a stand-in."""
+    q = _advance_to(machine, "hpi.site")
+    outcome = handle_spoken_answer(
+        machine,
+        ledger,
+        turn_id=q.turn_id,
+        question_id="hpi.site",
+        transcript=Transcript(
+            text="mere chhaati mein dard hai", confidence=None, language="en", backend="client"
+        ),
+    )
+    assert not outcome.degraded_to_touch
+    for fact in outcome.facts:
+        assert fact.source.asr_confidence is None, (
+            "an unscored transcript must not acquire a confidence on the way to the ledger"
+        )
+
+
+def test_no_fact_anywhere_carries_a_confidence_its_transcript_did_not_have(
+    machine, ledger
+) -> None:
+    """The substitution this test exists to prevent is `confidence || 0.7`."""
+    for question_id in ("hpi.site", "hpi.character"):
+        q = _advance_to(machine, question_id)
+        handle_spoken_answer(
+            machine,
+            ledger,
+            turn_id=q.turn_id,
+            question_id=question_id,
+            transcript=Transcript(
+                text="burning pain in my chest",
+                confidence=None,
+                language="en",
+                backend="client",
+            ),
+        )
+    scored = [
+        f for f in ledger.facts if getattr(f.source, "asr_confidence", None) is not None
+    ]
+    assert not scored, (
+        "every fact here came from an unscored transcript; a confidence on any of them was "
+        f"invented: {[(f.path, f.source.asr_confidence) for f in scored]}"
+    )

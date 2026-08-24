@@ -410,3 +410,112 @@ async def test_every_timeline_event_has_its_own_reference(seeded_patient) -> Non
         "duplicate event references: "
         f"{sorted({r for r in refs if refs.count(r) > 1})}"
     )
+
+
+async def test_a_verified_medicine_becomes_a_medication_event(db_session) -> None:
+    """§26: a medicine that reached the record through *verification* promotes like any other.
+
+    The low-confidence lane is the one that matters here. A handwritten drug name is never
+    merged automatically, so the only route from the scrawl to a MedicationEvent runs through
+    a human — and if promotion did not carry that route, verifying a medicine would look like
+    it worked and leave nothing in the patient's history.
+    """
+    from app.contracts.provenance import BoundingBox
+    from app.modules.documents.pipeline import IngestResult, verify_entity
+
+    row = await _session(db_session, abha_ref="abha:verified")
+    ledger = FactLedger(row.session_ref)
+    tap(ledger, "chief_complaint.text", "checkup")
+
+    pending = {
+        "kind": "medication",
+        "text": "Metfarmin",
+        "page": 1,
+        "bbox": BoundingBox(x=0.1, y=0.2, width=0.6, height=0.03).model_dump(),
+        "confidence": 0.55,
+        "handwritten": True,
+        "sourceText": "TAB. METFARMIN 500MG 1-0-1",
+        "detail": {"dose": "500MG", "frequencyRaw": "1-0-1"},
+        "observedOn": None,
+        "datePrecision": "unknown",
+        "entityIndex": 0,
+    }
+    result = IngestResult(
+        document_id="doc_hand",
+        filename="handwritten.png",
+        backend="tesseract",
+        pages=[{"page": 1}],
+        mean_confidence=0.55,
+        needs_verification=[pending],
+    )
+
+    facts = verify_entity(
+        ledger,
+        result,
+        entity_index=0,
+        accepted=True,
+        verified_by="dr.iyer@aiia",
+        known_paths=load_ontology().known_paths,
+        corrected_text="Metformin",
+    )
+    assert facts, "verification must produce facts before promotion can carry them"
+
+    await _promote(db_session, row, ledger)
+    await db_session.flush()
+
+    rows = list((await db_session.execute(select(MedicationEvent))).scalars().all())
+    assert rows, "a verified medicine must reach the patient's durable history"
+    promoted = rows[0]
+    assert "metformin" in promoted.normalized_name
+    # Still `documented`: a human confirmed what the paper SAYS, which is not the same claim
+    # as the patient currently taking it.
+    assert promoted.status == "documented"
+
+
+async def test_the_human_who_read_it_survives_promotion(db_session) -> None:
+    """The correction is only provenance if a later reviewer can see who made it."""
+    from app.contracts.provenance import BoundingBox
+    from app.db.durable import SourceEvidence
+    from app.modules.documents.pipeline import IngestResult, verify_entity
+
+    row = await _session(db_session, abha_ref="abha:reader")
+    ledger = FactLedger(row.session_ref)
+    tap(ledger, "chief_complaint.text", "checkup")
+
+    result = IngestResult(
+        document_id="doc_hand",
+        filename="handwritten.png",
+        backend="tesseract",
+        pages=[{"page": 1}],
+        mean_confidence=0.55,
+        needs_verification=[
+            {
+                "kind": "medication",
+                "text": "Metfarmin",
+                "page": 1,
+                "bbox": BoundingBox(x=0.1, y=0.2, width=0.6, height=0.03).model_dump(),
+                "confidence": 0.55,
+                "handwritten": True,
+                "sourceText": "TAB. METFARMIN 500MG 1-0-1",
+                "detail": {},
+                "observedOn": None,
+                "datePrecision": "unknown",
+                "entityIndex": 0,
+            }
+        ],
+    )
+    verify_entity(
+        ledger,
+        result,
+        entity_index=0,
+        accepted=True,
+        verified_by="dr.iyer@aiia",
+        known_paths=load_ontology().known_paths,
+        corrected_text="Metformin",
+    )
+    await _promote(db_session, row, ledger)
+    await db_session.flush()
+
+    evidence = list((await db_session.execute(select(SourceEvidence))).scalars().all())
+    readings = [e for e in evidence if "METFARMIN" in (e.verbatim or "")]
+    assert readings, "the OCR scrawl must survive as the verbatim, not be replaced"
