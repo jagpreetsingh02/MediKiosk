@@ -452,34 +452,82 @@ export function getToken(): string | null {
   return token;
 }
 
+/**
+ * An API failure with a message a patient can read.
+ *
+ * `message` is ALWAYS human. `detail` carries the technical cause for the physician
+ * surface and the jury drawer. Nothing renders `detail` to a patient — "Request
+ * failed (500)" and "TypeError: Failed to fetch" are exactly the console-like text
+ * the product rules forbid on a clinical screen.
+ */
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
     readonly issueCode?: string,
+    /** The raw cause. For diagnostics, never for the kiosk. */
+    readonly detail?: string,
   ) {
     super(message);
   }
 }
+
+/** `status: 0` — the request never reached the server at all. */
+export const OFFLINE = 0;
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(path, { ...init, headers });
+  let response: Response;
+  try {
+    response = await fetch(path, { ...init, headers });
+  } catch (cause) {
+    // The API is down, the network dropped, or the dev server is up without the
+    // backend behind it. `fetch` rejects with a bare TypeError here, which used to
+    // escape uncaught and surface to the patient as raw JS.
+    throw new ApiError(
+      'We cannot reach the health service right now. Please ask a staff member for help.',
+      OFFLINE,
+      'offline',
+      cause instanceof Error ? cause.message : String(cause),
+    );
+  }
+
   const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
+  let body: any = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    // A proxy error page or an HTML 502 — anything that is not the JSON we expect.
+    // Parsing it used to throw a SyntaxError from inside the client.
+    if (!response.ok) {
+      throw new ApiError(
+        'Something went wrong at our end. Please ask a staff member for help.',
+        response.status,
+        'bad-response',
+        text.slice(0, 200),
+      );
+    }
+  }
 
   if (!response.ok) {
-    // The backend returns a FHIR OperationOutcome for every domain error. Surfacing its
-    // diagnostics verbatim is the whole point of that choice — the messages are written to
-    // be read by a person.
+    // The backend returns a FHIR OperationOutcome for every domain error, and its
+    // diagnostics are written to be read by a person — that is the whole point of the
+    // choice, so they are surfaced verbatim when present.
     const issue = body?.issue?.[0];
+    if (issue?.diagnostics) {
+      throw new ApiError(issue.diagnostics, response.status, issue.code, issue.diagnostics);
+    }
+    // No OperationOutcome. Say something true and useful instead of the status code.
     throw new ApiError(
-      issue?.diagnostics ?? `Request failed (${response.status})`,
+      response.status >= 500
+        ? 'Something went wrong at our end. Please ask a staff member for help.'
+        : 'That did not work. Please try again, or ask a staff member for help.',
       response.status,
-      issue?.code,
+      'unexpected',
+      `HTTP ${response.status} ${path}`,
     );
   }
   return body as T;
