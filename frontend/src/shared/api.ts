@@ -393,6 +393,77 @@ export interface PatientContext {
   note?: string;
 }
 
+
+// ------------------------------------------------------- the clinical report
+
+export interface LabPoint {
+  observedOn: string | null;
+  value: number | null;
+  rangeFlag: string;
+  documentRef: string | null;
+}
+
+export interface LabSeries {
+  analyteKey: string;
+  display: string;
+  unit: string | null;
+  referenceLow: number | null;
+  referenceHigh: number | null;
+  rangeSource: string;
+  points: LabPoint[];
+  latest: { value: number | null; observedOn: string | null; rangeFlag: string };
+  /** Arithmetic between the last two measurements. Never a projection. */
+  change: {
+    delta: number;
+    direction: 'higher' | 'lower' | 'unchanged';
+    sinceOn: string | null;
+    sinceValue: number | null;
+  };
+  outOfRangeCount: number;
+}
+
+export interface ClinicalReport {
+  patientRef: string;
+  displayName: string | null;
+  generatedAt: string;
+  current: {
+    encounterRef: string;
+    occurredOn: string;
+    headline: string | null;
+    priority: Priority;
+    completeness: number;
+    confirmedBy: string;
+    factCount: number;
+  } | null;
+  trends: LabSeries[];
+  medications: {
+    count: number;
+    needsReconciliation: string[];
+    threads: MedicationThread[];
+    note: string;
+  };
+  recurrence: {
+    visits: number;
+    firstSeenOn: string | null;
+    groups: { headline: string | null; count: number; occurredOn: string[]; encounterRefs: string[] }[];
+    note: string;
+  };
+  redFlags: {
+    evaluated: number;
+    fired: { ruleId: string; level: string | null; rationale: string | null; evidence: unknown }[];
+    note: string;
+  };
+  changed: {
+    comparedWith: { encounterRef: string; occurredOn: string; headline: string | null } | null;
+    new: { path: string; value: string }[];
+    resolved: { path: string; value: string }[];
+    persisting: { path: string; value: string }[];
+    note?: string;
+  };
+  counts: { encounters: number; observations: number; medicationEvents: number };
+  notice: string;
+}
+
 export interface Inspect {
   sessionRef: string;
   stateMachine: {
@@ -681,6 +752,8 @@ export const api = {
     request<PatientContext>(`/api/v1/sessions/${ref}/patient-context`),
 
   myRecord: () => request<PatientOverview>('/api/v1/patients/me'),
+  clinicalReport: (patientRef: string) =>
+    request<ClinicalReport>(`/api/v1/patients/${patientRef}/report`),
   patientOverview: (patientRef: string) =>
     request<PatientOverview>(`/api/v1/patients/${patientRef}`),
   patientTimeline: (patientRef: string, kinds?: string) =>

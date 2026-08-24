@@ -385,9 +385,12 @@ async def test_overview_masks_the_identifier(seeded_patient) -> None:
     overview = await H.overview(db, patient)
     assert overview["abhaMasked"] is not None
     assert patient.abha_ref not in overview["abhaMasked"]
-    assert overview["counts"]["encounters"] == 3
+    # Five: the 2025 intake, the prescription, and three dated lab reports. The lab
+    # series exists so the clinical brief has a trajectory to chart rather than a single
+    # point — see tests/test_clinical_report.py.
+    assert overview["counts"]["encounters"] == 5
     assert overview["counts"]["prescriptions"] == 1
-    assert overview["counts"]["labReports"] == 1
+    assert overview["counts"]["labReports"] == 3
 
 
 async def test_timeline_event_count_is_not_zero(seeded_patient) -> None:

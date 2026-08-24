@@ -1,0 +1,42 @@
+{
+  "medications": [],
+  "diagnoses": [],
+  "investigations": [
+    {
+      "analyte": "Haemoglobin",
+      "value": 10.2,
+      "flag": "low"
+    },
+    {
+      "analyte": "HbA1c",
+      "value": 7.4,
+      "flag": "high"
+    },
+    {
+      "analyte": "Fasting Blood Sugar",
+      "value": 141.0,
+      "flag": "high"
+    },
+    {
+      "analyte": "Serum Creatinine",
+      "value": 1.0,
+      "flag": "in_range"
+    },
+    {
+      "analyte": "TSH",
+      "value": 5.1,
+      "flag": "high"
+    },
+    {
+      "analyte": "Total Cholesterol",
+      "value": 196.0,
+      "flag": "in_range"
+    },
+    {
+      "analyte": "ESR",
+      "value": 26.0,
+      "flag": "high"
+    }
+  ],
+  "documentDate": "2025-02-10"
+}

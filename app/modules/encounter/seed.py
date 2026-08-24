@@ -126,6 +126,25 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
         timeline_kind="investigation",
     )
 
+    # -------------------------------------- 2025 Feb: repeat bloods, before the script
+    #
+    # THE SERIES IS THE POINT. One lab report is a row of numbers; three, dated, are a
+    # trajectory a physician reads at a glance — and this patient's trajectory is the
+    # clinical spine of the demo. Values improve after the February 2025 prescription and
+    # deteriorate through 2026, which is precisely the period the patient reports taking
+    # no medicines. The lab trend and the medication-reconciliation flag are two views of
+    # one story, and neither is an inference: both are recorded numbers carrying their own
+    # dates and the reference ranges printed on the report a physician can open.
+    lab_2025 = await _seed_document_encounter(
+        db,
+        patient=patient,
+        fixture="lab_report_2025-02-10.pdf",
+        occurred=datetime(2025, 2, 10, 9, 20, tzinfo=UTC),
+        headline="Laboratory report",
+        kind="lab_report",
+        timeline_kind="investigation",
+    )
+
     # ---------------------------------------------------- 2025 Feb: a prescription
     prescription = await _seed_document_encounter(
         db,
@@ -135,6 +154,17 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
         headline="Prescription",
         kind="prescription",
         timeline_kind="medication",
+    )
+
+    # ------------------------------------------- 2026 Jan: bloods again, worse
+    lab_2026 = await _seed_document_encounter(
+        db,
+        patient=patient,
+        fixture="lab_report_2026-01-18.pdf",
+        occurred=datetime(2026, 1, 18, 8, 40, tzinfo=UTC),
+        headline="Laboratory report",
+        kind="lab_report",
+        timeline_kind="investigation",
     )
 
     # ---------------------------------------------------- 2025 Aug: a real visit
@@ -213,18 +243,19 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     )
 
     await db.flush()
+    documents = [lab, lab_2025, lab_2026, prescription]
     log.info(
         "demo.patient_seeded",
         patient=patient.patient_ref,
-        encounters=3,
-        documents=[lab, prescription],
+        encounters=5,
+        documents=documents,
     )
     return {
         "created": True,
         "patientRef": patient.patient_ref,
         "abhaRef": patient.abha_ref,
-        "encounters": 3,
-        "documents": [lab, prescription],
+        "encounters": 5,
+        "documents": documents,
     }
 
 

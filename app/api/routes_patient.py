@@ -17,6 +17,7 @@ from app.core.errors import PolicyDenied, ValidationError
 from app.db.durable import DocumentRecord, Encounter, Patient
 from app.modules.documents.render import render_page_png
 from app.modules.encounter import history as H
+from app.modules.encounter import report as R
 
 router = APIRouter(prefix="/api/v1/patients", tags=["patient-memory"])
 
@@ -106,6 +107,38 @@ async def patient_medications(
             "the medicine today. A past prescription is not evidence of current use."
         ),
     }
+
+
+@router.get("/{patient_ref}/report", dependencies=[Depends(require_action("session.read"))])
+async def clinical_report(
+    db: DbSession, patient_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """The clinical brief: what the physician gets back for the intake they were given.
+
+    Everything upstream is capture. This is the return value — lab trajectories, the
+    medication picture with its provenance, how often this complaint has brought the
+    patient in, what changed since last time, and which deterministic rules fired.
+
+    It contains no assessment. Every number is a recorded measurement or arithmetic
+    between recorded measurements, which is what keeps a chart on the physician's screen
+    on the right side of Invariant 1.
+    """
+    patient = await _resolve(db, identity, patient_ref)
+    built = await R.build(db, patient)
+    await record(
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="report.read",
+        abha_ref=patient.abha_ref,
+        request_summary={"patientRef": patient.patient_ref},
+        response_summary={
+            "trends": len(built["trends"]),
+            "medications": built["medications"]["count"],
+        },
+    )
+    return built
 
 
 @router.get(

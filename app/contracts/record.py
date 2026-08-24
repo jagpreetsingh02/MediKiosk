@@ -51,6 +51,39 @@ def _norm(text: str) -> str:
     return _NORMALISE.sub(" ", text.casefold()).strip()
 
 
+_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def _as_number(text: str) -> float | None:
+    """The value as a quantity, or None if it is not purely one."""
+    try:
+        return float(text.strip())
+    except ValueError:
+        return None
+
+
+def _numbers_in(text: str) -> list[float]:
+    """Every quantity printed in a span, so a value can be matched against them."""
+    out: list[float] = []
+    for match in _NUMBER.finditer(text):
+        try:
+            out.append(float(match.group()))
+        except ValueError:  # pragma: no cover - the pattern cannot produce this
+            continue
+    return out
+
+
+def span_text(span: Span) -> str:
+    """Everything a span offers as evidence: the verbatim, any translation, any reading."""
+    parts = [span.verbatim]
+    if span.verbatim_translated:
+        parts.append(span.verbatim_translated)
+    reading = getattr(span, "human_reading", None)
+    if reading:
+        parts.append(reading)
+    return " ".join(parts)
+
+
 def _value_is_echoed(value: Any, span: Span) -> bool:
     """Is the recorded value actually evidenced by its own source span?
 
@@ -92,6 +125,22 @@ def _value_is_echoed(value: Any, span: Span) -> bool:
         haystack = f"{haystack} {_norm(reading)}"
     if text in haystack or haystack in text:
         return True
+
+    # A NUMBER IS EVIDENCED BY THE SAME NUMBER, not by its spelling.
+    #
+    # Lab values arrive here as strings ("34.0") extracted from a line that prints them
+    # differently ("ESR 34 mm/hr"). Substring matching fails on that, and the token rule
+    # below then discards every token of two characters or fewer — so "34.0" produced an
+    # empty token list and the fact was refused. The result was silent, permanent data
+    # loss: every lab value printed in one or two characters lost its `.value` fact, on
+    # real reports and on the shipped demo fixture alike, with only a debug log to say so.
+    #
+    # Comparing numerically is STRICTER than substring matching, not looser: the span must
+    # contain the same quantity, so "34" backs 34.0 while "340" and "3.4" do not.
+    as_number = _as_number(str(value))
+    if as_number is not None:
+        return any(abs(found - as_number) < 1e-9 for found in _numbers_in(span_text(span)))
+
     # Multi-word values: every token must appear somewhere in the span.
     tokens = [t for t in text.split() if len(t) > 2]
     return bool(tokens) and all(t in haystack for t in tokens)

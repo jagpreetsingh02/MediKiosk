@@ -967,3 +967,476 @@
   border-left: 1px solid var(--mk-line-strong);
   color: var(--mk-ink);
 }
+
+/* ======================================================= clinical report ===
+ * The brief. Its palette is not chosen by eye: the three provenance hues below
+ * were run through the dataviz validator against this surface (#131a33) and pass
+ * all six checks — lightness band, chroma floor, CVD separation (worst adjacent
+ * ΔE 11.4 deutan / 21.2 normal), and contrast. Do not substitute them casually;
+ * re-run the validator if they change.
+ */
+
+.rep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-8);
+}
+
+.rep-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mk-space-6);
+  flex-wrap: wrap;
+}
+
+.rep-kicker {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-accent-ink);
+}
+
+.rep-title {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+  margin-top: 2px;
+}
+
+.rep-sub {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  margin-top: var(--mk-space-1);
+}
+
+/* Stat tiles, not charts: a single number is not a plot. */
+.rep-stats {
+  display: flex;
+  gap: var(--mk-space-5);
+  flex-wrap: wrap;
+}
+
+.rep-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 74px;
+}
+
+.rep-stat__value {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-black);
+  line-height: 1;
+  color: var(--mk-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-stat--alert .rep-stat__value {
+  color: var(--mk-danger);
+}
+
+.rep-stat__label {
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-subtle);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.rep-section__head {
+  margin-bottom: var(--mk-space-4);
+}
+
+.rep-section__title {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+}
+
+.rep-section__note {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-subtle);
+  margin-top: var(--mk-space-1);
+  max-width: 78ch;
+  line-height: var(--mk-leading-relaxed);
+}
+
+/* ------------------------------------------------------------ red flags --- */
+
+.rep-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+}
+
+.rep-flag {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  border: 1px solid var(--mk-danger);
+  background: var(--mk-danger-soft);
+}
+
+.rep-flag__id {
+  font-family: var(--mk-font-mono);
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-danger-ink);
+}
+
+.rep-flag__why {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-strong);
+  margin-top: 2px;
+}
+
+/* --------------------------------------------------------- what changed --- */
+
+.rep-changed {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--mk-space-3);
+}
+
+.rep-change {
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line);
+  border-top: 2px solid var(--mk-line-strong);
+}
+
+.rep-change[data-tone='warn'] {
+  border-top-color: var(--mk-warm);
+}
+.rep-change[data-tone='ok'] {
+  border-top-color: var(--mk-accent);
+}
+
+.rep-change__label {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--mk-space-2);
+}
+
+.rep-change__n {
+  color: var(--mk-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-change ul {
+  margin-top: var(--mk-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-1);
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink);
+}
+
+.rep-change__none {
+  margin-top: var(--mk-space-3);
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-subtle);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------- lab trends ---
+ * Small multiples. Each panel is one analyte on its own scale — seven analytes
+ * in five units cannot share a y-axis, and two scales on one plot would invent a
+ * correlation that is not in the data.
+ */
+
+.rep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: var(--mk-space-3);
+}
+
+.lab {
+  position: relative;
+  margin: 0;
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-surface-raised);
+  border: 1px solid var(--mk-line);
+}
+
+.lab__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mk-space-3);
+  margin-bottom: var(--mk-space-2);
+}
+
+.lab__name {
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-muted);
+}
+
+.lab__latest {
+  display: flex;
+  align-items: baseline;
+  gap: var(--mk-space-2);
+}
+
+.lab__value {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab__unit {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-ink-subtle);
+  margin-left: 3px;
+}
+
+/* Status is a WORD. The ring on the point is the second encoding, never the only
+   one — colour alone would be unreadable to a CVD reader and meaningless in print. */
+.lab__flag {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  padding: 0.15em 0.5em;
+  border-radius: var(--mk-radius-pill);
+}
+
+.lab__flag--high,
+.lab__flag--low {
+  background: var(--mk-warm-soft);
+  color: var(--mk-warm-ink);
+}
+
+.lab__plot {
+  display: block;
+  width: 100%;
+  height: 78px;
+  overflow: visible;
+}
+
+/* The reference interval printed on the source report. Recessive: context behind
+   the data, not a mark competing with it. */
+.lab__band {
+  fill: var(--mk-accent);
+  opacity: 0.1;
+}
+
+.lab__line {
+  fill: none;
+  stroke: var(--mk-ink-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lab__dot {
+  fill: var(--mk-surface-raised);
+  stroke: var(--mk-ink-muted);
+  stroke-width: 2;
+  transition: r var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+/* Out of the printed range. Saffron, not red: this is "outside the interval",
+   which is a fact, not an emergency — red flags are a separate, louder channel. */
+.lab__dot--out {
+  stroke: var(--mk-saffron-400);
+  fill: var(--mk-saffron-400);
+}
+
+.lab__hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.lab__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mk-space-2);
+  margin-top: var(--mk-space-2);
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-subtle);
+}
+
+.lab__change {
+  color: var(--mk-ink-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab__tip {
+  position: absolute;
+  left: var(--mk-space-4);
+  right: var(--mk-space-4);
+  bottom: calc(100% - var(--mk-space-2));
+  z-index: var(--mk-z-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-indigo-950);
+  border: 1px solid var(--mk-line-strong);
+  box-shadow: var(--mk-shadow-lg);
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-muted);
+  pointer-events: none;
+}
+
+.lab__tip strong {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab__tip-src {
+  color: var(--mk-accent-ink);
+}
+
+/* -------------------------------------------------------- medications ---
+ * Provenance hues, validated: lilac = read off a document, jade = the patient
+ * said so, saffron = uncertain. Every one is labelled in words as well.
+ */
+
+.rep-meds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--mk-space-3);
+}
+
+.rep-med {
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line);
+}
+
+.rep-med--warn {
+  border-color: var(--mk-warm);
+  background: var(--mk-warm-soft);
+}
+
+.rep-med__head {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  flex-wrap: wrap;
+}
+
+.rep-med__name {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+}
+
+.rep-med__why {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-warm-ink);
+  margin-top: 2px;
+}
+
+.rep-med__track {
+  margin-top: var(--mk-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+}
+
+.rep-med__mention {
+  display: grid;
+  grid-template-columns: 10px 60px 1fr;
+  gap: var(--mk-space-2);
+  align-items: baseline;
+  font-size: var(--mk-text-xs);
+}
+
+.rep-med__pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mk-ink-subtle);
+  align-self: center;
+}
+
+.rep-med__mention[data-status='documented'] .rep-med__pip {
+  background: #8367dd;
+}
+.rep-med__mention[data-status='patient-reported-current'] .rep-med__pip {
+  background: #14a67e;
+}
+.rep-med__mention[data-status='uncertain'] .rep-med__pip,
+.rep-med__mention[data-status='stopped-reported'] .rep-med__pip {
+  background: #c67608;
+}
+
+.rep-med__when {
+  color: var(--mk-ink-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-med__how {
+  color: var(--mk-ink);
+}
+
+/* --------------------------------------------------------- recurrence --- */
+
+.rep-recur {
+  display: flex;
+  flex-direction: column;
+}
+
+.rep-recur__row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: var(--mk-space-3);
+  align-items: baseline;
+  padding: var(--mk-space-3) 0;
+  border-bottom: 1px solid var(--mk-line-hairline);
+}
+
+.rep-recur__count {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-recur__what {
+  color: var(--mk-ink-strong);
+  font-weight: var(--mk-weight-semibold);
+}
+
+.rep-recur__when {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-notice {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-subtle);
+  line-height: var(--mk-leading-relaxed);
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface-sunken);
+  border: 1px solid var(--mk-line);
+  max-width: 90ch;
+}

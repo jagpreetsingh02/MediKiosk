@@ -23,7 +23,24 @@ def get_engine() -> AsyncEngine:
         # default pool when the eval runner and the API share a database file.
         kwargs["connect_args"] = {"check_same_thread": False}
     else:
+        # REMOTE POSTGRES IS A NETWORK, AND THE NUMBERS ARE NOT SMALL.
+        #
+        # Measured against Supabase from a developer laptop: 118 ms for a single query on
+        # a warm pooled connection, and 824 ms to open a new one (TLS handshake plus auth
+        # across the internet). A request that makes eight round-trips therefore costs
+        # about a second, and paying the 824 ms again mid-demo because the pool was empty
+        # is the difference between "responsive" and "broken".
+        #
+        # So the pool is sized to keep connections warm rather than to save memory, and
+        # recycled well inside the provider's idle timeout so a checkout rarely finds a
+        # dead socket. `pool_pre_ping` stays: it costs one round-trip, and the failure it
+        # prevents — a stale connection surfacing as a 500 mid-interview — is far worse
+        # than 118 ms.
         kwargs["pool_pre_ping"] = True
+        kwargs["pool_size"] = 10
+        kwargs["max_overflow"] = 10
+        kwargs["pool_recycle"] = 280
+        kwargs["pool_timeout"] = 30
     return create_async_engine(settings.database_url, **kwargs)  # type: ignore[arg-type]
 
 

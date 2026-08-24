@@ -11,6 +11,9 @@ import pytest
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("LLM_BACKEND", "offline")
+# Belt and braces with the exemption in app/main.py: a test run never talks to a
+# real database, and must never be able to write to the production one.
+os.environ["REQUIRE_SUPABASE"] = "false"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

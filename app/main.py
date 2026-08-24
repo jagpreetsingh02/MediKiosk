@@ -46,7 +46,12 @@ async def lifespan(app: FastAPI):
         backend=settings.database_backend,
         host=settings.database_host,  # host only; the URL carries the password
     )
-    if settings.require_supabase and not settings.is_supabase:
+    # The guard protects a demo or a deployment from silently running on an empty local
+    # file. A TEST run wants SQLite by definition — an in-memory database per test is the
+    # whole reason the suite needs no network — so the guard must not fire there. Without
+    # this exemption, setting REQUIRE_SUPABASE in a developer's .env broke every test that
+    # starts the app, which is a booby trap, not a safety feature.
+    if settings.environment != "test" and settings.require_supabase and not settings.is_supabase:
         raise RuntimeError(
             f"REQUIRE_SUPABASE is set but DATABASE_URL points at {settings.database_backend}. "
             "Refusing to start on the wrong database — set DATABASE_URL to the Supabase "

@@ -172,25 +172,115 @@ def write_png(name: str, lines: list[str], *, degraded: bool) -> None:
 #: printed on the document would destroy the provenance the whole system rests on. So the
 #: historical documents genuinely bear the dates of the visits they belong to.
 HISTORICAL = (
-    ("prescription", "2025-02-14", "Date: 14/02/2025"),
-    ("lab_report", "2024-06-03", "Sample collected on 03/06/2024"),
+    ("prescription", "2025-02-14", "Date: 14/02/2025", None),
+    ("lab_report", "2024-06-03", "Sample collected on 03/06/2024", None),
+    # A LONGITUDINAL SERIES, and the reason it exists.
+    #
+    # One lab report is a row of numbers. Three, dated, are a trajectory a physician
+    # reads in a second — and this patient's trajectory is the whole clinical point of
+    # the demo: values improve after the February 2025 prescription, then deteriorate
+    # through 2026, which is exactly the period the patient reports taking no
+    # medicines. The medication-reconciliation flag and the lab trend are two views of
+    # one story, and neither is an inference: both are recorded numbers with their
+    # dates and their printed reference ranges.
+    #
+    # The values are overridden per date rather than the date alone, because a chart
+    # of the same number three times is not a trend, it is a straight line lying about
+    # having been measured.
+    (
+        "lab_report",
+        "2025-02-10",
+        "Sample collected on 10/02/2025",
+        {
+            "Haemoglobin": (10.2, "g/dL", "(12.0 - 15.0)"),
+            "HbA1c": (7.4, "%", "(4.0 - 5.6)"),
+            "Fasting Blood Sugar": (141, "mg/dL", "(70 - 99)"),
+            "Serum Creatinine": (1.0, "mg/dL", "(0.6 - 1.1)"),
+            "TSH": (5.1, "uIU/mL", "(0.4 - 4.0)"),
+            "Total Cholesterol": (196, "mg/dL", "(0 - 200)"),
+            "ESR": (26, "mm/hr", "(0 - 20)"),
+        },
+    ),
+    (
+        "lab_report",
+        "2026-01-18",
+        "Sample collected on 18/01/2026",
+        {
+            "Haemoglobin": (9.0, "g/dL", "(12.0 - 15.0)"),
+            "HbA1c": (9.1, "%", "(4.0 - 5.6)"),
+            "Fasting Blood Sugar": (192, "mg/dL", "(70 - 99)"),
+            "Serum Creatinine": (1.2, "mg/dL", "(0.6 - 1.1)"),
+            "TSH": (6.2, "uIU/mL", "(0.4 - 4.0)"),
+            "Total Cholesterol": (231, "mg/dL", "(0 - 200)"),
+            "ESR": (41, "mm/hr", "(0 - 20)"),
+        },
+    ),
 )
+
+#: The label each analyte is printed under, in report order.
+_ANALYTE_LINES = (
+    ("Haemoglobin", "Haemoglobin"),
+    ("HbA1c", "HbA1c"),
+    ("Fasting Blood Sugar", "Fasting Blood Sugar"),
+    ("Serum Creatinine", "Serum Creatinine"),
+    ("TSH", "TSH"),
+    ("Total Cholesterol", "Total Cholesterol"),
+    ("ESR", "ESR"),
+)
+
+
+def _flag(analyte: str, value: float) -> str:
+    """Where the value sits against the range printed on the report itself.
+
+    A comparison, not a judgement — the same rule `modules/documents/ranges.py`
+    applies, kept here so the fixture's truth file agrees with what the pipeline will
+    extract from it.
+    """
+    low, high = {
+        "Haemoglobin": (12.0, 15.0),
+        "HbA1c": (4.0, 5.6),
+        "Fasting Blood Sugar": (70.0, 99.0),
+        "Serum Creatinine": (0.6, 1.1),
+        "TSH": (0.4, 4.0),
+        "Total Cholesterol": (0.0, 200.0),
+        "ESR": (0.0, 20.0),
+    }[analyte]
+    if value < low:
+        return "low"
+    if value > high:
+        return "high"
+    return "in_range"
+
+
+def _lab_lines(values: dict[str, tuple[float, str, str]], date_line: str) -> list[str]:
+    lines = [LAB_REPORT[0], date_line, ""]
+    for label, key in _ANALYTE_LINES:
+        value, unit, ref = values[key]
+        shown = f"{value:g}"
+        lines.append(f"{label} {shown} {unit}".ljust(31) + ref)
+    return lines
 
 
 def write_historical() -> list[str]:
     written: list[str] = []
-    for base, iso, replacement in HISTORICAL:
-        lines = []
-        for line in DOCS[base]:
-            if line.startswith(("Date:", "Sample collected on")):
-                lines.append(replacement)
-            else:
-                lines.append(line)
+    for base, iso, replacement, values in HISTORICAL:
+        if values is not None:
+            lines = _lab_lines(values, replacement)
+        else:
+            lines = [
+                replacement if line.startswith(("Date:", "Sample collected on")) else line
+                for line in DOCS[base]
+            ]
         name = f"{base}_{iso}"
         write_pdf(name, lines)
         (OUT / f"{name}.txt").write_text("\n".join(lines) + "\n")
         truth = dict(TRUTH[base])
         truth["documentDate"] = iso
+        if values is not None:
+            truth["investigations"] = [
+                {"analyte": key, "value": float(values[key][0]), "flag": _flag(key, values[key][0])}
+                for _, key in _ANALYTE_LINES
+            ]
         (OUT / f"{name}.truth.json").write_text(json.dumps(truth, indent=2) + "\n")
         written.append(name)
     return written

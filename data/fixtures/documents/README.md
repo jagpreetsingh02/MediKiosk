@@ -12,6 +12,6 @@ real doctor, no real registration number.
 | `.txt` | plain text | fast unit tests |
 | `<name>_<YYYY-MM-DD>.pdf` | the same document dated for the seeded patient's history | `app/modules/encounter/seed.py` |
 
-Historical variants: prescription_2025-02-14, lab_report_2024-06-03.
+Historical variants: prescription_2025-02-14, lab_report_2024-06-03, lab_report_2025-02-10, lab_report_2026-01-18.
 
 The seed uses the dated variants because it cannot stamp its own encounter date onto entities extracted from a fixture: a physician can open the page, and a timeline date contradicting the date printed on the document would destroy the provenance the system rests on.

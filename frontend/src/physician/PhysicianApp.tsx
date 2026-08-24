@@ -21,6 +21,7 @@ import { CommitBar } from './CommitBar';
 import { ContradictionPanel } from './ContradictionPanel';
 import { CurrentVsHistory } from './CurrentVsHistory';
 import { EvidenceDrawer } from './EvidenceDrawer';
+import { ClinicalReport } from './ClinicalReport';
 import { LongitudinalTimeline } from './LongitudinalTimeline';
 import { MedicationHistory } from './MedicationHistory';
 import { SimilarEncounters } from './SimilarEncounters';
@@ -39,9 +40,12 @@ type SidePanel = 'source' | 'timeline' | 'verify' | 'conflicts';
  * needs the record, not just today's answers, and §23 is explicit that the summary becomes
  * one view inside clinical memory rather than the product itself.
  */
-type MainView = 'visit' | 'timeline' | 'medications' | 'similar' | 'documents';
+type MainView = 'brief' | 'visit' | 'timeline' | 'medications' | 'similar' | 'documents';
 
 const MAIN_VIEWS: { id: MainView; label: string }[] = [
+  // First, and the default: the brief is the answer to "what did we get back for
+  // all that input". Everything after it is a way of drilling into one part of it.
+  { id: 'brief', label: 'Clinical brief' },
   { id: 'visit', label: 'Current visit' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'medications', label: 'Medications' },
@@ -220,7 +224,10 @@ export function PhysicianApp(): JSX.Element {
   // Scrolling to the bottom of the summary counts as having read it.
   function onScroll(event: React.UIEvent<HTMLElement>): void {
     const el = event.currentTarget;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) setReviewed(true);
+    // A generous tolerance on purpose. `scroll-behavior: smooth` settles asynchronously
+    // and can stop a pixel or two short of the exact bottom; a physician who has
+    // visibly reached the end of the summary must not be told they have not read it.
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 96) setReviewed(true);
   }
 
   if (!role) {
@@ -244,7 +251,10 @@ export function PhysicianApp(): JSX.Element {
    * physician mid-review is looking.
    */
   function showOriginal(documentRef: string, item: ExtractedItem | null = null): void {
-    if (!activeRef) return;
+    // A document reached from the clinical brief belongs to a PAST encounter, so there
+    // is no live session behind it. Requiring one here made every historical lab report
+    // unopenable from the brief — the evidence drawer simply did nothing.
+    if (!activeRef && !context?.patientRef) return;
     const local = documents.find((document) => document.documentId === documentRef);
     if (local) {
       setEvidence({
@@ -382,6 +392,20 @@ export function PhysicianApp(): JSX.Element {
               </button>
             ))}
           </nav>
+        )}
+
+        {view === 'brief' && context?.patientRef && (
+          <ClinicalReport
+            patientRef={context.patientRef}
+            onOpenDocument={(documentRef) => documentRef && showOriginal(documentRef)}
+          />
+        )}
+
+        {view === 'brief' && !context?.patientRef && (
+          <div className="source-empty">
+            This session has no durable patient record yet. The brief appears once a
+            physician has confirmed an encounter for this patient.
+          </div>
         )}
 
         {summary && view === 'timeline' && context && (

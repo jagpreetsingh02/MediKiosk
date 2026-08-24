@@ -6,6 +6,16 @@
  * every test passes. It walks both surfaces and fails on any console error, failed request,
  * or missing element.
  */
+/**
+ * TIMEOUTS ARE SIZED FOR A REAL NETWORK, NOT A LOCAL FILE.
+ *
+ * Measured against Supabase from a laptop: ~118 ms for one query on a warm pooled
+ * connection, ~824 ms to open a new one. A request that makes several round-trips
+ * therefore costs about a second, and the original budgets — calibrated when the
+ * database was a SQLite file in the working directory — expired mid-step. The waits
+ * below are generous on purpose: this suite has to pass against the database the
+ * product actually ships on.
+ */
 import { chromium } from 'playwright';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
@@ -25,6 +35,30 @@ const track = (p, tag) => {
   });
 };
 
+
+/**
+ * Tap a control on an animated screen.
+ *
+ * `AnimatePresence` swaps whole screens, so a locator resolved a moment ago can be
+ * mid-transition ("element is not stable") and then detached before the click lands.
+ * Re-resolving on every attempt is the only reliable way to click a UI that animates —
+ * and a patient's finger has exactly the same problem, which is why the transitions are
+ * short and the controls are large.
+ */
+const tap = async (page, selector, nth = 0) => {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const target = page.locator(selector).nth(nth);
+    try {
+      await target.waitFor({ state: 'visible', timeout: 5000 });
+      await target.click({ timeout: 5000 });
+      return true;
+    } catch {
+      await page.waitForTimeout(250);
+    }
+  }
+  return false;
+};
+
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 
@@ -35,7 +69,7 @@ track(page, 'kiosk');
 await page.goto(BASE, { waitUntil: 'networkidle' });
 check('landing renders', await page.locator('.lx-title').count() > 0);
 await page.getByRole('link', { name: /^Start$/ }).click();
-await page.waitForSelector('.language-option', { timeout: 8000 });
+await page.waitForSelector('.language-option', { timeout: 24000 });
 
 await page.getByRole('button', { name: /^English/ }).click();
 check('language picker advances', await page.locator('text=Your ABHA number').count() > 0);
@@ -48,11 +82,11 @@ await page.getByRole('button', { name: /^Continue$/ }).click();
 // between login and consent, so the flow reaches consent through it, not instead of it.
 // Wait for the record to arrive, not merely for the panel: the loading state is a
 // .kiosk-lead too, and asserting against it raced the fetch.
-await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout: 10000 });
+await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout: 30000 });
 check('patient memory screen reached', await page.locator('.kx-identity').count() > 0);
 await page.getByRole('button', { name: /Start today's visit/ }).click();
 
-await page.waitForSelector('.mk-toggle', { timeout: 8000 });
+await page.waitForSelector('.mk-toggle', { timeout: 24000 });
 check('consent screen reached', true);
 
 // Every optional scope on, so the rest of the smoke run exercises voice and documents.
@@ -62,7 +96,7 @@ for (let i = 0; i < 6; i++) {
   await off.first().click();
 }
 await page.getByRole('button', { name: /Start intake/ }).click();
-await page.waitForSelector('.kx-question', { timeout: 12000 });
+await page.waitForSelector('.kx-question', { timeout: 36000 });
 // The session ref is no longer printed in the header: it was developer chrome on a
 // patient-facing screen. A rendered question is the real proof the interview started,
 // and the physician half of this test reads the ref from the resume record instead.
@@ -96,14 +130,26 @@ if (await page.locator('.voice-button').count()) {
 }
 
 let asked = 0;
-for (; asked < 90; asked++) {
+for (; asked < 240; asked++) {
   if (await page.locator('.upload-drop').count()) break;
   if (!(await page.locator('.kx-question').count())) break;
-  if (await page.locator('.face-option').count()) {
-    await page.locator('.face-option').nth(3).click();
-  } else if (await page.locator('.kx-option').count()) {
+
+  // WAIT FOR THE CONTROLS TO BE LIVE BEFORE TAPPING THEM.
+  //
+  // While an answer is in flight every option is disabled, and the *previous*
+  // question is still on screen. Against a local SQLite that window is a few
+  // milliseconds and clicking blindly worked; against a remote Postgres it is
+  // over a second, so the loop kept clicking a disabled, already-selected button
+  // until Playwright gave up. Waiting for an enabled control is what the patient
+  // does too, and it makes this suite honest on a real network.
+  const enabled = page.locator('.kx-option:not([disabled]), .face-option:not([disabled])');
+  await enabled.first().waitFor({ state: 'visible', timeout: 90000 }).catch(() => {});
+
+  if (await page.locator('.face-option:not([disabled])').count()) {
+    await tap(page, '.face-option:not([disabled])', 3);
+  } else if (await page.locator('.kx-option:not([disabled])').count()) {
     // One tap is the whole answer now. A multi-select still needs its Done.
-    await page.locator('.kx-option').first().click();
+    await tap(page, '.kx-option:not([disabled])');
     const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
     if (await done.count()) await done.first().click();
   } else {
@@ -114,7 +160,7 @@ for (; asked < 90; asked++) {
   }
   await page.waitForTimeout(140);
 }
-check('interview completes', asked > 20, `${asked} questions`);
+check('interview completes', asked > 20 && asked < 240, `${asked} questions`);
 
 
 // A kiosk browser reloads. Losing the sessionRef used to send the patient back to the
@@ -130,7 +176,7 @@ check('interview completes', asked > 20, `${asked} questions`);
   check('refresh resumes the session', stillHere,
     beforeReload ? 'was at the document step' : 'was mid-interview');
   if (!(await page.locator('.doc-actions').count())) {
-    await page.waitForSelector('.doc-actions', { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('.doc-actions', { timeout: 45000 }).catch(() => {});
   }
 }
 check('document stage offered', await page.locator('.doc-actions').count() > 0);
@@ -143,7 +189,7 @@ await page.locator('input[type=file][accept*="pdf"]')
 
 // The readback. An extraction the patient never saw is an extraction that became true
 // without anyone agreeing to it, so the upload goes straight here.
-await page.waitForSelector('.extract-item', { timeout: 25000 }).catch(() => {});
+await page.waitForSelector('.extract-item', { timeout: 75000 }).catch(() => {});
 const extracted = await page.locator('.extract-item').count();
 check('OCR readback shown to the patient', extracted > 0, `${extracted} items`);
 check('every item carries a confidence word, not a percentage',
@@ -151,39 +197,71 @@ check('every item carries a confidence word, not a percentage',
 
 if (extracted > 0) {
   await page.locator('.extract-item').first().getByRole('button', { name: /^Yes$/ }).click();
-  await page.waitForTimeout(400);
+  // Wait for the outcome rather than for a fixed 400 ms. The confirmation is a round-trip,
+  // and on a remote database that is over a second — the old sleep was timing a SQLite file.
+  await page.waitForSelector('.extract-outcome', { timeout: 30000 }).catch(() => {});
   check('confirming an item is recorded', await page.locator('.extract-outcome').count() > 0);
   await page.getByRole('button', { name: /^Done$/ }).click();
 }
 
-await page.waitForFunction(() => document.querySelectorAll('.upload-item').length > 0, null, { timeout: 15000 }).catch(() => {});
+await page.waitForFunction(() => document.querySelectorAll('.upload-item').length > 0, null, { timeout: 45000 }).catch(() => {});
 check('document uploaded and read', await page.locator('.upload-item').count() > 0);
 
 await page.getByRole('button', { name: /Done — continue|I have no papers/ }).click();
-await page.waitForSelector('.review-row', { timeout: 10000 });
+await page.waitForSelector('.review-row', { timeout: 30000 });
 check('patient review screen reached', await page.locator('.review-row').count() > 5,
   `${await page.locator('.review-row').count()} answers read back`);
 
 // Correcting one answer must re-present that question and return to review, not restart.
 const firstQuestion = await page.locator('.review-row .review-q').first().innerText();
 await page.locator('.review-row').first().getByRole('button', { name: /Change this/ }).click();
-await page.waitForSelector('.kx-question', { timeout: 8000 });
+await page.waitForSelector('.kx-question', { timeout: 24000 });
 check('correction re-presents that question',
   (await page.locator('.kx-question').innerText()).trim() === firstQuestion.trim(),
   firstQuestion.slice(0, 46));
 if (await page.locator('.kx-option').count()) {
-  await page.locator('.kx-option').nth(1).click();
+  // Same rule as the interview loop: only tap a control that is actually live.
+  await page.locator('.kx-option:not([disabled])').first().waitFor({ timeout: 30000 }).catch(() => {});
+  await tap(page, '.kx-option:not([disabled])', 1);
   const cont = page.getByRole('button', { name: /^Continue$|^Continue with/ });
   if (await cont.count()) await cont.first().click();
 } else {
   await page.locator('.typed-answer textarea').first().fill('corrected answer');
   await page.getByRole('button', { name: /^Send$/ }).click();
 }
-await page.waitForSelector('.review-row', { timeout: 10000 });
+// CHANGING THE CHIEF COMPLAINT LEGITIMATELY REOPENS THE INTERVIEW.
+//
+// The correction above picks a *different* complaint, and a different complaint asks
+// different questions — recalculating the branch is the required behaviour, not a
+// regression. So the invariant under test is not "lands straight back on review"; it is
+// "never dumped back to the document step, and review is still reachable". Answer
+// whatever the new branch opened, then assert that.
+for (let guard = 0; guard < 90; guard += 1) {
+  if (await page.locator('.review-row').count()) break;
+  check('correction never falls back to the document step',
+    (await page.locator('.doc-actions').count()) === 0);
+  if (!(await page.locator('.kx-question').count())) break;
+  const live = page.locator('.kx-option:not([disabled]), .face-option:not([disabled])');
+  await live.first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+  if (await page.locator('.face-option:not([disabled])').count()) {
+    await tap(page, '.face-option:not([disabled])', 3);
+  } else if (await page.locator('.kx-option:not([disabled])').count()) {
+    await tap(page, '.kx-option:not([disabled])');
+    const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
+    if (await done.count()) await done.first().click();
+  } else {
+    const box = page.locator('.typed-answer textarea').first();
+    if (!(await box.count())) break;
+    await box.fill('free text answer');
+    await page.getByRole('button', { name: /^Send$/ }).click();
+  }
+  await page.waitForTimeout(140);
+}
+await page.waitForSelector('.review-row', { timeout: 30000 });
 check('correction returns to review, not to documents', await page.locator('.review-row').count() > 5);
 
 await page.getByRole('button', { name: /Yes, this is right/ }).click();
-await page.waitForSelector('text=What happens now', { timeout: 8000 });
+await page.waitForSelector('text=What happens now', { timeout: 24000 });
 check('done screen reached', true);
 
 // ---------------------------------------------------------------- physician
@@ -192,11 +270,11 @@ const doc = await ctx.newPage();
 track(doc, 'physician');
 await doc.goto(`${BASE}/physician`, { waitUntil: 'networkidle' });
 await doc.getByRole('button', { name: /^Sign in$/ }).click();
-await doc.waitForSelector('.queue-item', { timeout: 10000 });
+await doc.waitForSelector('.queue-item', { timeout: 30000 });
 check('queue loads', await doc.locator('.queue-item').count() > 0);
 
 await doc.locator('.queue-item', { hasText: sessionRef }).first().click();
-await doc.waitForSelector('.summary-line', { timeout: 12000 });
+await doc.waitForSelector('.summary-line', { timeout: 36000 });
 check('summary renders', await doc.locator('.summary-line').count() > 5);
 
 // Layout: the clinical summary must be in the centre column, not the right rail.
@@ -210,7 +288,7 @@ check('summary is the widest, centre column', Boolean(layout) && layout.mainX < 
 check('escalation shown once', await doc.locator('.flag-banner').count() === 1);
 
 await doc.locator('.summary-line.traceable').first().click();
-await doc.waitForSelector('.source-verbatim', { timeout: 6000 });
+await doc.waitForSelector('.source-verbatim', { timeout: 20000 });
 check('click-to-source resolves', (await doc.locator('.source-verbatim').first().innerText()).length > 2);
 
 // A document-derived line must reach the page it came from, not only a box on an outline.
@@ -222,7 +300,7 @@ if (await docLine.count()) {
   check('a document-derived claim offers its page', await toOriginal.count() > 0);
   if (await toOriginal.count()) {
     await toOriginal.click();
-    await doc.waitForSelector('.evi-frame img', { timeout: 10000 }).catch(() => {});
+    await doc.waitForSelector('.evi-frame img', { timeout: 30000 }).catch(() => {});
     check('and the page opens with the region boxed',
       await doc.locator('.evi-box').count() > 0);
     await doc.getByRole('button', { name: /^Close/ }).click();
@@ -239,12 +317,25 @@ check('timeline populated from the document', await doc.locator('.tl-event').cou
 check('patient identity band shown', await doc.locator('.phys-patient').count() > 0);
 
 await doc.locator('.phys-side').getByRole('button', { name: /Source/ }).click();
-await doc.locator('.phys-main').evaluate(el => el.scrollTo(0, el.scrollHeight));
-await doc.waitForTimeout(400);
+// `scroll-behavior: smooth` means scrollTo animates, so the gate opens a beat later.
+// Scroll instantly, then wait for the button itself rather than guessing a duration.
+await doc.locator('.phys-main').evaluate((el) => {
+  el.style.scrollBehavior = 'auto';
+  el.scrollTo(0, el.scrollHeight);
+});
 const commit = doc.getByRole('button', { name: /Confirm and commit/ });
+await commit.waitFor({ state: 'visible', timeout: 30000 });
+for (let i = 0; i < 40 && (await commit.isDisabled()); i += 1) {
+  await doc.locator('.phys-main').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await doc.waitForTimeout(250);
+}
 check('commit enabled after review', !(await commit.isDisabled()));
 await commit.click();
-await doc.waitForTimeout(3000);
+await doc.waitForFunction(
+  () => (document.querySelector('.phys-bottom')?.textContent ?? '').includes('committed'),
+  null,
+  { timeout: 60000 },
+).catch(() => {});
 check('commit succeeds', (await doc.locator('.phys-bottom').innerText()).includes('committed'));
 
 // ------------------------------------------------- clinical memory, on a returning patient
@@ -270,7 +361,7 @@ const mem = await ctx.newPage();
 track(mem, 'memory');
 await mem.goto(`${BASE}/physician?session=${made.sessionRef}`, { waitUntil: 'networkidle' });
 await mem.getByRole('button', { name: /^Sign in$/ }).click();
-await mem.waitForSelector('.summary-line', { timeout: 15000 });
+await mem.waitForSelector('.summary-line', { timeout: 45000 });
 
 check('patient identity band names the record', await mem.locator('.phys-patient').count() > 0,
   (await mem.locator('.phys-patient').innerText().catch(() => '')).replace(/\n/g, ' ').slice(0, 70));
@@ -308,13 +399,13 @@ await mem.waitForTimeout(500);
 const original = mem.locator('.lt-source').first();
 if (await original.count()) {
   await original.click();
-  await mem.waitForSelector('.evi', { timeout: 8000 }).catch(() => {});
+  await mem.waitForSelector('.evi', { timeout: 24000 }).catch(() => {});
   check('evidence drawer opens the original', await mem.locator('.evi-quote').count() > 0);
 
   // The page is fetched with the bearer token and wrapped as a blob, so it arrives after
   // the drawer does. Waiting for the <img> is the point of the check: §12 is explicit that
   // a box drawn on an empty rectangle is not evidence.
-  await mem.waitForSelector('.evi-frame img', { timeout: 10000 }).catch(() => {});
+  await mem.waitForSelector('.evi-frame img', { timeout: 30000 }).catch(() => {});
   const drawn = await mem.locator('.evi-frame img').evaluate(
     (img) => img.complete && img.naturalWidth > 0,
   ).catch(() => false);

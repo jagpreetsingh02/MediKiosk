@@ -1,0 +1,10 @@
+METRO DIAGNOSTICS - BIOCHEMISTRY REPORT
+Sample collected on 18/01/2026
+
+Haemoglobin 9 g/dL             (12.0 - 15.0)
+HbA1c 9.1 %                    (4.0 - 5.6)
+Fasting Blood Sugar 192 mg/dL  (70 - 99)
+Serum Creatinine 1.2 mg/dL     (0.6 - 1.1)
+TSH 6.2 uIU/mL                 (0.4 - 4.0)
+Total Cholesterol 231 mg/dL    (0 - 200)
+ESR 41 mm/hr                   (0 - 20)

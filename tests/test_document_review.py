@@ -152,3 +152,73 @@ def test_document_kind_comes_from_what_was_found_not_the_filename() -> None:
     assert classify_document([{"kind": "investigation"}]) == "lab_report"
     assert classify_document([{"kind": "note"}]) == "other"
     assert classify_document([]) == "other"
+
+
+# --------------------------------------------- numbers are evidenced by numbers
+
+
+def test_a_short_lab_value_is_not_silently_dropped(ledger) -> None:
+    """The bug this test exists for lost real clinical data, quietly.
+
+    Lab values reach `record_fact()` as strings ("34.0") extracted from a line that
+    prints them differently ("ESR 34 mm/hr"). Substring matching fails on that, and the
+    fallback token rule discards tokens of two characters or fewer — so "34.0" produced
+    an empty token list and the fact was refused. Every lab value printed in one or two
+    characters lost its `.value` fact, on the shipped demo fixture included, with only a
+    debug log to say so.
+    """
+    fact = record_fact(
+        ledger,
+        path="investigations[0].value",
+        value="34.0",
+        tier=SourceTier.DOCUMENT,
+        source=_span(verbatim="ESR 34 mm/hr                   (0 - 20)", handwritten=False),
+        confidence=0.99,
+    )
+    assert fact.value == "34.0"
+
+
+@pytest.mark.parametrize("printed", ["Haemoglobin 9 g/dL", "HbA1c 9.0 %", "value: 9.00"])
+def test_the_same_quantity_written_differently_still_counts(ledger, printed: str) -> None:
+    record_fact(
+        ledger,
+        path="investigations[0].value",
+        value="9.0",
+        tier=SourceTier.DOCUMENT,
+        source=_span(verbatim=printed, handwritten=False),
+        confidence=0.99,
+    )
+
+
+@pytest.mark.parametrize("printed", ["ESR 340 mm/hr", "ESR 3.4 mm/hr", "ESR 4 mm/hr"])
+def test_a_different_quantity_is_still_refused(ledger, printed: str) -> None:
+    """Numeric matching is STRICTER than substring, not looser: 34 is not 340 or 3.4."""
+    with pytest.raises(ProvenanceError):
+        record_fact(
+            ledger,
+            path="investigations[0].value",
+            value="34.0",
+            tier=SourceTier.DOCUMENT,
+            source=_span(verbatim=printed, handwritten=False),
+            confidence=0.99,
+        )
+
+
+def test_every_investigation_on_the_demo_report_records_its_value(ledger, known_paths) -> None:
+    """End to end on the real fixture: seven analytes in, seven values recorded."""
+    result = ingest(
+        ledger,
+        (FIXTURES / "lab_report_2024-06-03.pdf").read_bytes(),
+        filename="lab_report_2024-06-03.pdf",
+        media_type="application/pdf",
+        known_paths=known_paths,
+        backend_name="textlayer",
+    )
+    investigations = [e for e in result.entities if e.kind == "investigation"]
+    recorded = {f.path for f in result.facts}
+    missing = [
+        investigations[i].text
+        for i in range(len(investigations))
+        if f"investigations[{i}].value" not in recorded
+    ]
+    assert not missing, f"these analytes lost their value: {missing}"
