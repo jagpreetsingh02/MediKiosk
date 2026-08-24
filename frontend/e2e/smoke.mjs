@@ -45,7 +45,27 @@ const track = (p, tag) => {
  * and a patient's finger has exactly the same problem, which is why the transitions are
  * short and the controls are large.
  */
+const tapButton = async (page, name) => {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const target = page.getByRole('button', { name }).first();
+    try {
+      await target.waitFor({ state: 'visible', timeout: 4000 });
+      await target.click({ timeout: 4000 });
+      return true;
+    } catch {
+      if (!(await page.getByRole('button', { name }).count())) return false;
+      await page.waitForTimeout(250);
+    }
+  }
+  return false;
+};
+
 const tap = async (page, selector, nth = 0) => {
+  // The question on screen before the tap. If it has changed, the answer LANDED —
+  // even if Playwright threw because the element detached mid-click. Retrying then
+  // would submit the same turn twice, which the backend correctly rejects with a 400
+  // and which showed up as console errors during the run.
+  const before = await page.locator('.kx-question').first().innerText().catch(() => null);
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const target = page.locator(selector).nth(nth);
     try {
@@ -53,6 +73,9 @@ const tap = async (page, selector, nth = 0) => {
       await target.click({ timeout: 5000 });
       return true;
     } catch {
+      const now = await page.locator('.kx-question').first().innerText().catch(() => null);
+      if (before !== null && now !== null && now !== before) return true;
+      if (now === null) return true; // the interview moved off the question screen entirely
       await page.waitForTimeout(250);
     }
   }
@@ -150,13 +173,14 @@ for (; asked < 240; asked++) {
   } else if (await page.locator('.kx-option:not([disabled])').count()) {
     // One tap is the whole answer now. A multi-select still needs its Done.
     await tap(page, '.kx-option:not([disabled])');
-    const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
-    if (await done.count()) await done.first().click();
+    if (await page.getByRole('button', { name: /^Done — \d+ selected$/ }).count()) {
+      await tapButton(page, /^Done — \d+ selected$/);
+    }
   } else {
     const box = page.locator('.typed-answer textarea').first();
     if (!(await box.count())) break;
     await box.fill('free text answer');
-    await page.getByRole('button', { name: /^Send$/ }).click();
+    await tapButton(page, /^Send$/);
   }
   await page.waitForTimeout(140);
 }
@@ -247,13 +271,14 @@ for (let guard = 0; guard < 90; guard += 1) {
     await tap(page, '.face-option:not([disabled])', 3);
   } else if (await page.locator('.kx-option:not([disabled])').count()) {
     await tap(page, '.kx-option:not([disabled])');
-    const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
-    if (await done.count()) await done.first().click();
+    if (await page.getByRole('button', { name: /^Done — \d+ selected$/ }).count()) {
+      await tapButton(page, /^Done — \d+ selected$/);
+    }
   } else {
     const box = page.locator('.typed-answer textarea').first();
     if (!(await box.count())) break;
     await box.fill('free text answer');
-    await page.getByRole('button', { name: /^Send$/ }).click();
+    await tapButton(page, /^Send$/);
   }
   await page.waitForTimeout(140);
 }
@@ -308,12 +333,14 @@ if (await docLine.count()) {
 }
 
 await doc.locator('.phys-side').getByRole('button', { name: /Timeline/ }).click();
-await doc.waitForTimeout(500);
+// The panel fetches; on a remote database that is a round-trip, not a repaint.
+await doc.waitForSelector('.tl-event', { timeout: 30000 }).catch(() => {});
 check('timeline populated from the document', await doc.locator('.tl-event').count() > 0,
   `${await doc.locator('.tl-event').count()} events`);
 
 // The longitudinal surface is asserted below, on the seeded returning patient. Here it
 // is only checked to be present-or-absent honestly: this patient may have no record.
+await doc.waitForSelector('.phys-patient', { timeout: 30000 }).catch(() => {});
 check('patient identity band shown', await doc.locator('.phys-patient').count() > 0);
 
 await doc.locator('.phys-side').getByRole('button', { name: /Source/ }).click();
@@ -363,6 +390,8 @@ await mem.goto(`${BASE}/physician?session=${made.sessionRef}`, { waitUntil: 'net
 await mem.getByRole('button', { name: /^Sign in$/ }).click();
 await mem.waitForSelector('.summary-line', { timeout: 45000 });
 
+// The band renders off the patient-context fetch, which lands after the summary does.
+await mem.waitForSelector('.phys-patient', { timeout: 30000 }).catch(() => {});
 check('patient identity band names the record', await mem.locator('.phys-patient').count() > 0,
   (await mem.locator('.phys-patient').innerText().catch(() => '')).replace(/\n/g, ' ').slice(0, 70));
 check('reconciliation surfaced across visits', await mem.locator('.phys-rec-row').count() > 0);
