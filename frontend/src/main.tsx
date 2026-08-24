@@ -44,6 +44,7 @@ import './design/tokens.css';
 import './design/base.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
+import './styles/physician-v2.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

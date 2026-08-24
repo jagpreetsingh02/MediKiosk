@@ -171,7 +171,7 @@ export function DocumentUpload({
             disabled={!consented}
             onClick={() => imageInput.current?.click()}
           >
-            <Icon name="other" />
+            <Icon name="image" />
             <span>Upload Image</span>
           </button>
           <button

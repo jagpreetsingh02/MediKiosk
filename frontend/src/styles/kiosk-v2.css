@@ -11,6 +11,48 @@
  * obvious thing to do.
  */
 
+/* ================================================ legacy palette remap ===
+ * The kiosk's un-rebuilt screens — ABHA login, documents, patient review, the
+ * done screen, the demo launcher — still carry rules from `kiosk.css`, which
+ * reads the OLD variables in `styles/tokens.css`. Those are hard-coded to the
+ * previous blue identity, so without this every screen not yet rewritten would
+ * sit in the new surface wearing the old accent.
+ *
+ * Rebinding the legacy names to the semantic tokens converts all of them at
+ * once, and it is what allows the old stylesheets to be deleted screen by screen
+ * instead of in a single risky sweep. The clinical surface does the same thing
+ * for its own palette in `physician-v2.css`.
+ */
+:root {
+  --ink: var(--mk-ink);
+  --ink-2: var(--mk-ink-muted);
+  --ink-3: var(--mk-ink-subtle);
+
+  --paper: var(--mk-surface);
+  --paper-2: var(--mk-surface-muted);
+  --paper-3: var(--mk-surface-sunken);
+  --line: var(--mk-line);
+
+  --accent: var(--mk-accent);
+  --accent-dark: var(--mk-accent-hover);
+  --accent-soft: var(--mk-accent-soft);
+
+  --ok: var(--mk-jade-600);
+  --ok-soft: var(--mk-jade-100);
+  --warn: var(--mk-saffron-700);
+  --warn-soft: var(--mk-saffron-100);
+  --danger: var(--mk-coral-600);
+  --danger-soft: var(--mk-coral-100);
+  --immediate: var(--mk-coral-700);
+
+  --font: var(--mk-font-ui);
+  --mono: var(--mk-font-mono);
+  --radius: var(--mk-radius-sm);
+  --radius-lg: var(--mk-radius-lg);
+  --shadow: var(--mk-shadow-sm);
+  --shadow-lg: var(--mk-shadow-lg);
+}
+
 .kx {
   min-height: 100vh;
   min-height: 100dvh;
@@ -993,4 +1035,73 @@
   display: flex;
   justify-content: flex-end;
   margin-bottom: var(--mk-space-4);
+}
+
+/* --------------------------------------------------------- document actions ---
+ * Three ways in, and one way past. The three sources are peers on one row; Skip
+ * is not a fourth source and stops pretending to be one — as an equal tile it
+ * wrapped onto its own line and read as the most prominent thing on the screen.
+ */
+
+.doc-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--mk-space-4);
+}
+
+.doc-action {
+  min-height: 148px;
+  border-radius: var(--mk-radius-lg);
+  border: 2px solid var(--mk-line);
+  background: var(--mk-surface);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink);
+  transition:
+    border-color var(--mk-dur-fast) var(--mk-ease-out),
+    background-color var(--mk-dur-fast) var(--mk-ease-out),
+    box-shadow var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.doc-action svg {
+  width: 34px;
+  height: 34px;
+  color: var(--mk-ink-muted);
+}
+
+.doc-action:hover {
+  border-color: var(--mk-accent);
+  box-shadow: var(--mk-shadow-md);
+}
+
+.doc-action.primary {
+  border-color: var(--mk-accent);
+  background: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+}
+
+.doc-action.primary svg {
+  color: var(--mk-accent);
+}
+
+/* Full width, quiet, below the three — the shape of "none of these". */
+.doc-action.quiet {
+  grid-column: 1 / -1;
+  min-height: var(--mk-touch-min);
+  flex-direction: row;
+  border-style: solid;
+  border-color: var(--mk-line);
+  background: transparent;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+}
+
+.doc-action.quiet svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 720px) {
+  .doc-actions {
+    grid-template-columns: 1fr;
+  }
 }

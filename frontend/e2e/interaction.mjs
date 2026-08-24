@@ -92,11 +92,11 @@ await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout
 await page.getByRole('button', { name: /Start today's visit/ }).click();
 
 // ------------------------------------------------------------------ consent
-await page.waitForSelector('.consent-row', { timeout: 10000 });
+await page.waitForSelector('.mk-toggle', { timeout: 10000 });
 
-check('consent splits required from optional', (await page.locator('.consent-group-label').count()) === 2);
-check('exactly one required row', (await page.locator('.consent-row.required').count()) === 1);
-check('optional scopes are switches', (await page.locator('.consent-switch').count()) >= 3);
+check('consent splits required from optional', (await page.locator('.kx-consent-group__head').count()) === 2);
+check('exactly one required row', (await page.locator('.kx-consent-required').count()) === 1);
+check('optional scopes are switches', (await page.locator('.mk-toggle[role="switch"]').count()) >= 3);
 check(
   'one audio control, not one per scope',
   (await page.getByRole('button', { name: /Hear this page/i }).count()) === 1,
@@ -108,7 +108,7 @@ check(
 check('one clear CTA', (await page.getByRole('button', { name: /Start intake/i }).count()) === 1);
 
 // Turn on the microphone and documents scopes.
-const switches = page.locator('.consent-switch');
+const switches = page.locator('.mk-toggle[role="switch"]');
 await switches.nth(0).click();
 await switches.nth(1).click();
 
@@ -120,7 +120,7 @@ check('consent page requests audio', consentSpoken > 0, `${consentSpoken} uttera
 await page.getByRole('button', { name: /Start intake/i }).click();
 
 // ------------------------------------------------------------------ interview
-await page.waitForSelector('.kiosk-prompt', { timeout: 10000 });
+await page.waitForSelector('.kx-question', { timeout: 10000 });
 
 // The prompt is spoken from an effect, and speakTts() waits ~60ms for the cancel/speak
 // race before it reaches the engine. Poll rather than sampling once.
@@ -141,29 +141,29 @@ check(
   'no "Continue" button on a single-choice question',
   (await page.getByRole('button', { name: /^Continue$/ }).count()) === 0,
 );
-check('Back is present', (await page.locator('.btn-back').count()) === 1);
-check('Back is disabled on the first question', await page.locator('.btn-back').isDisabled());
+check('Back is present', (await page.getByRole('button', { name: /go back to the previous question/i }).count()) === 1);
+check('Back is disabled on the first question', await page.getByRole('button', { name: /go back to the previous question/i }).isDisabled());
 
-const firstPrompt = await page.locator('.kiosk-prompt').textContent();
-const firstOption = page.locator('.tap-option').first();
+const firstPrompt = await page.locator('.kx-question').textContent();
+const firstOption = page.locator('.kx-option').first();
 const firstLabel = (await firstOption.textContent())?.trim();
 await firstOption.click();
 
 await page.waitForFunction(
-  (previous) => document.querySelector('.kiosk-prompt')?.textContent !== previous,
+  (previous) => document.querySelector('.kx-question')?.textContent !== previous,
   firstPrompt,
   { timeout: 10000 },
 );
 check('one tap advances to the next question', true, `answered "${firstLabel}"`);
 
-const secondPrompt = await page.locator('.kiosk-prompt').textContent();
-check('Back becomes enabled once something is answered', !(await page.locator('.btn-back').isDisabled()));
+const secondPrompt = await page.locator('.kx-question').textContent();
+check('Back becomes enabled once something is answered', !(await page.getByRole('button', { name: /go back to the previous question/i }).isDisabled()));
 
 // ------------------------------------------------------------------ back
-await page.locator('.btn-back').click();
+await page.getByRole('button', { name: /go back to the previous question/i }).click();
 await page.waitForSelector('.reopened-note', { timeout: 10000 });
 
-const backPrompt = await page.locator('.kiosk-prompt').textContent();
+const backPrompt = await page.locator('.kx-question').textContent();
 check('Back reopens the previous question', backPrompt === firstPrompt, backPrompt?.slice(0, 48));
 check(
   'the previous answer is shown',
@@ -171,11 +171,11 @@ check(
 );
 check(
   'the previous answer is shown as selected',
-  (await page.locator('.tap-option[aria-pressed="true"]').count()) === 1,
+  (await page.locator('.kx-option[aria-checked="true"]').count()) === 1,
 );
 
 // Change it to a different option.
-const options = page.locator('.tap-option');
+const options = page.locator('.kx-option');
 const optionCount = await options.count();
 let changed = firstLabel;
 for (let i = 0; i < optionCount; i += 1) {
@@ -187,22 +187,22 @@ for (let i = 0; i < optionCount; i += 1) {
   }
 }
 await page.waitForFunction(
-  (previous) => document.querySelector('.kiosk-prompt')?.textContent !== previous,
+  (previous) => document.querySelector('.kx-question')?.textContent !== previous,
   backPrompt,
   { timeout: 10000 },
 );
 check('a changed answer submits on one tap and moves on', true, `changed to "${changed}"`);
 check(
   'the interview continues from the corrected answer',
-  (await page.locator('.kiosk-prompt').textContent()) !== backPrompt,
+  (await page.locator('.kx-question').textContent()) !== backPrompt,
 );
 
 // ------------------------------------------------------------------ documents
 check(
   'documents are reachable from inside the interview',
-  (await page.locator('.records-chip').count()) === 1,
+  (await page.locator('.kx-records-slot .mk-chip').count()) === 1,
 );
-await page.locator('.records-chip').click();
+await page.locator('.kx-records-slot .mk-chip').click();
 await page.waitForSelector('.doc-actions', { timeout: 10000 });
 
 for (const label of ['Take Photo', 'Upload Image', 'Upload PDF', 'Skip']) {

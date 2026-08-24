@@ -141,6 +141,14 @@ const paths: Record<string, JSX.Element> = {
       <circle cx="12" cy="13" r="3.6" />
     </>
   ),
+  image: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <circle cx="8.5" cy="10" r="1.6" />
+      <path d="M3.5 17l4.8-4.6a2 2 0 0 1 2.8 0L15 16.5" />
+      <path d="M14 14.2l1.6-1.5a2 2 0 0 1 2.8 0l2.1 2" />
+    </>
+  ),
   check: <path d="M4.5 12.5l5 5 10-11" />,
   cross: <path d="M6 6l12 12M18 6L6 18" />,
   // Navigation, distinct from the `back` body-part glyph. A ✕ on the Back control

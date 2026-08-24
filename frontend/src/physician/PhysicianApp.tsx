@@ -275,7 +275,10 @@ export function PhysicianApp(): JSX.Element {
   }
 
   return (
-    <div className="phys">
+    // `data-surface="clinical"` flips every semantic token to the dark, dense
+    // scale defined in design/tokens.css. The kiosk keeps the light default, and
+    // the two never share a ground — which is the point.
+    <div className="phys" data-surface="clinical">
       <header className="phys-top">
         <span className="phys-brand">MediKiosk</span>
         <span style={{ opacity: 0.7 }}>physician review</span>

@@ -1,0 +1,969 @@
+/**
+ * The rebuilt physician workspace — dark, dense, instrument-grade.
+ *
+ * This file restyles the existing `phys-*` / `lt-*` / `med-*` / `sim-*` / `evi-*`
+ * class vocabulary rather than replacing the markup. That is deliberate: those
+ * class names are already semantic and the components behind them are tested. A
+ * rewrite would risk the clinical logic to change a colour, which is the wrong
+ * trade on the one surface where a mistake reaches a clinician.
+ *
+ * Loaded after `physician.css`, so every rule here wins. The root carries
+ * `data-surface="clinical"`, which is what flips the semantic tokens to the dark
+ * scale — so most of the work below is layout and weight, not colour.
+ *
+ * THE GOVERNING IDEA: the patient side guides one decision at a time; this side
+ * shows a clinician everything at once and gets out of the way. Density is the
+ * feature. Nothing here is decorative.
+ */
+
+/* ================================================ legacy palette remap ===
+ * The physician components still carry rules from `physician.css`, which reads
+ * the OLD variables in `styles/tokens.css` — and those are hard-coded light.
+ * Under a dark surface that produced genuinely broken output, not merely
+ * off-brand: the reconciliation banner painted a light amber panel and then
+ * wrote dark-mode ink on it, which is a contrast failure on the one component
+ * whose whole job is to warn a clinician.
+ *
+ * Rebinding the legacy names here fixes every such rule at once, including ones
+ * not yet rewritten, and keeps the kiosk's light values untouched. It is also
+ * the thing that lets the remaining legacy CSS be deleted incrementally rather
+ * than in one risky sweep.
+ */
+[data-surface='clinical'] {
+  --ink: #e7ebf6;
+  --ink-2: var(--mk-indigo-300);
+  --ink-3: var(--mk-indigo-400);
+
+  --paper: var(--mk-surface);
+  --paper-2: var(--mk-surface-raised);
+  --paper-3: var(--mk-surface-sunken);
+  --line: var(--mk-line);
+
+  --accent: var(--mk-accent);
+  --accent-dark: var(--mk-accent-hover);
+  --accent-soft: var(--mk-accent-soft);
+
+  --ok: var(--mk-jade-400);
+  --ok-soft: rgba(20, 166, 126, 0.16);
+  --warn: var(--mk-saffron-300);
+  --warn-soft: rgba(226, 144, 15, 0.16);
+  --danger: var(--mk-coral-400);
+  --danger-soft: rgba(224, 75, 75, 0.16);
+  --immediate: var(--mk-coral-300);
+
+  --font: var(--mk-font-ui);
+  --mono: var(--mk-font-mono);
+  --radius: var(--mk-radius-sm);
+  --radius-lg: var(--mk-radius-lg);
+  --shadow: var(--mk-shadow-sm);
+  --shadow-lg: var(--mk-shadow-lg);
+}
+
+.phys {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 400px;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'top top top'
+    'queue main side';
+  background: var(--mk-bg);
+  background-image: var(--mk-bg-ambient);
+  color: var(--mk-ink);
+  font-size: var(--mk-text-sm);
+}
+
+/* ---------------------------------------------------------------- header --- */
+
+.phys-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  padding: var(--mk-space-3) var(--mk-space-5);
+  background: var(--mk-surface-glass);
+  backdrop-filter: var(--mk-glass-blur);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  border-bottom: 1px solid var(--mk-line);
+  position: sticky;
+  top: 0;
+  z-index: var(--mk-z-header);
+}
+
+.phys-brand {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+}
+
+/* A jade pip next to the wordmark: the same mark family as the kiosk, at the
+   scale a toolbar allows. */
+.phys-brand::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mk-accent);
+  box-shadow: 0 0 0 3px var(--mk-accent-soft);
+  flex: none;
+}
+
+.phys-top-spacer {
+  flex: 1;
+}
+
+/* ----------------------------------------------------------------- queue --- */
+
+.phys-queue {
+  grid-area: queue;
+  overflow-y: auto;
+  border-right: 1px solid var(--mk-line);
+  background: var(--mk-surface-sunken);
+  padding: var(--mk-space-3);
+}
+
+.queue-head,
+.side-head {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  padding: var(--mk-space-3) var(--mk-space-2);
+}
+
+.queue-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mk-ink);
+  margin-bottom: var(--mk-space-1);
+  transition:
+    background-color var(--mk-dur-fast) var(--mk-ease-out),
+    border-color var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.queue-item:hover {
+  background: var(--mk-surface-raised);
+}
+
+.queue-item.active {
+  background: var(--mk-surface-raised);
+  border-color: var(--mk-accent);
+}
+
+/* Priority reads as a left edge, not a coloured background: a row that is fully
+   tinted red makes the queue look like an incident list rather than a list of
+   people, and the eye stops distinguishing degrees. */
+.queue-item.immediate {
+  border-left: 3px solid var(--mk-danger);
+}
+
+.queue-item.urgent {
+  border-left: 3px solid var(--mk-warm);
+}
+
+.queue-ref {
+  font-family: var(--mk-font-mono);
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-subtle);
+}
+
+.queue-meta {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ main --- */
+
+.phys-main {
+  grid-area: main;
+  overflow-y: auto;
+  padding: var(--mk-space-6) var(--mk-space-8) var(--mk-space-16);
+  scroll-behavior: smooth;
+}
+
+.phys-side {
+  grid-area: side;
+  overflow-y: auto;
+  border-left: 1px solid var(--mk-line);
+  background: var(--mk-surface-sunken);
+  padding: var(--mk-space-4);
+}
+
+/* ------------------------------------------------------- patient banner --- */
+
+.phys-patient {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-6);
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: linear-gradient(
+    120deg,
+    var(--mk-surface-raised) 0%,
+    var(--mk-indigo-800) 120%
+  );
+  border: 1px solid var(--mk-line-strong);
+  margin-bottom: var(--mk-space-5);
+}
+
+.phys-patient-id {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-xl);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+}
+
+.phys-patient-counts {
+  display: flex;
+  gap: var(--mk-space-5);
+  margin-left: auto;
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ nav --- */
+
+.phys-views {
+  display: flex;
+  gap: var(--mk-space-1);
+  padding: 4px;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-surface-sunken);
+  border: 1px solid var(--mk-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.phys-views::-webkit-scrollbar {
+  display: none;
+}
+
+.phys-views button {
+  padding: var(--mk-space-2) var(--mk-space-4);
+  border-radius: var(--mk-radius-pill);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-muted);
+  white-space: nowrap;
+  transition:
+    background-color var(--mk-dur-fast) var(--mk-ease-out),
+    color var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.phys-views button:hover {
+  color: var(--mk-ink);
+}
+
+.phys-views button.active {
+  background: var(--mk-accent);
+  color: var(--mk-accent-contrast);
+}
+
+/* --------------------------------------------------------------- summary --- */
+
+.summary-section {
+  margin-bottom: var(--mk-space-6);
+}
+
+.summary-head {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  padding-bottom: var(--mk-space-2);
+  border-bottom: 1px solid var(--mk-line);
+  margin-bottom: var(--mk-space-3);
+}
+
+/* Every summary line is clickable evidence. The hover state has to say so
+   without turning the document into a field of buttons. */
+.summary-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mk-space-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--mk-space-2) var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  border-left: 2px solid transparent;
+  color: var(--mk-ink);
+  line-height: var(--mk-leading-normal);
+  transition:
+    background-color var(--mk-dur-fast) var(--mk-ease-out),
+    border-color var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.summary-line:hover {
+  background: var(--mk-surface-raised);
+  border-left-color: var(--mk-evidence);
+}
+
+.summary-line.selected {
+  background: var(--mk-surface-raised);
+  border-left-color: var(--mk-accent);
+}
+
+/* Provenance tier, as a coloured pip. Three tiers, three colours, and there is
+   no fourth — Invariant 2 in the visual language. */
+.tier-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 0.55em;
+}
+
+.tier-stated {
+  background: var(--mk-ink-subtle);
+}
+
+.tier-confirmed {
+  background: var(--mk-accent);
+}
+
+.tier-document {
+  background: var(--mk-evidence);
+}
+
+.tier-mixed {
+  background: linear-gradient(90deg, var(--mk-accent) 50%, var(--mk-evidence) 50%);
+}
+
+/* ------------------------------------------------------------ red flags --- */
+
+.flag-banner {
+  border-radius: var(--mk-radius-lg);
+  border: 1px solid var(--mk-danger);
+  background: var(--mk-danger-soft);
+  padding: var(--mk-space-4) var(--mk-space-5);
+  margin-bottom: var(--mk-space-5);
+}
+
+.flag-title {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-danger-ink);
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+}
+
+.flag-row {
+  padding: var(--mk-space-2) 0;
+  border-top: 1px solid rgba(224, 75, 75, 0.22);
+  margin-top: var(--mk-space-2);
+}
+
+.flag-id {
+  font-family: var(--mk-font-mono);
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-danger-ink);
+  opacity: 0.8;
+}
+
+.flag-label {
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-strong);
+}
+
+.flag-why {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------- timeline --- */
+
+.lt-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-2);
+  margin-bottom: var(--mk-space-5);
+}
+
+.lt-year {
+  margin-bottom: var(--mk-space-5);
+}
+
+.lt-year-label {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-black);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-line-strong);
+  line-height: 1;
+  margin-bottom: var(--mk-space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The spine. One continuous line down the year, with each event pinned to it —
+   the visual claim being that these are one record, not a list of rows. */
+.lt-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: var(--mk-space-4);
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  padding: var(--mk-space-3) var(--mk-space-3) var(--mk-space-3) var(--mk-space-8);
+  border-radius: var(--mk-radius-md);
+  color: var(--mk-ink);
+  transition: background-color var(--mk-dur-fast) var(--mk-ease-out);
+}
+
+.lt-row:hover {
+  background: var(--mk-surface-raised);
+}
+
+.lt-row::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--mk-line);
+}
+
+.lt-row::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: calc(var(--mk-space-3) + 6px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mk-surface);
+  border: 2px solid var(--mk-ink-subtle);
+}
+
+.lt-row[data-kind='encounter']::after {
+  border-color: var(--mk-accent);
+}
+.lt-row[data-kind='prescription']::after,
+.lt-row[data-kind='medication']::after {
+  border-color: var(--mk-warm);
+}
+.lt-row[data-kind='document']::after {
+  border-color: var(--mk-evidence);
+}
+.lt-row[data-kind='lab']::after,
+.lt-row[data-kind='observation']::after {
+  border-color: var(--mk-lilac-400);
+}
+.lt-row[data-kind='alert']::after {
+  border-color: var(--mk-danger);
+}
+
+.lt-date {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-label {
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-strong);
+  line-height: var(--mk-leading-snug);
+}
+
+.lt-detail,
+.lt-source {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  margin-top: 2px;
+}
+
+.lt-kind {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+}
+
+.lt-flag {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-warm-ink);
+  margin-top: var(--mk-space-1);
+}
+
+/* ----------------------------------------------------------- medications --- */
+
+.med-thread {
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-lg);
+  border: 1px solid var(--mk-line);
+  background: var(--mk-surface);
+  margin-bottom: var(--mk-space-3);
+}
+
+.med-head {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  flex-wrap: wrap;
+}
+
+.med-warn {
+  border-color: var(--mk-warm);
+  background: var(--mk-warm-soft);
+}
+
+.med-reason {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-warm-ink);
+  margin-top: var(--mk-space-1);
+}
+
+.med-mentions {
+  margin-top: var(--mk-space-3);
+  border-top: 1px solid var(--mk-line-hairline);
+}
+
+.med-mentions > * {
+  padding: var(--mk-space-2) 0;
+  border-bottom: 1px solid var(--mk-line-hairline);
+}
+
+.med-when {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status is a word, never a colour alone — "documented" and "patient-reported"
+   are different kinds of knowledge and a physician must be able to read which. */
+.med-status {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  padding: 0.2em 0.6em;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-surface-sunken);
+  color: var(--mk-ink-muted);
+}
+
+.med-know {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+}
+
+/* --------------------------------------------------------- similar visits --- */
+
+.sim-card {
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-lg);
+  border: 1px solid var(--mk-line);
+  background: var(--mk-surface);
+  margin-bottom: var(--mk-space-3);
+}
+
+.sim-headline {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+}
+
+/* A word, never a percentage: a number here gets read as a probability of
+   disease, which this system does not and must not produce. */
+.sim-band {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-accent-ink);
+  background: var(--mk-accent-soft);
+  padding: 0.2em 0.7em;
+  border-radius: var(--mk-radius-pill);
+}
+
+.sim-feature {
+  display: flex;
+  align-items: baseline;
+  gap: var(--mk-space-2);
+  padding: var(--mk-space-1) 0;
+  font-size: var(--mk-text-xs);
+}
+
+.sim-tick {
+  color: var(--mk-accent);
+  flex: none;
+}
+
+.sim-note {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-subtle);
+  margin-top: var(--mk-space-2);
+}
+
+/* ------------------------------------------------------------- evidence --- */
+
+.evi-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mk-z-modal);
+  background: rgba(7, 10, 22, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.evi {
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line-strong);
+  border-radius: var(--mk-radius-xl);
+  box-shadow: var(--mk-shadow-xl);
+  padding: var(--mk-space-6);
+}
+
+.evi-kicker {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-evidence);
+}
+
+.evi-title {
+  font-family: var(--mk-font-display);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  color: var(--mk-ink-strong);
+  margin-top: var(--mk-space-1);
+}
+
+/* The patient's own words. Rendered as a quotation because that is exactly what
+   it is, and because it must never be confused with the system's paraphrase. */
+.evi-quote,
+.source-verbatim {
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-relaxed);
+  color: var(--mk-ink-strong);
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface-sunken);
+  border-left: 3px solid var(--mk-evidence);
+  font-style: italic;
+}
+
+.evi-frame {
+  position: relative;
+  border-radius: var(--mk-radius-md);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--mk-line-strong);
+}
+
+.evi-object {
+  display: block;
+  width: 100%;
+}
+
+/* The OCR region, boxed on the original page. Saffron so it never reads as an
+   error, and thick enough to find on a busy scan. */
+.evi-box,
+.source-bbox-rect {
+  position: absolute;
+  border: 3px solid var(--mk-saffron-500);
+  border-radius: 3px;
+  box-shadow: 0 0 0 9999px rgba(7, 10, 22, 0.42);
+  pointer-events: none;
+}
+
+.evi-meta,
+.source-meta {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.evi-dispute {
+  margin-top: var(--mk-space-3);
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-warm-soft);
+  color: var(--mk-warm-ink);
+  font-size: var(--mk-text-xs);
+  border: 1px solid var(--mk-saffron-400);
+}
+
+/* ------------------------------------------------------- contradictions --- */
+
+.cx-item {
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-lg);
+  border: 1px solid var(--mk-warm);
+  background: var(--mk-warm-soft);
+  margin-bottom: var(--mk-space-3);
+}
+
+/* Side by side, with the word "versus" between them, because the interface must
+   not appear to have already picked a winner. Resolving is the physician's job. */
+.cx-side {
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line);
+}
+
+.cx-versus {
+  text-align: center;
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-warm-ink);
+  padding: var(--mk-space-2) 0;
+}
+
+.cx-who {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  margin-bottom: var(--mk-space-1);
+}
+
+.cx-quote {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-strong);
+}
+
+.cx-ask {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-warm-ink);
+  margin-top: var(--mk-space-2);
+}
+
+/* -------------------------------------------------- current vs history --- */
+
+.cvh {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mk-space-5);
+}
+
+.cvh-head {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+  padding-bottom: var(--mk-space-2);
+  border-bottom: 1px solid var(--mk-line);
+  margin-bottom: var(--mk-space-3);
+}
+
+.cvh-row {
+  display: contents;
+}
+
+.cvh-cell {
+  padding: var(--mk-space-3) 0;
+  border-bottom: 1px solid var(--mk-line-hairline);
+}
+
+.cvh-label {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  color: var(--mk-ink-subtle);
+}
+
+.cvh-value {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-strong);
+  margin-top: 2px;
+}
+
+.cvh-absent {
+  color: var(--mk-ink-subtle);
+  font-style: italic;
+}
+
+.cvh-note,
+.sim-note,
+.phys-notice {
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-subtle);
+  line-height: var(--mk-leading-relaxed);
+}
+
+.phys-notice {
+  padding: var(--mk-space-3) var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-surface-sunken);
+  border: 1px solid var(--mk-line);
+  margin-top: var(--mk-space-4);
+}
+
+/* ---------------------------------------------------------------- login --- */
+
+.phys-login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--mk-space-8);
+  background: var(--mk-bg);
+  background-image: var(--mk-bg-ambient);
+}
+
+.phys-login-card {
+  width: min(440px, 100%);
+  padding: var(--mk-space-8);
+  border-radius: var(--mk-radius-xl);
+  background: var(--mk-surface);
+  border: 1px solid var(--mk-line-strong);
+  box-shadow: var(--mk-shadow-xl);
+}
+
+.phys-error {
+  padding: var(--mk-space-3) var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-danger-soft);
+  border: 1px solid var(--mk-danger);
+  color: var(--mk-danger-ink);
+  font-size: var(--mk-text-sm);
+  margin-bottom: var(--mk-space-4);
+}
+
+.source-empty {
+  padding: var(--mk-space-10) var(--mk-space-5);
+  text-align: center;
+  color: var(--mk-ink-subtle);
+  font-size: var(--mk-text-sm);
+}
+
+/* ----------------------------------------------------------- responsive ---
+ * The physician surface is desktop-first by design. Below 1200px the evidence
+ * rail folds under the main column rather than crushing both.
+ */
+
+@media (max-width: 1200px) {
+  .phys {
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-areas:
+      'top top'
+      'queue main'
+      'side side';
+  }
+
+  .phys-side {
+    border-left: none;
+    border-top: 1px solid var(--mk-line);
+  }
+}
+
+@media (max-width: 860px) {
+  .phys {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'top'
+      'main'
+      'queue'
+      'side';
+  }
+
+  .phys-queue {
+    border-right: none;
+    border-top: 1px solid var(--mk-line);
+  }
+
+  .cvh {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------- queue metadata ---
+ * The meta line carries four independent facts (wait, language, AYUSH, status)
+ * and was breaking mid-fact, so "in progress" split across two lines and the
+ * column read as noise. Laying it out as wrapping flex items keeps each fact
+ * whole and lets the row grow instead.
+ */
+
+.queue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--mk-space-2);
+}
+
+.queue-meta > * {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ commit bar ---
+ * Sticky, and deliberately the heaviest surface on the screen: it holds the one
+ * irreversible action in the product (Invariant 4 — the physician is the
+ * committer), so it should read as a distinct band rather than as page content.
+ */
+
+.phys-bottom {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  padding: var(--mk-space-3) var(--mk-space-5);
+  background: var(--mk-surface-glass);
+  backdrop-filter: var(--mk-glass-blur);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  border-top: 1px solid var(--mk-line-strong);
+  font-size: var(--mk-text-xs);
+  color: var(--mk-ink-muted);
+  z-index: var(--mk-z-sticky);
+}
+
+/* The jury drawer handle. Quiet until wanted — it is an engineering view, and
+   it must never compete with the clinical screen. */
+.jury-tab {
+  background: var(--mk-surface-raised);
+  border: 1px solid var(--mk-line-strong);
+  color: var(--mk-ink-muted);
+  border-radius: var(--mk-radius-pill);
+  padding: var(--mk-space-2) var(--mk-space-4);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+}
+
+.jury-tab:hover {
+  color: var(--mk-ink);
+  border-color: var(--mk-accent);
+}
+
+.jury {
+  background: var(--mk-surface);
+  border-left: 1px solid var(--mk-line-strong);
+  color: var(--mk-ink);
+}
