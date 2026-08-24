@@ -57,6 +57,18 @@ const sessionRef = (await page.locator('.kiosk-top').innerText()).match(/sess_\w
 check('interview started', Boolean(sessionRef), sessionRef);
 check('microphone offered when voice consented', await page.locator('.voice-button').count() > 0);
 
+// A dead speech engine must withdraw the microphone rather than pulse "Listening…" forever.
+// Chromium (and Brave, Electron, most kiosk browsers) construct webkitSpeechRecognition
+// successfully and then never call back — this is the exact failure that watchdog covers.
+if (await page.locator('.voice-button').count()) {
+  await page.getByRole('button', { name: /Speak my answer/ }).click();
+  await page.waitForTimeout(7500);
+  check('dead speech engine withdraws the microphone', await page.locator('.voice-button').count() === 0);
+  check('and tells the patient why',
+    (await page.locator('.kiosk-error').first().innerText()).includes('not available'));
+  check('and tapping still works', await page.locator('.tap-option').count() > 0);
+}
+
 let asked = 0;
 for (; asked < 90; asked++) {
   if (await page.locator('.upload-drop').count()) break;
@@ -76,6 +88,23 @@ for (; asked < 90; asked++) {
   await page.waitForTimeout(140);
 }
 check('interview completes', asked > 20, `${asked} questions`);
+
+// A kiosk browser reloads. Losing the sessionRef used to send the patient back to the
+// language picker with their answers apparently gone.
+{
+  const beforeReload = await page.locator('.upload-drop').count();
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  const stillHere =
+    (await page.locator('.upload-drop').count()) > 0 ||
+    (await page.locator('.kiosk-prompt').count()) > 0 ||
+    (await page.locator('.review-row').count()) > 0;
+  check('refresh resumes the session', stillHere,
+    beforeReload ? 'was at the document step' : 'was mid-interview');
+  if (!(await page.locator('.upload-drop').count())) {
+    await page.waitForSelector('.upload-drop', { timeout: 15000 }).catch(() => {});
+  }
+}
 check('document stage offered', await page.locator('.upload-drop').count() > 0);
 
 await page.locator('input[type=file]').setInputFiles('../data/fixtures/documents/prescription.pdf');

@@ -75,9 +75,11 @@ export function PhysicianApp(): JSX.Element {
     setCommitted(null);
     setPanel('source');
     try {
-      const [loaded, timeline] = await Promise.all([api.summary(ref), api.timeline(ref)]);
+      // Sequential, not Promise.all: if the session is gone the summary already says so, and
+      // firing the timeline anyway only puts a second failed request in the console.
+      const loaded = await api.summary(ref);
       setSummary(loaded);
-      setPeriods(timeline.periods);
+      setPeriods((await api.timeline(ref)).periods);
       setPending([]);
     } catch (exc) {
       setSummary(null);

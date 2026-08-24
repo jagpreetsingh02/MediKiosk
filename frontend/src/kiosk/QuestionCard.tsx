@@ -153,7 +153,7 @@ export function QuestionCard({
         </div>
       )}
 
-      {voiceEnabled && (
+      {voiceEnabled && !speech.unavailable && (
         <>
           <VoiceButton
             supported={speech.supported}
@@ -164,10 +164,10 @@ export function QuestionCard({
             onStart={listen}
             onStop={speech.stop}
           />
-          {speech.error && (
-            <div className="kiosk-error" style={{ marginTop: 12 }}>{speech.error}</div>
-          )}
         </>
+      )}
+      {voiceEnabled && speech.error && (
+        <div className="kiosk-error" style={{ marginTop: 16 }}>{speech.error}</div>
       )}
 
       <div className="kiosk-actions">

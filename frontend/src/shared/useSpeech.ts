@@ -55,7 +55,10 @@ export interface SpeechResult {
 }
 
 export interface UseSpeech {
+  /** The constructor exists. NOT the same as "recognition works" — see `unavailable`. */
   supported: boolean;
+  /** Proven not to work in this browser. Once true the caller must stop offering the mic. */
+  unavailable: boolean;
   listening: boolean;
   interim: string;
   error: string | null;
@@ -65,15 +68,41 @@ export interface UseSpeech {
   cancelSpeech(): void;
 }
 
+/**
+ * How long a `start()` may produce absolutely nothing before we call the engine dead.
+ *
+ * This exists because of a specific, nasty behaviour: in Chromium — and therefore in Brave,
+ * Electron, and most kiosk browser builds — `webkitSpeechRecognition` *exists* and
+ * constructs, but `start()` silently does nothing. No result, no error, not even `onend`.
+ * The recogniser a feature check says is present never calls you back.
+ *
+ * Without a watchdog the patient taps the microphone, the button pulses "Listening…", and it
+ * stays that way forever. On the kiosk's primary input mode that is the worst possible
+ * failure: it looks like the machine is working, and it is not.
+ *
+ * A genuinely silent patient still triggers `onend` or a `no-speech` error well inside this
+ * window, so this only fires on an engine that was never going to answer.
+ */
+const DEAD_ENGINE_MS = 6000;
+
 export function useSpeech(language: string): UseSpeech {
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
   const recognition = useRef<SpeechRecognitionLike | null>(null);
+  const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speaking = useRef(false);
   const bargedIn = useRef(false);
   const supported = recognitionCtor() !== null;
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdog.current !== null) {
+      clearTimeout(watchdog.current);
+      watchdog.current = null;
+    }
+  }, []);
 
   const cancelSpeech = useCallback(() => {
     if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
@@ -81,9 +110,10 @@ export function useSpeech(language: string): UseSpeech {
   }, []);
 
   const stop = useCallback(() => {
+    clearWatchdog();
     recognition.current?.stop();
     setListening(false);
-  }, []);
+  }, [clearWatchdog]);
 
   const start = useCallback(
     (onResult: (result: SpeechResult) => void) => {
@@ -103,6 +133,8 @@ export function useSpeech(language: string): UseSpeech {
       instance.maxAlternatives = 1;
 
       instance.onspeechstart = () => {
+        // The engine is alive: it heard something. Stand the watchdog down.
+        clearWatchdog();
         // Barge-in: the patient started talking, so stop talking at them.
         if (speaking.current) {
           cancelSpeech();
@@ -123,6 +155,7 @@ export function useSpeech(language: string): UseSpeech {
             interimText += result[0].transcript;
           }
         }
+        clearWatchdog();
         if (interimText) setInterim(interimText);
         if (finalText) {
           setInterim('');
@@ -136,8 +169,14 @@ export function useSpeech(language: string): UseSpeech {
       };
 
       instance.onerror = (event) => {
+        clearWatchdog();
         setListening(false);
         setInterim('');
+        if (event.error === 'service-not-allowed' || event.error === 'language-not-supported') {
+          setUnavailable(true);
+          setError('Speech is not available on this device. Please tap your answer.');
+          return;
+        }
         if (event.error === 'no-speech') {
           onResult({ transcript: '', confidence: 0, bargeIn: false });
           return;
@@ -149,17 +188,34 @@ export function useSpeech(language: string): UseSpeech {
         setError('Listening failed. Please tap your answer instead.');
       };
 
-      instance.onend = () => setListening(false);
+      instance.onend = () => {
+        clearWatchdog();
+        setListening(false);
+      };
 
       recognition.current = instance;
       try {
         instance.start();
         setListening(true);
+        // See DEAD_ENGINE_MS. If nothing at all comes back, the recogniser was never going
+        // to answer — stop pretending to listen, and stop offering the button.
+        watchdog.current = setTimeout(() => {
+          try {
+            instance.abort();
+          } catch {
+            /* already wedged; nothing to abort */
+          }
+          setListening(false);
+          setInterim('');
+          setUnavailable(true);
+          setError('Speech is not available on this device. Please tap your answer.');
+        }, DEAD_ENGINE_MS);
       } catch {
+        setUnavailable(true);
         setError('Could not start listening. Please tap your answer instead.');
       }
     },
-    [language, cancelSpeech],
+    [language, cancelSpeech, clearWatchdog],
   );
 
   const speak = useCallback(
@@ -187,7 +243,14 @@ export function useSpeech(language: string): UseSpeech {
     [language],
   );
 
-  useEffect(() => () => { recognition.current?.abort(); cancelSpeech(); }, [cancelSpeech]);
+  useEffect(
+    () => () => {
+      clearWatchdog();
+      recognition.current?.abort();
+      cancelSpeech();
+    },
+    [cancelSpeech, clearWatchdog],
+  );
 
-  return { supported, listening, interim, error, start, stop, speak, cancelSpeech };
+  return { supported, unavailable, listening, interim, error, start, stop, speak, cancelSpeech };
 }
