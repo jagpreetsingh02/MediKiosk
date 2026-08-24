@@ -75,19 +75,41 @@ def _is_postgres() -> bool:
     return op.get_bind().dialect.name == "postgresql"
 
 
+#: PostgREST's roles. They exist on Supabase and on nothing else — not on a local
+#: Postgres, not in CI, not in a reviewer's container. Revoking from a role that does
+#: not exist is a hard error, so this migration used to abort `alembic upgrade head`
+#: everywhere except Supabase, which is the opposite of reproducible.
+_SUPABASE_ROLES = ("anon", "authenticated")
+
+
 def upgrade() -> None:
     if not _is_postgres():
         return
+
+    bind = op.get_bind()
+    present = [
+        role
+        for role in _SUPABASE_ROLES
+        if bind.exec_driver_sql(
+            f"SELECT 1 FROM pg_roles WHERE rolname = '{role}'"  # noqa: S608 — literal above
+        ).first()
+    ]
+
     for table in TABLES:
         # ENABLE, deliberately not FORCE. `FORCE ROW LEVEL SECURITY` applies the policies to
         # the table owner too, and the backend connects as the owner — forcing it would deny
         # the application its own data and take the whole app down, which is not a security
         # posture, it is an outage. ENABLE denies `anon` and `authenticated` (neither has a
         # policy) while leaving the owning role, the one behind FastAPI's ABAC, working.
+        #
+        # RLS itself is portable: enabling it on a plain Postgres is harmless, because the
+        # owner bypasses it and no other role is granted anything.
         op.execute(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY")
         # Belt and braces: RLS alone would be enough, but a policy added by mistake later
-        # cannot grant what was never granted in the first place.
-        op.execute(f"REVOKE ALL ON public.{table} FROM anon, authenticated")
+        # cannot grant what was never granted in the first place. Skipped when the roles are
+        # absent — there is nothing to take away.
+        if present:
+            op.execute(f"REVOKE ALL ON public.{table} FROM {', '.join(present)}")
 
 
 def downgrade() -> None:

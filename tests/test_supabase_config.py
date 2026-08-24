@@ -20,7 +20,17 @@ FRONTEND = PROJECT_ROOT / "frontend"
 #: literal value means this keeps working when the project is rotated or replaced.
 JWT_SHAPE = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}")
 
-SECRET_NAMES = ("SERVICE_ROLE", "SUPABASE_SERVICE", "DATABASE_URL", "SUPABASE_DB_PASSWORD")
+#: Anything that must never appear in a browser bundle. `sb_secret_` is the modern
+#: Supabase secret-key prefix; the legacy service-role name is kept so an older key
+#: pasted into the frontend still trips this.
+SECRET_NAMES = (
+    "SERVICE_ROLE",
+    "SUPABASE_SERVICE",
+    "SUPABASE_SECRET",
+    "sb_secret_",
+    "DATABASE_URL",
+    "SUPABASE_DB_PASSWORD",
+)
 
 
 def _frontend_files() -> list[Path]:
@@ -67,7 +77,8 @@ def test_the_frontend_holds_no_database_client() -> None:
 def test_env_example_documents_supabase_with_placeholders_only() -> None:
     example = (PROJECT_ROOT / ".env.example").read_text()
     assert "SUPABASE_URL=" in example
-    assert "SUPABASE_SERVICE_ROLE_KEY=" in example
+    assert "SUPABASE_SECRET_KEY=" in example
+    assert "SUPABASE_PUBLISHABLE_KEY=" in example
     assert not JWT_SHAPE.search(example), ".env.example must carry placeholders, never a key"
 
 

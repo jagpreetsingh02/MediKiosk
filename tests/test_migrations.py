@@ -98,3 +98,46 @@ def test_no_model_has_drifted_away_from_a_migration(tmp_path) -> None:
         "A model has changed with no migration to match. Run:\n"
         "  alembic revision --autogenerate -m '<what changed>'\n\n" + check.stdout + check.stderr
     )
+
+
+def test_the_rls_migration_does_not_assume_supabase_roles() -> None:
+    """`anon` and `authenticated` exist on Supabase and nowhere else.
+
+    Revoking from a role that does not exist is a hard error, so the first version of
+    this migration aborted `alembic upgrade head` on every database except Supabase —
+    a local Postgres, CI, a reviewer's container. Verified by actually running it
+    against Postgres 16, where it failed with `role "anon" does not exist`.
+    """
+    source = (
+        PROJECT_ROOT / "alembic" / "versions" / "fdb61bb8d5ef_lock_every_table_behind_rls.py"
+    ).read_text()
+    assert "pg_roles" in source, (
+        "the RLS migration must check a role exists before revoking from it"
+    )
+    # The REVOKE must be conditional on what the probe found, never unconditional.
+    assert "REVOKE ALL ON public.{table} FROM anon, authenticated" not in source
+
+
+def test_rls_is_enabled_for_every_table_the_schema_owns() -> None:
+    """The lockdown must not drift behind the schema: a table added without being
+    listed here is a table published to the internet by PostgREST."""
+    import importlib.util
+
+    from app.db import durable, models  # noqa: F401
+    from app.db.base import Base
+
+    spec = importlib.util.spec_from_file_location(
+        "rls_migration",
+        PROJECT_ROOT / "alembic" / "versions" / "fdb61bb8d5ef_lock_every_table_behind_rls.py",
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    locked = set(module.TABLES)
+    owned = set(Base.metadata.tables)
+    missing = owned - locked
+    assert not missing, (
+        f"these tables have no RLS lockdown and would be readable over PostgREST: "
+        f"{sorted(missing)}"
+    )

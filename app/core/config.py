@@ -61,12 +61,21 @@ class Settings(BaseSettings):
     #: of the two connection strings Supabase offers to use, and why.
     database_url: str = "sqlite+aiosqlite:///./medikiosk.db"
     db_echo: bool = False
-    #: Supabase project URL (`https://<ref>.supabase.co`). Used for Storage, not for SQL:
-    #: the SQL path is `database_url` through SQLAlchemy, per §4 and §23 of the brief.
+    #: Supabase project URL (`https://<ref>.supabase.co`). Used for Storage and for the
+    #: preflight check, NOT for SQL: clinical reads and writes go through SQLAlchemy on
+    #: `database_url`, per §4 and §23 of the brief.
     supabase_url: str | None = None
-    #: BACKEND ONLY. Never reaches the browser — `test_no_secret_reaches_the_frontend`
-    #: fails the build if it appears anywhere under frontend/.
-    supabase_service_role_key: str | None = None
+    #: The publishable (anon) key. Public by design. Unused by this backend — recorded so
+    #: the preflight can prove RLS denies it, which is the check that matters.
+    supabase_publishable_key: str | None = None
+    #: BACKEND ONLY, and it bypasses RLS completely. Never reaches the browser —
+    #: `test_no_supabase_secret_can_reach_the_browser` fails the build if it appears
+    #: anywhere under frontend/. Accepts either the modern `sb_secret_…` key or a legacy
+    #: service-role JWT.
+    supabase_secret_key: str | None = None
+    #: Where Supabase publishes the JWKS for its own Auth. Recorded for completeness;
+    #: MediKiosk verifies its own mock-ABHA tokens and does not use Supabase Auth (§5).
+    supabase_jwks_url: str | None = None
     #: Private bucket for prescription and report images.
     supabase_storage_bucket: str = "medical-documents"
     #: Set when the deployment is meant to be on Supabase. With this on, falling back to
