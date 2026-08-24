@@ -672,3 +672,285 @@ kbd {
   margin: 7px 0 0;
   font-style: italic;
 }
+
+/* --- clinical memory: the patient behind the visit ------------------------ */
+
+.phys-patient {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 22px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--paper-2);
+  border: 1px solid var(--line, #d8e2ea);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.phys-patient.first { color: var(--ink-3); border-left-color: var(--ink-3); }
+.phys-patient-id { display: flex; align-items: baseline; gap: 12px; }
+.phys-patient-id strong { font-size: 16px; }
+.phys-patient-id span, .phys-patient-counts span { color: var(--ink-3); }
+.phys-patient-counts { display: flex; gap: 18px; margin-left: auto; }
+
+/* Reconciliation: both sources shown, neither declared the winner. */
+.phys-rec { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+.phys-rec-row {
+  padding: 12px 14px;
+  background: var(--warn-soft, #fdf1dc);
+  border: 1px solid var(--warn, #a86a00);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.phys-rec-status { font-weight: 700; color: var(--warn, #a86a00); margin-bottom: 6px; }
+.phys-rec-current { font-weight: 600; }
+.phys-rec-hist { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; color: var(--ink-2); }
+.phys-rec-note { margin: 8px 0 0; color: var(--ink-3); font-size: 12px; line-height: 1.45; }
+
+.phys-views { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+
+/* --- today beside history ------------------------------------------------- */
+
+.cvh {
+  border: 1px solid var(--line, #d8e2ea);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.cvh-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line, #d8e2ea);
+}
+
+.cvh-head > div { background: var(--paper-2); padding: 10px 14px; }
+
+.cvh-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-right: 8px;
+}
+
+.cvh-tag.today { background: var(--accent); color: #fff; }
+.cvh-tag.past { background: var(--ink-3); color: #fff; }
+.cvh-date { font-size: 12px; color: var(--ink-2); }
+
+.cvh-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr;
+  gap: 12px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--paper-3, #e6edf3);
+  font-size: 13px;
+  align-items: start;
+}
+
+.cvh-label { color: var(--ink-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+.cvh-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cvh-value {
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--paper-2);
+  border: 1px solid var(--paper-3, #e6edf3);
+}
+
+/* The tick is a set intersection, not a model's opinion — so it can be this emphatic. */
+.cvh-value.shared {
+  background: var(--ok-soft, #e2f5ea);
+  border-color: var(--ok, #1a7f4b);
+  color: var(--ok, #1a7f4b);
+  font-weight: 700;
+}
+
+.cvh-value.shared::before { content: '✓ '; }
+.cvh-absent { color: var(--ink-3); font-style: italic; }
+
+.cvh-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--paper-3, #e6edf3);
+  background: var(--paper-2);
+}
+
+.cvh-band { font-size: 12px; font-weight: 700; color: var(--ok, #1a7f4b); }
+.cvh-note { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--ink-3); line-height: 1.45; }
+
+/* --- the longitudinal timeline -------------------------------------------- */
+
+.lt-filters { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.lt-year { margin-bottom: 18px; }
+
+.lt-year-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line, #d8e2ea);
+}
+
+.lt-row {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--paper-3, #e6edf3);
+  font-size: 13px;
+}
+
+.lt-row.unsure { background: var(--warn-soft, #fdf1dc); }
+.lt-date { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.lt-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+.lt-label { font-weight: 600; margin-top: 2px; }
+.lt-detail { color: var(--ink-2); margin-top: 2px; }
+.lt-flag { color: var(--warn, #a86a00); font-size: 12px; margin-top: 3px; }
+
+.lt-source {
+  border: none;
+  background: none;
+  padding: 3px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- medication history ---------------------------------------------------- */
+
+.meds { display: flex; flex-direction: column; gap: 14px; }
+
+.med-thread {
+  border: 1px solid var(--line, #d8e2ea);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.med-thread.needs-rec { border-color: var(--warn, #a86a00); background: var(--warn-soft, #fdf1dc); }
+.med-head { display: flex; align-items: baseline; gap: 12px; }
+.med-head h3 { margin: 0; font-size: 15px; }
+.med-warn { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--warn, #a86a00); }
+.med-reason { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+.med-mentions { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.med-mentions li {
+  display: grid;
+  grid-template-columns: 88px 150px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--paper-3, #e6edf3);
+}
+
+.med-when { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.med-status { font-weight: 700; }
+.med-status.s-documented { color: var(--accent); }
+.med-status.s-patient-reported-current { color: var(--ok, #1a7f4b); }
+.med-status.s-historical, .med-status.s-uncertain { color: var(--ink-3); }
+.med-status.s-stopped-reported { color: var(--warn, #a86a00); }
+.med-know { color: var(--ink-3); }
+
+/* --- similar encounters ---------------------------------------------------- */
+
+.sim { display: flex; flex-direction: column; gap: 14px; }
+
+.sim-card {
+  border: 1px solid var(--line, #d8e2ea);
+  border-left: 4px solid var(--ok, #1a7f4b);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.sim-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sim-head h3 { margin: 0; font-size: 15px; }
+.sim-band { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ok, #1a7f4b); }
+.sim-headline { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
+.sim-shared { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sim-shared li { display: grid; grid-template-columns: 16px 110px 1fr; gap: 8px; font-size: 12px; }
+.sim-tick { color: var(--ok, #1a7f4b); font-weight: 800; }
+.sim-feature { color: var(--ink-3); }
+.sim-value { font-weight: 600; }
+.sim-note { margin: 8px 0 0; font-size: 11px; color: var(--ink-3); line-height: 1.45; }
+
+/* --- the evidence drawer --------------------------------------------------- */
+
+.evi-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 16, 24, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 60;
+}
+
+.evi {
+  background: var(--paper);
+  border-radius: 10px;
+  width: min(880px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(8, 16, 24, 0.35);
+}
+
+.evi-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line, #d8e2ea);
+}
+
+.evi-kicker { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.evi-title { font-size: 16px; font-weight: 700; margin-top: 2px; }
+.evi-sub { font-size: 12px; color: var(--ink-3); }
+.evi-page { flex: 1; overflow: auto; padding: 18px; background: var(--paper-2); }
+.evi-frame { position: relative; display: inline-block; max-width: 100%; }
+.evi-frame img { display: block; max-width: 100%; height: auto; }
+
+.evi-box {
+  position: absolute;
+  border: 3px solid var(--warn, #a86a00);
+  background: rgba(168, 106, 0, 0.14);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.evi-object { width: 100%; height: 60vh; border: none; background: var(--paper); }
+.evi-foot { padding: 14px 18px; border-top: 1px solid var(--line, #d8e2ea); }
+.evi-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+
+.evi-quote {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: var(--paper-2);
+  border-left: 3px solid var(--ink-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.evi-quote.human { border-left-color: var(--accent); }
+.evi-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-3); }
+.evi-dispute { color: var(--warn, #a86a00); font-weight: 700; }

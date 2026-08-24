@@ -226,12 +226,27 @@
 .btn-primary,
 .btn-secondary,
 .btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   min-height: 84px;
   padding: 0 40px;
   border-radius: var(--radius-lg);
   font-size: 25px;
   font-weight: 700;
   border: 3px solid transparent;
+}
+
+/* An <Icon> inside a button has no intrinsic size, so without this it inherits the SVG's
+   default 100% and grows to fill the button — "Start today's visit" rendered as a 290px
+   document icon with the label tucked underneath it. */
+.btn-primary svg,
+.btn-secondary svg,
+.btn-quiet svg {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
 }
 
 .btn-primary { background: var(--accent); color: #fff; }

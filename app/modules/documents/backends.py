@@ -118,8 +118,11 @@ class TextLayerOCR:
             reader = PdfReader(handle.name)
             pages: list[OCRPage] = []
             for index, page in enumerate(reader.pages, start=1):
-                text = page.extract_text() or ""
-                pages.append(self._page_from_text(text, index))
+                measured = self._page_with_geometry(page, index)
+                if measured is not None:
+                    pages.append(measured)
+                    continue
+                pages.append(self._page_from_text(page.extract_text() or "", index))
         if not any(p.blocks for p in pages):
             raise UpstreamUnavailable(
                 "This PDF has no embedded text layer — it is a scan. Use the tesseract "
@@ -127,13 +130,83 @@ class TextLayerOCR:
             )
         return OCRResult(backend=self.name, pages=tuple(pages))
 
+    def _page_with_geometry(self, page: object, page_number: int) -> OCRPage | None:
+        """One block per text run, positioned where the run actually is on the page.
+
+        The bounding box is the whole point of click-to-source: a physician clicks a
+        medication and expects to see the line it was read from, highlighted. Deriving the
+        box from a line's index among the non-blank lines — which is what `_page_from_text`
+        does — ignores blank lines and real layout, so on the prescription fixture the box
+        for the diagnosis landed four lines lower, over the advice. A box in the wrong place
+        is worse than no box: it tells a physician the system read a line it did not read.
+
+        `pypdf`'s text visitor reports the text matrix for each run, which is the real
+        position in PDF user space. PDF's origin is bottom-left and `BoundingBox` is
+        top-left, so y is flipped here rather than anywhere downstream.
+
+        Returns `None` if the page yields no positioned text, so the derived-layout path
+        stays as the fallback it always was.
+        """
+        runs: list[tuple[float, float, float, str]] = []
+
+        def visit(text: str, _cm: object, tm: list[float], _font: object, size: float) -> None:
+            if text.strip():
+                runs.append((float(tm[4]), float(tm[5]), float(size or 11.0), text.strip()))
+
+        try:
+            page.extract_text(visitor_text=visit)  # type: ignore[attr-defined]
+            box = page.mediabox  # type: ignore[attr-defined]
+            width = float(box.width)
+            height = float(box.height)
+        except Exception as exc:  # a malformed content stream must not lose the document
+            log.warning("textlayer.geometry_unavailable", page=page_number, error=str(exc)[:120])
+            return None
+
+        if not runs or width <= 0 or height <= 0:
+            return None
+
+        # Runs on one baseline are one line. Rounding to the point absorbs the sub-pixel
+        # drift that kerning puts on a shared baseline.
+        lines: dict[int, list[tuple[float, float, float, str]]] = {}
+        for x, y, size, text in runs:
+            lines.setdefault(round(y), []).append((x, y, size, text))
+
+        blocks: list[OCRBlock] = []
+        for baseline in sorted(lines, reverse=True):  # top of the page first
+            parts = sorted(lines[baseline], key=lambda run: run[0])
+            text = " ".join(part[3] for part in parts).strip()
+            if not text:
+                continue
+            left = min(part[0] for part in parts)
+            size = max(part[2] for part in parts)
+            # The baseline sits at the bottom of the glyphs; the box is padded to the
+            # ascender and a little below, which is what makes a highlight look right.
+            top = height - (baseline + size)
+            blocks.append(
+                OCRBlock(
+                    text=text,
+                    bbox=BoundingBox(
+                        x=round(max(left / width, 0.0), 4),
+                        y=round(min(max(top / height, 0.0), 1.0), 4),
+                        width=round(min(1.0 - (left / width), 1.0), 4),
+                        height=round(min((size * 1.35) / height, 1.0), 4),
+                    ),
+                    confidence=self.LAYER_CONFIDENCE,
+                    handwritten=False,
+                )
+            )
+        return OCRPage(
+            page=page_number, blocks=tuple(blocks), width=int(width), height=int(height)
+        )
+
     def _page_from_text(self, text: str, page_number: int) -> OCRPage:
         """One block per line, with a synthetic bbox laid out down the page.
 
-        The bbox is *derived*, not measured — a text layer gives no geometry without parsing
-        the content stream. It is honest about being approximate: x spans the full width, and
-        y is the line's proportional position. It is enough for the physician UI to highlight
-        the right line on the page, which is what click-to-source needs.
+        The fallback for a page whose geometry could not be measured (see
+        `_page_with_geometry`, which is tried first). The bbox here is *derived* from the
+        line's index among the non-blank lines, so it is approximate and it drifts wherever
+        the page has blank lines. It is a position, not a measurement, and the only reason to
+        prefer it to nothing is that a document with no geometry still needs its text.
         """
         lines = [line for line in (raw.strip() for raw in text.splitlines()) if line]
         blocks: list[OCRBlock] = []

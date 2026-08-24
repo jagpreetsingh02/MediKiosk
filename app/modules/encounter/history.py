@@ -36,6 +36,7 @@ from app.db.durable import (
     SourceEvidence,
     TimelineEventRecord,
 )
+from app.modules.encounter.promote import normalize_medicine as normalize
 
 #: Paths compared when looking for a similar past visit. Deliberately short: the presenting
 #: complaint and the features a clinician would actually recognise a recurrence by.
@@ -211,8 +212,17 @@ class MedicationThread:
         }
 
 
-async def medication_history(db: AsyncSession, patient_id: int) -> list[dict[str, Any]]:
-    """Group medications by drug across visits. Reports provenance, never current state."""
+async def medication_history(
+    db: AsyncSession, patient_id: int, *, live_values: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
+    """Group medications by drug across visits. Reports provenance, never current state.
+
+    `live_values` is the ledger of a visit still in capture. Without it this function could
+    only see the last *confirmed* encounter, so a patient denying medication in the session
+    on screen produced a reconciliation banner at the top of the physician's view and
+    "no reconciliation needed" in the medication panel underneath it — the same question
+    answered two ways on one screen. Today's answers are the ones that matter for this.
+    """
     rows = list(
         (
             await db.execute(
@@ -245,8 +255,11 @@ async def medication_history(db: AsyncSession, patient_id: int) -> list[dict[str
             }
         )
 
-    latest_encounter = max(encounters.values(), key=lambda e: e.occurred_at, default=None)
-    denial = await _denies_medication(db, latest_encounter)
+    if live_values is not None:
+        denial = live_values.get("drug_allergy.taking_medicines") is False
+    else:
+        latest_encounter = max(encounters.values(), key=lambda e: e.occurred_at, default=None)
+        denial = await _denies_medication(db, latest_encounter)
 
     for thread in threads.values():
         statuses = {m["status"] for m in thread.mentions}
@@ -255,7 +268,8 @@ async def medication_history(db: AsyncSession, patient_id: int) -> list[dict[str
             thread.needs_reconciliation = True
             thread.reason = (
                 "A document records this medicine, and the patient reported taking none at "
-                "the most recent visit. Needs medication reconciliation."
+                f"{'this visit' if live_values is not None else 'the most recent visit'}. "
+                "Needs medication reconciliation."
             )
         elif {"documented", "stopped-reported"} <= statuses:
             thread.needs_reconciliation = True
@@ -272,6 +286,86 @@ def _how_we_know(status: str) -> str:
         "stopped-reported": "the patient said they stopped",
         "uncertain": "source unclear",
     }.get(status, status)
+
+
+async def reconcile_live_session(
+    db: AsyncSession, *, patient_id: int, values: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Compare what the patient is saying *today* against what their record already holds.
+
+    §16: cross-visit contradiction. The single case worth catching first is the one that
+    changes prescribing — a patient reporting no medicines while a prescription for
+    metformin sits in their own history.
+
+    Nothing here decides which side is right, and the wording is deliberate about that. The
+    patient may have stopped the drug, the document may be stale, or the question may have
+    been misunderstood. All three are common and only the physician can tell them apart, so
+    the output names both sources and asks for reconciliation.
+
+    A rule, not the LLM. The comparison is a set difference over recorded values; a model
+    would add latency, a failure mode and no accuracy on a question this literal.
+    """
+    findings: list[dict[str, Any]] = []
+
+    denies_now = values.get("drug_allergy.taking_medicines") is False
+    reported_now = {
+        normalize(str(v))
+        for path, v in values.items()
+        if path.startswith("medications[") and path.endswith(".name") and v
+    }
+
+    threads = await medication_history(db, patient_id, live_values=values)
+    documented = [t for t in threads if any(m["status"] == "documented" for m in t["mentions"])]
+
+    if denies_now and documented:
+        findings.append(
+            {
+                "kind": "medication_reconciliation",
+                "currentStatement": "The patient reported taking no medicines today.",
+                "historicalEvidence": [
+                    {
+                        "name": thread["name"],
+                        "mentions": [
+                            m for m in thread["mentions"] if m["status"] == "documented"
+                        ],
+                    }
+                    for thread in documented
+                ],
+                "status": "Needs medication reconciliation",
+                "note": (
+                    "Both are recorded and neither has been overridden. The patient may have "
+                    "stopped the medicine, the document may be out of date, or the question "
+                    "may have been misunderstood."
+                ),
+            }
+        )
+
+    for thread in documented:
+        if denies_now or normalize(thread["name"]) in reported_now:
+            continue
+        findings.append(
+            {
+                "kind": "medication_not_mentioned",
+                "currentStatement": (
+                    f"{thread['name']} was not mentioned at this visit."
+                ),
+                "historicalEvidence": [
+                    {
+                        "name": thread["name"],
+                        "mentions": [
+                            m for m in thread["mentions"] if m["status"] == "documented"
+                        ],
+                    }
+                ],
+                "status": "Confirm whether this is still being taken",
+                "note": (
+                    "A past prescription is not evidence of current use. Silence is not "
+                    "evidence of stopping either."
+                ),
+            }
+        )
+
+    return findings
 
 
 async def _denies_medication(db: AsyncSession, encounter: Encounter | None) -> bool:

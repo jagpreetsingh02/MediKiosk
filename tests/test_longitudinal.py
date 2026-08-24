@@ -393,3 +393,20 @@ async def test_overview_masks_the_identifier(seeded_patient) -> None:
 async def test_timeline_event_count_is_not_zero(seeded_patient) -> None:
     db, patient = seeded_patient
     assert len(await H.timeline(db, patient.id)) > 10
+
+
+async def test_every_timeline_event_has_its_own_reference(seeded_patient) -> None:
+    """An event reference addresses one clinical event, or it addresses nothing usefully.
+
+    The seed derived it from `len(entity.text)`, so two results of equal length on one page
+    shared a reference — a lab report filed TSH and ESR under the same id, and "open this
+    event" was ambiguous between them. A React duplicate-key warning is what surfaced it,
+    which is a poor substitute for this assertion.
+    """
+    db, patient = seeded_patient
+    events = await H.timeline(db, patient.id)
+    refs = [event["eventRef"] for event in events]
+    assert len(refs) == len(set(refs)), (
+        "duplicate event references: "
+        f"{sorted({r for r in refs if refs.count(r) > 1})}"
+    )

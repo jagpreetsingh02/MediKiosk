@@ -357,3 +357,70 @@ def test_a_scan_with_no_text_layer_fails_honestly(ledger, known_paths) -> None:
             known_paths=known_paths,
             backend_name="textlayer",
         )
+
+
+# --------------------------------------------------------------- bounding box geometry
+#
+# The box is the load-bearing part of click-to-source. A physician clicks a medication and
+# expects the line it was read from. These pin it to the page rather than to a line count.
+
+
+def test_a_text_layer_bbox_is_measured_from_the_page_not_from_a_line_count() -> None:
+    """Derived positions ignore blank lines, so they drift.
+
+    On this fixture the diagnosis is the 5th non-blank line of 12, which a line-count layout
+    places at y≈0.33. It is actually at y≈0.20, because four blank lines sit above it. The
+    box was landing on the advice line four rows below — telling a physician the system read
+    something it did not read.
+    """
+    result = TextLayerOCR().read(
+        (FIXTURES / "prescription.pdf").read_bytes(),
+        filename="prescription.pdf",
+        media_type="application/pdf",
+    )
+    blocks = result.pages[0].blocks
+    diagnosis = next(b for b in blocks if b.text.startswith("Diagnosis:"))
+    assert 0.15 < diagnosis.bbox.y < 0.25, (
+        f"the diagnosis line is near the top third of this page, got y={diagnosis.bbox.y}"
+    )
+
+
+def test_boxes_run_down_the_page_in_reading_order() -> None:
+    """PDF user space has its origin bottom-left and BoundingBox is top-left. Getting that
+    flip wrong mirrors every box vertically, which looks plausible and is entirely wrong."""
+    result = TextLayerOCR().read(
+        (FIXTURES / "prescription.pdf").read_bytes(),
+        filename="prescription.pdf",
+        media_type="application/pdf",
+    )
+    blocks = result.pages[0].blocks
+    header = next(b for b in blocks if "POLYCLINIC" in b.text)
+    advice = next(b for b in blocks if b.text.startswith("Advice"))
+    assert header.bbox.y < advice.bbox.y, "the letterhead is above the advice on the page"
+
+    ys = [b.bbox.y for b in blocks]
+    assert ys == sorted(ys), "blocks must be emitted top-to-bottom"
+
+
+def test_each_medication_line_gets_its_own_box() -> None:
+    result = TextLayerOCR().read(
+        (FIXTURES / "prescription.pdf").read_bytes(),
+        filename="prescription.pdf",
+        media_type="application/pdf",
+    )
+    drugs = [b for b in result.pages[0].blocks if b.text.startswith(("TAB.", "CAP."))]
+    assert len(drugs) >= 4
+    positions = [round(b.bbox.y, 3) for b in drugs]
+    assert len(set(positions)) == len(positions), "two drugs sharing a box is not evidence"
+
+
+def test_a_page_with_no_measurable_geometry_still_yields_text() -> None:
+    """The derived layout stays as the fallback. A plain-text upload has no geometry at all
+    and must not fail — it just gets approximate positions, and says so."""
+    result = TextLayerOCR().read(
+        (FIXTURES / "prescription.txt").read_bytes(),
+        filename="prescription.txt",
+        media_type="text/plain",
+    )
+    assert result.pages[0].blocks
+    assert all(0.0 <= b.bbox.y <= 1.0 for b in result.pages[0].blocks)

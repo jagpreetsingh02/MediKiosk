@@ -9,15 +9,21 @@ Target: working vertical slice demoing at the SRM internal hackathon, September 
 
 ## Where it stands
 
-**All seven phases are built and running.** The whole path works end to end: a patient
-authenticates with a (mock) ABHA ID, picks a language, gives granular audio-explained consent,
-answers by speaking or tapping interchangeably, scans a prior prescription, and a physician
-reviews a source-linked draft summary, corrects it, and commits it as a FHIR R4 bundle — after
-which the session data is purged.
+**The product now has a memory.** It was a very good single-encounter intake; it is now a
+longitudinal one. A returning patient is recognised before they answer anything, their prior
+visits sit beside today's on the physician's screen, and a medicine found on a prescription in
+2025 is still on the record — as *documented*, never as "currently taking" — in 2026.
+
+The whole path works end to end: a patient authenticates with a (mock) ABHA ID, sees the visits
+and prescriptions already on file, gives granular audio-explained consent, answers by speaking
+or tapping interchangeably, photographs a prior prescription **and reads back what was scanned
+off it**, and a physician reviews a source-linked draft *inside* the patient's record — timeline,
+medications, similar past visits, original documents — corrects it, and commits it as a FHIR R4
+bundle, after which the capture session is purged and the durable encounter is not.
 
 | | |
 |---|---|
-| Tests | **200 passing** + a browser smoke test; `ruff`, `mypy` (76 files) and `tsc` clean |
+| Tests | **250 passing** + a browser smoke test that walks both surfaces end to end; `ruff`, `mypy` (83 files) and `tsc` clean |
 | Backend | ~14,000 lines across 76 modules, 40 API endpoints |
 | Frontend | ~3,600 lines, four surfaces, one component per file |
 | Content in YAML/JSON | ~1,700 lines — the interview, the rules, the lexicon, the consent scripts |
@@ -47,6 +53,27 @@ and `:8000/about` lists every invariant and — bluntly — everything that is m
 | **5** Summary + physician screen | Done | Traceability gate fails generation outright. Click-to-source, 22 red-flag rules |
 | **6** ABDM + AYUSH | Done | Consent gate, FHIR bundle with Provenance per resource, audit chain, session purge, Dashavidha |
 | **Eval harness** | Done | The differentiator — see below |
+
+### The longitudinal slice
+
+`Prompt_after_comp.md` §25 specifies sixteen steps and says to stop after them. All sixteen are
+built and verified through the running UI, not just through tests.
+
+| | Step | Where it lives |
+|---|---|---|
+| 1–3 | Durable `Patient`, `Encounter`, `ClinicalFact` + `SourceEvidence` | `app/db/durable.py` — deliberately *separate* from `models.py`, which stays the purgeable capture side |
+| 4 | Seeded patient, two historical encounters | `app/modules/encounter/seed.py`; entities produced by running the real OCR pipeline over the real fixtures |
+| 5 | Patient history screen | `kiosk/PatientHome.tsx` — the first thing that says the system already knows this person |
+| 6 | Intake on the existing question engine | unchanged; the state machine did not need to know about any of this |
+| 7 | Visible upload | a persistent action *inside* the interview, not a step behind thirty questions and an off-by-default consent toggle |
+| 8–9 | OCR connected to the UI, and verified | `kiosk/DocumentReview.tsx` — "Is this what your paper says?" |
+| 10 | Medication promoted into durable history | `promote.py`, with status as provenance |
+| 11 | Cross-encounter timeline | `physician/LongitudinalTimeline.tsx` |
+| 12 | Current visit + history, side by side | `physician/CurrentVsHistory.tsx` |
+| 13 | Deterministic similar-encounter retrieval | `history.similar_encounters()` — set intersection, no embeddings |
+| 14 | Click-to-source, including documents | `physician/EvidenceDrawer.tsx` — the real page, with the real box |
+| 15 | Confirmation creates a durable encounter | `promote()`, transactional |
+| 16 | Purge only after promotion succeeds | the commit route, in that order |
 
 ### Built after the first pass, from the final build prompt
 
@@ -99,7 +126,18 @@ in `docs/EVALUATION.md`.
 | Median time to summary | **1 ms** | 1,843 ms |
 
 **The model buys about 5 points of extraction recall on unseen phrasing, buys nothing on any
-safety metric, and costs roughly 1,800× the latency.** That is the whole case for the
+safety metric, and costs roughly 1,800× the latency.**
+
+On the *development* set it does worse than nothing on safety: red-flag sensitivity 0.9333
+against the rules' 1.0000, missing an ectopic-pregnancy bleed rule and two respiratory
+emergencies — two of the three in low-literacy Hindi. That table is rigged in the rules' favour
+(the lexicon was tuned on those 50 scripts and the model was not), which is exactly why the
+held-out column is the one to read, and `docs/EVALUATION.md` says so in as many words. But it
+is also why **`make eval-strict` is pinned to the offline extractor**: the gate exists to catch
+a regression in *this* repo, and a gate whose colour depends on a third-party model — one the
+vendor can change underneath us — is a gate people learn to ignore. `make eval-hosted` runs the
+same suite against the hosted model and reports without gating. Nothing is hidden; both columns
+above come from those two commands. That is the whole case for the
 architecture: the LLM is an optional enhancement to one stage, and the guarantees hold
 identically whichever backend is running.
 
@@ -142,6 +180,24 @@ found by running it:
 | Complaint-aware branching, first attempt, used an allow-list — which stopped asking about pain character and radiation for any complaint that did not map to a coded option, **including two cardiac emergencies** described vaguely ("just a little discomfort, my wife made me come"). Now a deny-list: an unknown complaint gets more questions, never fewer | Critical |
 | `reopen()` reset the cursor but `next_question()` skips already-answered paths, so a patient correcting an answer was silently returned to the same screen | High |
 | CSS grid auto-placement put the clinical summary in the 380px right rail and the source drawer in the main column — every Python test passed while the physician screen looked broken | High |
+
+### Found while building the longitudinal slice
+
+Each of these was a feature that *reported success* while doing nothing, which is the failure
+mode worth naming: none of them raised, none of them failed a test, and every one of them would
+have been demonstrated to a jury as working.
+
+| Defect | Severity |
+|---|---|
+| **`load_context()` took no identity.** A session reference in a URL was the whole of access control on the capture side: any patient token could read, answer into and upload documents to any other patient's session. Now enforced at the choke point, with a source scan that fails the build on a call site that omits it | Critical |
+| **Every OCR correction that changed a word was silently dropped.** `record_fact()` correctly refused "Metformin" against a span reading "TAB. METFARMIN 500mg"; `_record_entity` swallowed the refusal into a log line and the verification lane reported success. The test covering it read `if facts:` — a conditional assertion is not an assertion | Critical |
+| **Uploaded document bytes were never persisted.** `SessionDocument.content` stayed NULL, promotion copied the NULL into durable evidence, and the physician's evidence drawer drew a bounding box over nothing for every document a patient actually uploaded. Only the seeded fixtures had content | Critical |
+| **Text-layer bounding boxes were derived from a line's index**, ignoring blank lines, so on the prescription fixture the box for the diagnosis landed four lines lower, over the advice. A box in the wrong place is worse than no box: it tells a physician the system read a line it did not read. Now measured from the page via `pypdf`'s text visitor | Critical |
+| The upload response carried only `needsVerification` — the *successful* extractions never left the API, so no screen could show a patient what was read off their prescription | High |
+| The physician's verification lane was handed `[]` on every open: there was no route to fetch pending entities from | High |
+| Two panels answered the same question two ways on one screen — the reconciliation banner read today's answers, the medication panel below it read only the last *confirmed* encounter | High |
+| Patient review outcomes were written into a JSON column in place, so SQLAlchemy never emitted the UPDATE and every review vanished on the next read | High |
+| Two distinct timeline events shared one `event_ref` (it was derived from `len(entity.text)`), making "open this event" ambiguous between a TSH result and an ESR result. Surfaced by a React duplicate-key warning, which is a poor substitute for an assertion — there is one now | Medium |
 
 The negation bug is the one worth dwelling on. It was invisible to every unit test, produced a
 confident, well-formed, fully-sourced fact, and the fact was wrong in the direction that matters.

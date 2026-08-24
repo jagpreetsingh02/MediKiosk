@@ -64,7 +64,7 @@ class DemoCase:
         }
 
 
-#: Five cases, chosen so that between them they exercise every claim the product makes —
+#: Six cases, chosen so that between them they exercise every claim the product makes —
 #: including the one that proves it does NOT over-alert.
 CASES: tuple[DemoCase, ...] = (
     DemoCase(
@@ -129,6 +129,27 @@ CASES: tuple[DemoCase, ...] = (
         watch_for=(
             "No red flag fires, and the screen says so explicitly.",
             "'No rule fired' is not the same claim as 'this patient is low risk'.",
+        ),
+    ),
+    DemoCase(
+        id="recurrence",
+        title="The same complaint, a year later",
+        shows=(
+            "Longitudinal memory: today's visit beside a prior one, matched on features the "
+            "patient actually stated at both"
+        ),
+        language="en",
+        ayush=False,
+        script="s19-acidity",
+        document="prescription.pdf",
+        watch_for=(
+            "The demo patient already has three visits on file before this one starts.",
+            "Four features overlap with the visit of 20 Aug 2025 — site, character, timing "
+            "and the post-meal pattern — and each is listed rather than scored.",
+            "No percentage appears anywhere: a number between two encounters reads as a "
+            "probability of recurrence, and this system does not predict disease.",
+            "The medicines found on the prescription stay 'documented'. Nothing concludes "
+            "the patient is still taking them.",
         ),
     ),
 )
@@ -247,9 +268,10 @@ async def load_case(
     if case.document and "documents" in context.ledger.consent_scopes:
         path = FIXTURES / case.document
         if path.exists():
+            data = path.read_bytes()
             result = ingest(
                 context.ledger,
-                path.read_bytes(),
+                data,
                 filename=case.document,
                 media_type="application/pdf",
                 known_paths=context.machine.ontology.known_paths,
@@ -276,6 +298,11 @@ async def load_case(
                     pages_json=result.pages,
                     entities_json=[e.to_dict() for e in result.entities]
                     + result.needs_verification,
+                    # The same omission as the upload route had: without the bytes the
+                    # evidence drawer has nothing to draw the bounding box on, and the demo
+                    # case whose whole point is "click the medicine, see the prescription"
+                    # showed an empty panel.
+                    content=data,
                 )
             )
 

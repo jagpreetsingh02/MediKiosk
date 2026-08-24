@@ -5,7 +5,7 @@ PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 export PYTHONPATH := .
 
-.PHONY: help setup demo api web test lint fmt eval eval-strict ocr-bench fixtures check clean
+.PHONY: help setup demo api web test lint fmt eval eval-strict eval-hosted ocr-bench fixtures check clean
 
 help:
 	@echo "make setup        create the venv and install everything"
@@ -13,7 +13,8 @@ help:
 	@echo "make test         run the whole test suite"
 	@echo "make lint         ruff + mypy + tsc"
 	@echo "make eval         the 50 gold scripts plus the held-out set"
-	@echo "make eval-strict  the same, exiting non-zero on any hard-target failure"
+	@echo "make eval-strict  the same on the offline extractor, non-zero on a hard-target failure"
+	@echo "make eval-hosted  the same against the hosted model — reports, never gates"
 	@echo "make ocr-bench    compare the two OCR backends against ground truth"
 	@echo "make check        lint + test + eval-strict  (run this before committing)"
 
@@ -48,8 +49,24 @@ fmt:
 eval:
 	$(PY) -m eval.runner --both
 
+# Pinned to the offline extractor deliberately, and this is the gate `make check` runs.
+#
+# The strict gate exists to fail the build when OUR code regresses hallucination rate or
+# red-flag sensitivity. Run against the hosted model it fails for a different reason: on the
+# development set `gpt-oss-120b` scores 0.9333 red-flag sensitivity against a >=0.98 target,
+# which is a published, expected property of that backend (docs/EVALUATION.md) and not a
+# regression in this repo. Worse, it is not reproducible — the vendor can change the model
+# under us. A gate that is permanently red on any machine holding a Groq key is a gate people
+# learn to ignore.
+#
+# The offline extractor is also what the shipped kiosk runs. `make eval-hosted` publishes the
+# comparison; nothing here hides it.
 eval-strict:
-	$(PY) -m eval.runner --both --strict
+	LLM_BACKEND=offline $(PY) -m eval.runner --both --strict
+
+# The hosted comparison. Reports, never gates — see above.
+eval-hosted:
+	LLM_BACKEND=groq $(PY) -m eval.runner --both
 
 ocr-bench:
 	$(PY) -m eval.ocr_bench

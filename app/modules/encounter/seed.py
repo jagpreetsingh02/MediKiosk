@@ -286,7 +286,7 @@ async def _seed_document_encounter(
     )
     confident, _needs_check = extract_entities(ocr, sex=patient.gender)
 
-    for entity in confident:
+    for position, entity in enumerate(confident):
         db.add(
             ExtractedDocumentEntity(
                 document_id=document.id,
@@ -342,7 +342,11 @@ async def _seed_document_encounter(
             TimelineEventRecord(
                 patient_id=patient.id,
                 encounter_id=encounter.id,
-                event_ref=f"evt_{document.document_ref}_{len(entity.text)}_{entity.page}"[:32],
+                # Indexed by position, not by len(entity.text): two entities of the same
+                # text length on one page collided, so a lab report filed two results
+                # under one event reference and "open this event" was ambiguous between
+                # them. The truncation to 32 characters made it likelier still.
+                event_ref=f"evt_{document.document_ref}_{position}",
                 occurred_on=entity.observed_on or occurred.date(),
                 date_precision="exact",
                 kind=timeline_kind if entity.kind != "diagnosis" else "diagnosis",

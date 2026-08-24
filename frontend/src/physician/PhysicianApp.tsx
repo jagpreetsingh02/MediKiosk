@@ -9,13 +9,21 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ApiError,
   api,
+  type ExtractedItem,
+  type PatientContext,
   type QueueEntry,
+  type SessionDocument,
   type Summary,
   type TimelinePeriod,
 } from '../shared/api';
 import { JuryDrawer } from '../shared/JuryDrawer';
 import { CommitBar } from './CommitBar';
 import { ContradictionPanel } from './ContradictionPanel';
+import { CurrentVsHistory } from './CurrentVsHistory';
+import { EvidenceDrawer } from './EvidenceDrawer';
+import { LongitudinalTimeline } from './LongitudinalTimeline';
+import { MedicationHistory } from './MedicationHistory';
+import { SimilarEncounters } from './SimilarEncounters';
 import { QueueList } from './QueueList';
 import { RedFlagBanner } from './RedFlagBanner';
 import { SourcePanel } from './SourcePanel';
@@ -25,6 +33,21 @@ import { TimelineView } from './TimelineView';
 import { VerificationLane, type PendingEntity } from './VerificationLane';
 
 type SidePanel = 'source' | 'timeline' | 'verify' | 'conflicts';
+
+/**
+ * The main column is no longer only the draft. A physician reviewing a returning patient
+ * needs the record, not just today's answers, and §23 is explicit that the summary becomes
+ * one view inside clinical memory rather than the product itself.
+ */
+type MainView = 'visit' | 'timeline' | 'medications' | 'similar' | 'documents';
+
+const MAIN_VIEWS: { id: MainView; label: string }[] = [
+  { id: 'visit', label: 'Current visit' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'medications', label: 'Medications' },
+  { id: 'similar', label: 'Similar visits' },
+  { id: 'documents', label: 'Documents' },
+];
 
 export function PhysicianApp(): JSX.Element {
   const [role, setRole] = useState<string | null>(null);
@@ -36,6 +59,14 @@ export function PhysicianApp(): JSX.Element {
   const [pending, setPending] = useState<PendingEntity[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [panel, setPanel] = useState<SidePanel>('source');
+  const [view, setView] = useState<MainView>('visit');
+  const [context, setContext] = useState<PatientContext | null>(null);
+  const [documents, setDocuments] = useState<SessionDocument[]>([]);
+  const [evidence, setEvidence] = useState<{
+    documentId: string;
+    label: string;
+    item: ExtractedItem | null;
+  } | null>(null);
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,13 +105,44 @@ export function PhysicianApp(): JSX.Element {
     setReviewed(false);
     setCommitted(null);
     setPanel('source');
+    setView('visit');
+    setContext(null);
+    setDocuments([]);
+    setEvidence(null);
     try {
       // Sequential, not Promise.all: if the session is gone the summary already says so, and
       // firing the timeline anyway only puts a second failed request in the console.
       const loaded = await api.summary(ref);
       setSummary(loaded);
       setPeriods((await api.timeline(ref)).periods);
-      setPending([]);
+
+      // The verification lane was being handed an empty array on every open — there was no
+      // route to fetch pending entities from, so the panel could never show anything.
+      const listed = (await api.sessionDocuments(ref)).documents;
+      setDocuments(listed);
+      setPending(
+        listed.flatMap((document) =>
+          document.extracted
+            .filter((item) => item.pending && !item.patientReview)
+            .map((item) => ({
+              documentId: document.documentId,
+              entityIndex: item.entityIndex as number,
+              kind: item.kind,
+              text: item.text,
+              confidence: item.confidence,
+              sourceText: item.sourceText,
+              page: item.page,
+            })),
+        ),
+      );
+
+      // History is a separate request on purpose: a patient with no record is a normal
+      // outcome, and it must not take the draft down with it.
+      try {
+        setContext(await api.patientContext(ref));
+      } catch {
+        setContext(null);
+      }
     } catch (exc) {
       setSummary(null);
       setError(exc instanceof ApiError ? exc.message : 'Could not load this session.');
@@ -175,6 +237,43 @@ export function PhysicianApp(): JSX.Element {
   const selectedLine = selected !== null ? summary?.lines[selected] ?? null : null;
   const conflicts = summary?.history.contradictions ?? [];
 
+  /**
+   * Open the original page behind a document-derived claim. The documentRef may name a
+   * document from THIS session or one promoted at an earlier visit, and the two live behind
+   * different routes; the session's own documents are checked first because that is where a
+   * physician mid-review is looking.
+   */
+  function showOriginal(documentRef: string, item: ExtractedItem | null = null): void {
+    if (!activeRef) return;
+    const local = documents.find((document) => document.documentId === documentRef);
+    if (local) {
+      setEvidence({
+        documentId: documentRef,
+        label: local.filename,
+        item: item ?? local.extracted.find((entry) => entry.sourceText) ?? null,
+      });
+      return;
+    }
+    setEvidence({
+      documentId: documentRef,
+      label: 'Previously uploaded record',
+      item,
+    });
+  }
+
+  /**
+   * Always the rendered page, never the raw file. A bounding box is in normalised page
+   * coordinates: it can be drawn precisely over an image and not at all over the browser's
+   * own PDF viewer, which picks its own scale and offset.
+   */
+  function evidenceUrl(documentId: string, page: number): string {
+    const local = documents.some((document) => document.documentId === documentId);
+    if (local && activeRef) return api.sessionDocumentFileUrl(activeRef, documentId, page);
+    return context?.patientRef
+      ? api.documentFileUrl(context.patientRef, documentId, page)
+      : '';
+  }
+
   return (
     <div className="phys">
       <header className="phys-top">
@@ -203,22 +302,138 @@ export function PhysicianApp(): JSX.Element {
           </div>
         )}
 
+        {summary && context?.known && context.overview && (
+          <div className="phys-patient">
+            <div className="phys-patient-id">
+              <strong>{context.overview.displayName ?? 'Patient'}</strong>
+              <span>ABHA {context.overview.abhaMasked}</span>
+              {context.overview.ageYears && <span>{context.overview.ageYears} yrs</span>}
+              {context.overview.gender && <span>{context.overview.gender}</span>}
+            </div>
+            <div className="phys-patient-counts">
+              <span>{context.overview.counts.encounters} previous visits</span>
+              <span>{context.overview.counts.prescriptions} prescriptions</span>
+              <span>{context.overview.counts.labReports} lab reports</span>
+            </div>
+          </div>
+        )}
+
+        {summary && context && !context.known && (
+          <div className="phys-patient first">
+            First recorded visit for this patient — no prior history on file.
+          </div>
+        )}
+
+        {summary && context?.reconciliation?.length ? (
+          <div className="phys-rec">
+            {context.reconciliation.map((finding, index) => (
+              <div key={`${finding.kind}-${index}`} className="phys-rec-row">
+                <div className="phys-rec-status">{finding.status}</div>
+                <div className="phys-rec-current">{finding.currentStatement}</div>
+                <div className="phys-rec-hist">
+                  {finding.historicalEvidence.map((evidenceItem) => (
+                    <span key={evidenceItem.name}>
+                      {evidenceItem.name}
+                      {evidenceItem.mentions[0]?.observedOn
+                        ? ` · ${evidenceItem.mentions[0].observedOn}`
+                        : ''}
+                    </span>
+                  ))}
+                </div>
+                <p className="phys-rec-note">{finding.note}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         {summary && (
+          <RedFlagBanner
+            escalation={summary.escalation}
+            onSelectFlag={(factIds) => {
+              const index = summary.lines.findIndex((line) =>
+                line.sources.some((source) => factIds.includes(source.factId)),
+              );
+              if (index >= 0) {
+                setView('visit');
+                setSelected(index);
+                setPanel('source');
+                document.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: 'center' });
+              }
+            }}
+          />
+        )}
+
+        {summary && context?.known && (
+          <nav className="phys-views">
+            {MAIN_VIEWS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                className={`btn sm${view === entry.id ? ' primary' : ''}`}
+                onClick={() => setView(entry.id)}
+              >
+                {entry.label}
+                {entry.id === 'similar' && context.similar.length
+                  ? ` (${context.similar.length})`
+                  : ''}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {summary && view === 'timeline' && context && (
+          <LongitudinalTimeline events={context.timeline} onOpenDocument={showOriginal} />
+        )}
+        {summary && view === 'medications' && context && (
+          <MedicationHistory medications={context.medications} onOpenDocument={showOriginal} />
+        )}
+        {summary && view === 'similar' && context && (
+          <SimilarEncounters
+            similar={context.similar}
+            onOpenEncounter={() => setView('timeline')}
+          />
+        )}
+        {summary && view === 'documents' && (
+          <div className="lt">
+            {documents.length === 0 && (
+              <div className="source-empty">No documents uploaded in this visit.</div>
+            )}
+            {documents.map((document) => (
+              <section key={document.documentId} className="lt-year">
+                <h3 className="lt-year-label">{document.filename}</h3>
+                {document.extracted.map((item) => (
+                  <article
+                    key={item.itemId}
+                    className={`lt-row${item.confidenceBand === 'verify' ? ' unsure' : ''}`}
+                  >
+                    <div className="lt-date">{item.kind}</div>
+                    <div className="lt-body">
+                      <div className="lt-label">{item.text}</div>
+                      <div className="lt-detail">{item.sourceText}</div>
+                      {item.patientDisputed && (
+                        <div className="lt-flag">the patient does not agree with this line</div>
+                      )}
+                      <button
+                        type="button"
+                        className="lt-source"
+                        onClick={() => showOriginal(document.documentId, item)}
+                      >
+                        Show the original
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            ))}
+          </div>
+        )}
+
+        {summary && view === 'visit' && (
           <>
             <div className="phys-notice">{summary.notice}</div>
-            <RedFlagBanner
-              escalation={summary.escalation}
-              onSelectFlag={(factIds) => {
-                const index = summary.lines.findIndex((line) =>
-                  line.sources.some((source) => factIds.includes(source.factId)),
-                );
-                if (index >= 0) {
-                  setSelected(index);
-                  setPanel('source');
-                  document.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: 'center' });
-                }
-              }}
-            />
+            {context && (
+              <CurrentVsHistory context={context} onOpenEncounter={() => setView('similar')} />
+            )}
             <SummaryPane
               lines={summary.lines}
               selectedIndex={selected}
@@ -266,7 +481,26 @@ export function PhysicianApp(): JSX.Element {
         </div>
 
         {panel === 'source' && (
-          <SourcePanel sources={selectedLine?.sources ?? []} lineText={selectedLine?.text ?? null} />
+          <SourcePanel
+            sources={selectedLine?.sources ?? []}
+            lineText={selectedLine?.text ?? null}
+            onShowOriginal={(documentId, source) =>
+              showOriginal(documentId, {
+                itemId: `source:${source.factId}`,
+                kind: 'source',
+                text: source.verbatim,
+                page: source.page ?? 1,
+                confidence: source.confidence,
+                confidenceBand: 'high',
+                pending: false,
+                handwritten: Boolean(source.handwritten),
+                sourceText: source.verbatim,
+                bbox: source.bbox ?? { x: 0, y: 0, width: 1, height: 1 },
+                detail: {},
+                observedOn: null,
+              })
+            }
+          />
         )}
         {panel === 'timeline' && <TimelineView periods={periods} />}
         {panel === 'conflicts' && (
@@ -312,6 +546,15 @@ export function PhysicianApp(): JSX.Element {
           />
         )}
       </aside>
+
+      {evidence && (
+        <EvidenceDrawer
+          fileUrl={evidenceUrl(evidence.documentId, evidence.item?.page ?? 1)}
+          item={evidence.item}
+          documentLabel={evidence.label}
+          onClose={() => setEvidence(null)}
+        />
+      )}
 
       <JuryDrawer sessionRef={activeRef} />
 

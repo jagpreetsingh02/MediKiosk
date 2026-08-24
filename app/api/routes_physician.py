@@ -23,6 +23,7 @@ from app.db.models import ConsentRecord, IntakeSession, SubmittedBundle
 from app.fhir.bundle import build_bundle, bundle_json
 from app.modules.consent.his_push import push
 from app.modules.consent.session import purge
+from app.modules.encounter import history as H
 from app.modules.summary.generate import generate
 from app.redflags.engine import evaluate
 from app.terminology.sidecar import code_reported_term
@@ -484,4 +485,89 @@ async def committed_bundle(
         "committedAt": row.committed_at.isoformat(),
         "hisStatus": row.his_status,
         "bundle": row.bundle_json,
+    }
+
+
+@router.get(
+    "/sessions/{session_ref}/patient-context",
+    dependencies=[Depends(require_action("session.read"))],
+)
+async def patient_context(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """The bridge from the visit on screen to the person it belongs to.
+
+    Nothing joined these two halves before. The durable patient routes existed and the
+    physician had no way to reach them from a session under review: the queue hands out a
+    session reference, the history is keyed by patient, and the surface that needed both had
+    neither. This resolves the session's ABHA reference to a patient and returns the four
+    things a physician wants beside a draft — what else is on file, what medicines are known
+    and how, which past visits look like this one, and where today's answers disagree with
+    the record.
+
+    Similarity is computed against the LIVE ledger, not a committed encounter, because the
+    physician needs it while deciding — after commit it would be a historical curiosity.
+
+    `known: false` is a normal answer, not an error. A first-time patient is the common case
+    at a walk-in OPD, and a screen that errors on them is a screen that breaks on day one.
+    """
+    context = await load_context(db, session_ref, identity=identity)
+    abha_ref = context.row.abha_ref
+    patient = (
+        await H.get_patient_by_abha(db, abha_ref=abha_ref) if abha_ref else None
+    )
+    if patient is None:
+        return {
+            "sessionRef": session_ref,
+            "known": False,
+            "note": "No previous record for this patient. This will be their first encounter.",
+            "overview": None,
+            "timeline": [],
+            "medications": [],
+            "similar": [],
+            "reconciliation": [],
+        }
+
+    values = dict(context.state.values)
+    features = await H.features_from_ledger(values)
+    similar = await H.similar_encounters(
+        db, patient_id=patient.id, current_features=features
+    )
+
+    await record(
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="patient.context_read",
+        abha_ref=abha_ref,
+        consent_ref=context.row.consent_ref,
+        response_summary={"patientRef": patient.patient_ref, "similar": len(similar)},
+    )
+    return {
+        "sessionRef": session_ref,
+        "known": True,
+        "patientRef": patient.patient_ref,
+        "overview": await H.overview(db, patient),
+        "timeline": await H.timeline(db, patient.id),
+        "medications": await H.medication_history(db, patient.id, live_values=values),
+        "similar": similar,
+        "reconciliation": await H.reconcile_live_session(
+            db, patient_id=patient.id, values=values
+        ),
+        # Labelled here rather than in the frontend: FEATURE_LABELS already exists and a
+        # second mapping over there had drifted to paths the ontology does not define,
+        # which rendered as a truncated `CHIEF_COMPLAINT.TE:` on the physician's screen.
+        "currentFeatures": [
+            {
+                "path": path,
+                "label": H.FEATURE_LABELS.get(path, path),
+                "values": sorted(values),
+            }
+            for path, values in sorted(features.items())
+        ],
+        "note": (
+            "History is read-only here. Nothing in this panel is part of today's draft until "
+            "the physician commits it."
+        ),
     }

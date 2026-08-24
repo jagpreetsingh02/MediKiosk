@@ -250,6 +250,8 @@ export interface ExtractedItem {
   pending: boolean;
   handwritten: boolean;
   sourceText: string;
+  /** Normalised page coordinates, origin top-left, each in [0, 1]. */
+  bbox: { x: number; y: number; width: number; height: number };
   detail: Record<string, string | number | null | undefined>;
   observedOn: string | null;
   entityIndex?: number;
@@ -353,6 +355,34 @@ export interface SimilarEncounter {
   sharedCount: number;
   band: string;
   note: string;
+}
+
+export interface ReconciliationFinding {
+  kind: string;
+  currentStatement: string;
+  historicalEvidence: {
+    name: string;
+    mentions: MedicationThread['mentions'];
+  }[];
+  status: string;
+  note: string;
+}
+
+/**
+ * A live session joined to the person it belongs to. `known: false` is a normal answer —
+ * a first-time patient at a walk-in OPD is the common case, not an error.
+ */
+export interface PatientContext {
+  sessionRef: string;
+  known: boolean;
+  patientRef?: string;
+  overview: PatientOverview | null;
+  timeline: TimelineRow[];
+  medications: MedicationThread[];
+  similar: SimilarEncounter[];
+  reconciliation: ReconciliationFinding[];
+  currentFeatures?: { path: string; label: string; values: string[] }[];
+  note?: string;
 }
 
 export interface Inspect {
@@ -556,7 +586,37 @@ export const api = {
       `/api/v1/sessions/${ref}/contradictions`,
     ),
 
+  /**
+   * Fetch an authenticated image and hand back an object URL.
+   *
+   * An `<img src>` cannot carry a bearer token, and every document route requires one — so
+   * the evidence drawer pointed at the URL directly and got a 400 it rendered as "the
+   * original file is not available", which is a lie about why. Fetching it and wrapping the
+   * blob keeps the authorisation and the audit entry the route writes.
+   *
+   * The caller owns the returned URL and must revoke it.
+   */
+  fetchImage: async (path: string): Promise<string> => {
+    const headers = new Headers();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const response = await fetch(path, { headers });
+    if (!response.ok) {
+      const text = await response.text();
+      let detail = `Could not load ${path}`;
+      try {
+        detail = JSON.parse(text)?.issue?.[0]?.diagnostics ?? detail;
+      } catch {
+        /* the body was not an OperationOutcome; keep the generic message */
+      }
+      throw new ApiError(detail, response.status);
+    }
+    return URL.createObjectURL(await response.blob());
+  },
+
   inspect: (ref: string) => request<Inspect>(`/api/v1/sessions/${ref}/inspect`),
+
+  patientContext: (ref: string) =>
+    request<PatientContext>(`/api/v1/sessions/${ref}/patient-context`),
 
   myRecord: () => request<PatientOverview>('/api/v1/patients/me'),
   patientOverview: (patientRef: string) =>
@@ -578,8 +638,14 @@ export const api = {
       similar: SimilarEncounter[];
       summary: Record<string, unknown> | null;
     }>(`/api/v1/patients/${patientRef}/encounters/${encounterRef}`),
-  documentFileUrl: (patientRef: string, documentRef: string) =>
-    `/api/v1/patients/${patientRef}/documents/${documentRef}/file`,
+  /** `page` asks for a PNG of that page — the only form a bounding box can be drawn on. */
+  documentFileUrl: (patientRef: string, documentRef: string, page?: number) =>
+    `/api/v1/patients/${patientRef}/documents/${documentRef}/file` +
+    (page ? `?page=${page}` : ''),
+
+  sessionDocumentFileUrl: (sessionRef: string, documentId: string, page?: number) =>
+    `/api/v1/sessions/${sessionRef}/documents/${documentId}/file` +
+    (page ? `?page=${page}` : ''),
 
   demoCases: () => request<{ cases: DemoCase[]; notice: string }>('/api/v1/demo/cases'),
   loadDemoCase: (caseId: string, sessionRef: string) =>

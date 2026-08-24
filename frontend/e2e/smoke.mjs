@@ -43,6 +43,15 @@ check('language picker advances', await page.locator('text=Your ABHA number').co
 await page.getByRole('button', { name: /Kamala Devi/ }).click();
 await page.getByRole('button', { name: /Fill demo code/ }).click();
 await page.getByRole('button', { name: /^Continue$/ }).click();
+
+// The patient memory screen — the one that says MediKiosk already knows this person. It sits
+// between login and consent, so the flow reaches consent through it, not instead of it.
+// Wait for the record to arrive, not merely for the panel: the loading state is a
+// .kiosk-lead too, and asserting against it raced the fetch.
+await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout: 10000 });
+check('patient memory screen reached', await page.locator('.memory-id').count() > 0);
+await page.getByRole('button', { name: /Start today's visit/ }).click();
+
 await page.waitForSelector('text=Before we begin', { timeout: 8000 });
 check('consent screen reached', true);
 
@@ -108,7 +117,23 @@ check('interview completes', asked > 20, `${asked} questions`);
 check('document stage offered', await page.locator('.upload-drop').count() > 0);
 
 await page.locator('input[type=file]').setInputFiles('../data/fixtures/documents/prescription.pdf');
-await page.waitForFunction(() => document.querySelectorAll('.upload-item').length > 0, null, { timeout: 25000 }).catch(() => {});
+
+// The readback. An extraction the patient never saw is an extraction that became true
+// without anyone agreeing to it, so the upload goes straight here.
+await page.waitForSelector('.extract-row', { timeout: 25000 }).catch(() => {});
+const extracted = await page.locator('.extract-row').count();
+check('OCR readback shown to the patient', extracted > 0, `${extracted} items`);
+check('every item carries a confidence word, not a percentage',
+  extracted > 0 && !(await page.locator('.extract-band').first().innerText()).includes('%'));
+
+if (extracted > 0) {
+  await page.locator('.extract-row').first().getByRole('button', { name: /^Yes$/ }).click();
+  await page.waitForTimeout(400);
+  check('confirming an item is recorded', await page.locator('.extract-outcome').count() > 0);
+  await page.getByRole('button', { name: /Looks right — continue|Continue — / }).click();
+}
+
+await page.waitForFunction(() => document.querySelectorAll('.upload-item').length > 0, null, { timeout: 15000 }).catch(() => {});
 check('document uploaded and read', await page.locator('.upload-item').count() > 0);
 
 await page.getByRole('button', { name: /Done — continue|I have no papers/ }).click();
@@ -165,12 +190,32 @@ await doc.locator('.summary-line.traceable').first().click();
 await doc.waitForSelector('.source-verbatim', { timeout: 6000 });
 check('click-to-source resolves', (await doc.locator('.source-verbatim').first().innerText()).length > 2);
 
-await doc.getByRole('button', { name: /Timeline/ }).click();
+// A document-derived line must reach the page it came from, not only a box on an outline.
+const docLine = doc.locator('.summary-line.traceable').filter({ hasText: /METFORMIN|AMLODIPINE|ATORVASTATIN|OMEPRAZOLE/i }).first();
+if (await docLine.count()) {
+  await docLine.click();
+  await doc.waitForTimeout(300);
+  const toOriginal = doc.locator('.phys-side').getByRole('button', { name: /Show the original page/ }).first();
+  check('a document-derived claim offers its page', await toOriginal.count() > 0);
+  if (await toOriginal.count()) {
+    await toOriginal.click();
+    await doc.waitForSelector('.evi-frame img', { timeout: 10000 }).catch(() => {});
+    check('and the page opens with the region boxed',
+      await doc.locator('.evi-box').count() > 0);
+    await doc.getByRole('button', { name: /^Close/ }).click();
+  }
+}
+
+await doc.locator('.phys-side').getByRole('button', { name: /Timeline/ }).click();
 await doc.waitForTimeout(500);
 check('timeline populated from the document', await doc.locator('.tl-event').count() > 0,
   `${await doc.locator('.tl-event').count()} events`);
 
-await doc.getByRole('button', { name: /Source/ }).click();
+// The longitudinal surface is asserted below, on the seeded returning patient. Here it
+// is only checked to be present-or-absent honestly: this patient may have no record.
+check('patient identity band shown', await doc.locator('.phys-patient').count() > 0);
+
+await doc.locator('.phys-side').getByRole('button', { name: /Source/ }).click();
 await doc.locator('.phys-main').evaluate(el => el.scrollTo(0, el.scrollHeight));
 await doc.waitForTimeout(400);
 const commit = doc.getByRole('button', { name: /Confirm and commit/ });
@@ -178,6 +223,84 @@ check('commit enabled after review', !(await commit.isDisabled()));
 await commit.click();
 await doc.waitForTimeout(3000);
 check('commit succeeds', (await doc.locator('.phys-bottom').innerText()).includes('committed'));
+
+// ------------------------------------------------- clinical memory, on a returning patient
+//
+// The patient above is a first visit by design — that path has to work too, and it is why
+// the view nav is absent there. The longitudinal surface needs somebody with a record, so
+// this runs the seeded demo patient through the recurrence case and reviews that.
+console.log('\nCLINICAL MEMORY (returning patient)');
+const api = ctx.request;
+await api.post(`${BASE}/mock-idp/abha/request-otp`, { data: { abha_address: 'demo@abdm' } });
+const verified = await (await api.post(`${BASE}/mock-idp/abha/verify-otp`,
+  { data: { abha_address: 'demo@abdm', otp: '123456' } })).json();
+const patientAuth = { Authorization: `Bearer ${verified.access_token}` };
+const made = await (await api.post(`${BASE}/api/v1/sessions`, {
+  headers: patientAuth,
+  data: { language: 'en', consentScopes: ['history', 'voice', 'documents'], audioExplained: true },
+})).json();
+const loaded = await api.post(`${BASE}/api/v1/demo/cases/recurrence/load`,
+  { headers: patientAuth, data: { sessionRef: made.sessionRef } });
+check('recurrence demo case loads', loaded.ok());
+
+const mem = await ctx.newPage();
+track(mem, 'memory');
+await mem.goto(`${BASE}/physician?session=${made.sessionRef}`, { waitUntil: 'networkidle' });
+await mem.getByRole('button', { name: /^Sign in$/ }).click();
+await mem.waitForSelector('.summary-line', { timeout: 15000 });
+
+check('patient identity band names the record', await mem.locator('.phys-patient').count() > 0,
+  (await mem.locator('.phys-patient').innerText().catch(() => '')).replace(/\n/g, ' ').slice(0, 70));
+check('reconciliation surfaced across visits', await mem.locator('.phys-rec-row').count() > 0);
+check('clinical memory nav present', await mem.locator('.phys-views').count() > 0);
+
+check('today beside history', await mem.locator('.cvh-row').count() > 0,
+  `${await mem.locator('.cvh-row').count()} features compared`);
+check('shared features are ticked, not scored',
+  await mem.locator('.cvh-value.shared').count() > 0 &&
+  !(await mem.locator('.cvh').innerText()).includes('%'));
+
+await mem.locator('.phys-views').getByRole('button', { name: /^Timeline/ }).click();
+await mem.waitForTimeout(400);
+check('longitudinal timeline spans prior visits', await mem.locator('.lt-row').count() > 0,
+  `${await mem.locator('.lt-row').count()} events`);
+check('timeline groups by year', await mem.locator('.lt-year-label').count() > 1,
+  `${await mem.locator('.lt-year-label').count()} years`);
+
+await mem.locator('.phys-views').getByRole('button', { name: /^Medications/ }).click();
+await mem.waitForTimeout(400);
+check('medication history threads a drug across visits',
+  await mem.locator('.med-thread').count() > 0, `${await mem.locator('.med-thread').count()} drugs`);
+check('every mention says how it is known', await mem.locator('.med-know').count() > 0);
+
+await mem.locator('.phys-views').getByRole('button', { name: /^Similar visits/ }).click();
+await mem.waitForTimeout(400);
+check('similar visits list shared features', await mem.locator('.sim-shared li').count() > 0,
+  `${await mem.locator('.sim-shared li').count()} shared features`);
+check('no percentage anywhere in the similarity view',
+  !(await mem.locator('.sim').innerText()).includes('%'));
+
+await mem.locator('.phys-views').getByRole('button', { name: /^Documents/ }).click();
+await mem.waitForTimeout(500);
+const original = mem.locator('.lt-source').first();
+if (await original.count()) {
+  await original.click();
+  await mem.waitForSelector('.evi', { timeout: 8000 }).catch(() => {});
+  check('evidence drawer opens the original', await mem.locator('.evi-quote').count() > 0);
+
+  // The page is fetched with the bearer token and wrapped as a blob, so it arrives after
+  // the drawer does. Waiting for the <img> is the point of the check: §12 is explicit that
+  // a box drawn on an empty rectangle is not evidence.
+  await mem.waitForSelector('.evi-frame img', { timeout: 10000 }).catch(() => {});
+  const drawn = await mem.locator('.evi-frame img').evaluate(
+    (img) => img.complete && img.naturalWidth > 0,
+  ).catch(() => false);
+  check('and the page image actually renders', drawn);
+  check('with the OCR region boxed on it', await mem.locator('.evi-box').count() > 0);
+  await mem.getByRole('button', { name: /^Close/ }).click();
+} else {
+  check('evidence drawer reachable from a document', false, 'no document rows');
+}
 
 // ---------------------------------------------------------------- report
 console.log('\nERRORS');

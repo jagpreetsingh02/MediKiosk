@@ -1,0 +1,16 @@
+import { chromium } from 'playwright';
+const BASE = 'http://127.0.0.1:5173';
+const OUT = '/private/tmp/claude-501/-Users-jagpreet-Documents-Vibe-Coding-SIH-test/322e5ba8-3193-480f-98c9-0d5b9b5db4c1/scratchpad';
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 1440, height: 980 } })).newPage();
+await p.goto(BASE, { waitUntil: 'networkidle' });
+await p.getByRole('link', { name: /^Start$/ }).click();
+await p.waitForSelector('.language-option');
+await p.getByRole('button', { name: /^English/ }).click();
+await p.getByRole('button', { name: /Kamala Devi/ }).first().click();
+await p.getByRole('button', { name: /Fill demo code/ }).click();
+await p.getByRole('button', { name: /^Continue$/ }).click();
+await p.waitForSelector("button:has-text(\"Start today's visit\")", { timeout: 10000 });
+await p.screenshot({ path: `${OUT}/1-patient-memory.png` });
+await b.close();
+console.log('ok');

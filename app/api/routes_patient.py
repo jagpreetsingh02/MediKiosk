@@ -15,6 +15,7 @@ from app.api.deps import CurrentIdentity, DbSession, require_action
 from app.audit.chain import record
 from app.core.errors import PolicyDenied, ValidationError
 from app.db.durable import DocumentRecord, Encounter, Patient
+from app.modules.documents.render import render_page_png
 from app.modules.encounter import history as H
 
 router = APIRouter(prefix="/api/v1/patients", tags=["patient-memory"])
@@ -197,7 +198,11 @@ async def durable_fact_evidence(
     dependencies=[Depends(require_action("document.read"))],
 )
 async def document_file(
-    db: DbSession, patient_ref: str, document_ref: str, identity: CurrentIdentity
+    db: DbSession,
+    patient_ref: str,
+    document_ref: str,
+    identity: CurrentIdentity,
+    page: int | None = None,
 ) -> Response:
     """The original document, so the evidence drawer can show the page OCR read.
 
@@ -220,6 +225,13 @@ async def document_file(
     ).scalars().first()
     if document is None or document.content is None:
         raise ValidationError(f"No stored file for document {document_ref!r}.")
+
+    if page is not None:
+        return Response(
+            content=render_page_png(document.content, media_type=document.media_type, page=page),
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
 
     await record(
         db,

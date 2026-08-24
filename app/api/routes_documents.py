@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, Response, UploadFile
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import (
@@ -26,6 +26,7 @@ from app.modules.documents.pipeline import (
     ingest,
     verify_entity,
 )
+from app.modules.documents.render import render_page_png
 from app.modules.documents.timeline import group_by_period
 
 router = APIRouter(prefix="/api/v1/sessions/{session_ref}/documents", tags=["documents"])
@@ -80,6 +81,13 @@ async def upload(
             needs_verification=bool(result.needs_verification),
             pages_json=result.pages,
             entities_json=[e.to_dict() for e in result.entities] + result.needs_verification,
+            # The bytes themselves. Without this the column stayed NULL, promotion copied a
+            # NULL into durable evidence, and the physician's evidence drawer rendered a
+            # bounding box over nothing for every document a patient actually uploaded —
+            # only the seeded fixtures had content. A box drawn on an empty rectangle is not
+            # evidence, so the file is held for the life of the capture session and carried
+            # across only if the physician confirms.
+            content=data,
         )
     )
 
@@ -452,3 +460,66 @@ def _marker_for(
             if seen == position:
                 return entity
     return None
+
+
+@router.get(
+    "/{document_id}/file", dependencies=[Depends(require_action("document.read"))]
+)
+async def document_file(
+    db: DbSession,
+    session_ref: str,
+    document_id: str,
+    identity: CurrentIdentity,
+    page: int | None = None,
+) -> Response:
+    """The uploaded page itself, so the evidence drawer can show what OCR read.
+
+    The durable equivalent lives on the patient routes and only covers confirmed encounters.
+    This one covers the session under review, which is when a physician is actually deciding
+    whether to believe a line — the point at which "show me the original" matters most.
+    """
+    from sqlalchemy import select
+
+    context = await load_context(db, session_ref, identity=identity)
+    row = (
+        (
+            await db.execute(
+                select(SessionDocument).where(
+                    SessionDocument.session_id == context.row.id,
+                    SessionDocument.document_id == document_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if row is None or row.content is None:
+        raise ValidationError(f"No stored file for document {document_id!r}.")
+
+    if page is not None:
+        # A PNG of the page, because a bounding box can be drawn over an image and cannot be
+        # drawn over the browser's own PDF viewer. See app/modules/documents/render.py.
+        return Response(
+            content=render_page_png(row.content, media_type=row.media_type, page=page),
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    await record(
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="document.view_original",
+        abha_ref=context.row.abha_ref,
+        consent_ref=context.row.consent_ref,
+        request_summary={"documentId": document_id},
+    )
+    return Response(
+        content=row.content,
+        media_type=row.media_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{row.filename}"',
+            "Cache-Control": "no-store",
+        },
+    )

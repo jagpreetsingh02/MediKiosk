@@ -259,3 +259,84 @@ async def test_a_clinician_may_open_a_session_they_did_not_create(client) -> Non
 
     allowed = await client.get(f"/api/v1/sessions/{session_ref}", headers=_auth(clinician))
     assert allowed.status_code == 200
+
+
+async def test_the_patient_context_route_refuses_a_patient_token(client) -> None:
+    """A patient may read their own record through /patients/me. The physician bridge is a
+    clinician surface: it carries reconciliation findings and prior-visit detail written for
+    a reader who can act on them."""
+    kamala = await _login(client, "kamala.devi@abdm")
+    session_ref = await _start_session(client, kamala)
+
+    refused = await client.get(
+        f"/api/v1/sessions/{session_ref}/patient-context", headers=_auth(kamala)
+    )
+    assert refused.status_code == 403
+
+
+async def test_the_patient_context_route_resolves_history_for_a_clinician(client) -> None:
+    demo = await _login(client, "demo@abdm")
+    session_ref = await _start_session(client, demo)
+    clinician = (
+        await client.post("/mock-idp/token", json={"role": "clinician", "sub": "dr.mehta@aiia"})
+    ).json()["access_token"]
+
+    body = (
+        await client.get(
+            f"/api/v1/sessions/{session_ref}/patient-context", headers=_auth(clinician)
+        )
+    ).json()
+    assert body["known"] is True, "the seeded demo patient joins to this login by ABHA ref"
+    assert body["overview"]["counts"]["encounters"] >= 2
+    assert body["timeline"], "the timeline must span the patient's prior encounters"
+    assert body["medications"]
+
+
+async def test_an_unknown_patient_is_a_normal_answer_not_an_error(client) -> None:
+    """A first-time patient at a walk-in OPD is the common case. A screen that errors on
+    them is a screen that breaks on day one."""
+    kamala = await _login(client, "kamala.devi@abdm")
+    session_ref = await _start_session(client, kamala)
+    clinician = (
+        await client.post("/mock-idp/token", json={"role": "clinician", "sub": "dr.mehta@aiia"})
+    ).json()["access_token"]
+
+    response = await client.get(
+        f"/api/v1/sessions/{session_ref}/patient-context", headers=_auth(clinician)
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["known"] is False
+    assert body["timeline"] == []
+    assert body["similar"] == []
+
+
+async def test_an_uploaded_original_is_retrievable_and_is_the_bytes_that_were_sent(
+    client,
+) -> None:
+    """The evidence drawer draws a box on this. The bytes were never being stored, so the
+    box was drawn over nothing for every document a patient actually uploaded."""
+    kamala = await _login(client, "kamala.devi@abdm")
+    session_ref = await _start_session(client, kamala)
+
+    source = PROJECT_ROOT / "data" / "fixtures" / "documents" / "prescription.pdf"
+    sent = source.read_bytes()
+    upload = await client.post(
+        f"/api/v1/sessions/{session_ref}/documents",
+        headers=_auth(kamala),
+        files={"file": (source.name, sent, "application/pdf")},
+        data={"backend": "textlayer"},
+    )
+    assert upload.status_code == 201, upload.text
+    document_id = upload.json()["documentId"]
+
+    clinician = (
+        await client.post("/mock-idp/token", json={"role": "clinician", "sub": "dr.mehta@aiia"})
+    ).json()["access_token"]
+    original = await client.get(
+        f"/api/v1/sessions/{session_ref}/documents/{document_id}/file",
+        headers=_auth(clinician),
+    )
+    assert original.status_code == 200
+    assert original.content == sent
+    assert original.headers["cache-control"] == "no-store"

@@ -2,15 +2,17 @@
  * Click-to-source: what is behind the line the physician just clicked.
  *
  * For a spoken or tapped answer this shows the patient's exact words, the question they were
- * answering, and the ASR confidence. For a document fact it shows the OCR text and draws the
- * bounding box on a page outline, so "where on the page did this come from" is answered
- * without opening the scan.
+ * answering, and the ASR confidence. For a document fact it shows the OCR text and the region
+ * on the page, and offers the page itself — §12 is explicit that a box on an empty outline is
+ * not evidence, and the outline alone is what this panel used to offer.
  */
 import type { Source } from '../shared/api';
 
 interface Props {
   sources: Source[];
   lineText: string | null;
+  /** Open the original page with this region highlighted. */
+  onShowOriginal: (documentId: string, source: Source) => void;
 }
 
 function tierLabel(tier: string): string {
@@ -19,7 +21,7 @@ function tierLabel(tier: string): string {
   return 'document — extracted from an uploaded record';
 }
 
-export function SourcePanel({ sources, lineText }: Props): JSX.Element {
+export function SourcePanel({ sources, lineText, onShowOriginal }: Props): JSX.Element {
   if (!lineText) {
     return (
       <div className="source-empty">
@@ -101,6 +103,16 @@ export function SourcePanel({ sources, lineText }: Props): JSX.Element {
               />
               <div className="source-bbox-caption">page {source.page}</div>
             </div>
+          )}
+
+          {source.documentId && (
+            <button
+              type="button"
+              className="lt-source"
+              onClick={() => onShowOriginal(source.documentId as string, source)}
+            >
+              Show the original page
+            </button>
           )}
         </div>
       ))}
