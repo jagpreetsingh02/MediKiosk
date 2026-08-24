@@ -91,7 +91,8 @@ class GroqWhisperSpeechBackend:
         log.info(
             "speech.whisper",
             model=self.model, language=language, chars=len(text),
-            segments=len(segments), confidence=round(confidence, 3),
+            segments=len(segments),
+            confidence=round(confidence, 3) if confidence is not None else "unavailable",
         )
         return Transcript(
             text=text,
@@ -117,7 +118,7 @@ class GroqWhisperSpeechBackend:
         )
 
 
-def _confidence_from(segments: list[dict[str, Any]]) -> float:
+def _confidence_from(segments: list[dict[str, Any]]) -> float | None:
     """Derive an utterance confidence from Whisper's per-segment statistics.
 
     Whisper does not report a confidence. Inventing a high one would silently disable the
@@ -133,9 +134,9 @@ def _confidence_from(segments: list[dict[str, Any]]) -> float:
     thinks might be noise cannot be rescued by a good logprob.
     """
     if not segments:
-        # Text with no segment statistics: usable, but nothing justifies trusting it more
-        # than the threshold, so it lands exactly on the line and the caller decides.
-        return settings.asr_confidence_threshold
+        # No segment statistics means no measurement. Returning the threshold would be
+        # inventing one; the caller handles `unavailable`.
+        return None
 
     scores: list[float] = []
     for segment in segments:

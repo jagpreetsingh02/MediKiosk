@@ -405,6 +405,25 @@ async def commit(
     context.row.status = "submitted"
     context.row.submitted_at = datetime.now(UTC)
 
+    # ---- promote into the durable record BEFORE anything is purged ----------
+    # Ordering is the whole point: a purge that ran first would destroy the visit on any
+    # later failure, and a half-promoted encounter is worse than a lost one because it looks
+    # complete. promote() writes; this function commits; only then does the purge run.
+    from app.contracts.contradictions import detect as detect_contradictions
+    from app.modules.encounter.promote import promote
+
+    promotion = await promote(
+        db,
+        session_row=context.row,
+        ledger=context.ledger,
+        history=history,
+        escalation=escalation,
+        contradictions=detect_contradictions(context.ledger),
+        summary_payload=result.to_dict(),
+        traceable=result.traceability.ok,
+        confirmed_by=identity.actor,
+    )
+
     await record(
         db,
         actor=identity.actor,
@@ -419,9 +438,11 @@ async def commit(
             "entries": len(payload_json.get("entry", [])),
         },
     )
-    await db.flush()
+    # Commit the promotion and everything above it. If this raises, the capture session is
+    # still intact and the visit is recoverable.
+    await db.commit()
 
-    # Invariant 6: session data is purged on submit.
+    # Only now is the capture session expendable (Invariant 6).
     from app.core.config import settings
 
     purged = None
@@ -436,6 +457,7 @@ async def commit(
         "entries": len(payload_json.get("entry", [])),
         "hisPush": pushed.to_dict(),
         "consentAllowedShare": allows_share,
+        "promotion": promotion.to_dict(),
         "purge": purged,
     }
 

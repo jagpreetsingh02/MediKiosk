@@ -22,7 +22,10 @@ from app.core.config import settings
 @dataclass(frozen=True, slots=True)
 class Transcript:
     text: str
-    confidence: float
+    #: The engine's own score, or None when it did not give one. NEVER substituted — a
+    #: confidence nobody measured, attached to a clinical fact, is fabricated provenance and
+    #: is indistinguishable downstream from a measured one.
+    confidence: float | None
     language: str
     backend: str
     duration_ms: int = 0
@@ -33,13 +36,27 @@ class Transcript:
     empty: bool = False
 
     @property
+    def measured(self) -> bool:
+        return self.confidence is not None
+
+    @property
+    def confidence_status(self) -> str:
+        return "measured" if self.measured else "unavailable"
+
+    @property
     def reliable(self) -> bool:
-        return not self.empty and self.confidence >= settings.asr_confidence_threshold
+        """Confidently good. An UNMEASURED transcript is not reliable and not unreliable —
+        it is unknown, and `unknown` is a different decision. Callers must branch on
+        `measured` before trusting this."""
+        if self.empty or self.confidence is None:
+            return False
+        return self.confidence >= settings.asr_confidence_threshold
 
     def to_dict(self) -> dict[str, object]:
         return {
             "text": self.text,
-            "confidence": round(self.confidence, 4),
+            "confidence": round(self.confidence, 4) if self.confidence is not None else None,
+            "confidenceStatus": self.confidence_status,
             "language": self.language,
             "backend": self.backend,
             "durationMs": self.duration_ms,

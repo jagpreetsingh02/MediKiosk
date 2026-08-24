@@ -22,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -216,6 +217,11 @@ class SessionDocument(Base):
     verified_by: Mapped[str | None] = mapped_column(String(255))
     pages_json: Mapped[list | None] = mapped_column(JSON)
     entities_json: Mapped[list | None] = mapped_column(JSON)
+    #: The uploaded file. Held for the life of the capture session so that, if the physician
+    #: confirms, promotion can carry it into durable evidence — a physician who cannot see the
+    #: prescription a dose came from has provenance in name only. Purged with the session
+    #: otherwise. Synthetic documents only.
+    content: Mapped[bytes | None] = mapped_column(LargeBinary)
     uploaded_at: Mapped[datetime] = ts_column()
 
     session: Mapped[IntakeSession] = relationship(back_populates="documents")

@@ -25,7 +25,7 @@ interface Props {
   voiceEnabled: boolean;
   onAnswer: (value: unknown) => void;
   onTyped: (value: string) => void;
-  onSpoken: (transcript: string, confidence: number, bargeIn: boolean) => void;
+  onSpoken: (transcript: string, confidence: number | null, bargeIn: boolean) => void;
   onSkip: () => void;
 }
 
@@ -106,8 +106,12 @@ export function QuestionCard({
             <strong>{voice.prompt}</strong>
             {voice.transcript.text && (
               <div style={{ fontSize: 19, marginTop: 8, color: 'var(--ink-2)' }}>
-                I heard: “{voice.transcript.text}” — but only{' '}
-                {Math.round(voice.transcript.confidence * 100)}% sure, and I will not guess.
+                I heard: “{voice.transcript.text}” —{' '}
+                {voice.transcript.confidence === null
+                  ? 'but this device did not tell me how sure it was, and I will not guess.'
+                  : `but only ${Math.round(
+                      voice.transcript.confidence * 100,
+                    )}% sure, and I will not guess.`}
               </div>
             )}
           </div>

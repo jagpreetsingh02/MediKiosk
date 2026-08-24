@@ -58,3 +58,16 @@ def machine(ledger):
 
     state = DialogueState(session_id="sess_test", language="en")
     return DialogueMachine(state, ledger)
+
+
+@pytest.fixture
+async def seeded_patient(db_session):
+    """The demo patient with two historical encounters, a prescription and a lab report."""
+    from app.modules.encounter.history import get_patient_by_abha
+    from app.modules.encounter.seed import demo_abha_ref, seed_demo_patient
+
+    await seed_demo_patient(db_session)
+    await db_session.commit()
+    patient = await get_patient_by_abha(db_session, abha_ref=demo_abha_ref())
+    assert patient is not None
+    return db_session, patient

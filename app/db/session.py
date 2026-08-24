@@ -45,7 +45,7 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 async def create_all() -> None:
     """Create tables directly. Used by tests and by the one-command demo; Alembic owns prod."""
-    from app.db import models  # noqa: F401  (import registers the mappers)
+    from app.db import durable, models  # noqa: F401  (imports register the mappers)
 
     async with get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

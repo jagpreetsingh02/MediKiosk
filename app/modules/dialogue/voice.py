@@ -37,6 +37,20 @@ DEGRADE_PROMPTS: dict[str, dict[str, str]] = {
         "hi": "मैं अभी उसे समझ नहीं सका। कृपया नीचे अपना उत्तर दबाइए।",
         "ta": "இப்போது அதைச் செயலாக்க முடியவில்லை. கீழே உங்கள் பதிலைத் தொடவும்.",
     },
+    "unmeasured": {
+        "en": (
+            "This device did not tell me how clearly it heard you, and this answer is too "
+            "important to guess. Please tap it below."
+        ),
+        "hi": (
+            "यह डिवाइस बता नहीं सका कि उसने आपको कितना साफ़ सुना, और यह जवाब अंदाज़े से लिखने के "
+            "लिए बहुत ज़रूरी है। कृपया नीचे दबाइए।"
+        ),
+        "ta": (
+            "இந்தச் சாதனம் எவ்வளவு தெளிவாகக் கேட்டது எனச் சொல்லவில்லை; இந்தப் பதில் "
+            "ஊகிக்க முடியாத அளவு முக்கியம். கீழே தொடவும்."
+        ),
+    },
     "unclear": {
         "en": "Sorry, I did not catch that clearly. Please tap your answer below.",
         "hi": "माफ़ कीजिए, मैं ठीक से समझ नहीं पाया। कृपया नीचे अपना उत्तर दबाइए।",
@@ -59,6 +73,9 @@ class VoiceOutcome:
     facts: list[Fact]
     extraction: ExtractionOutcome | None
     prompt: str | None = None
+    #: True when the fact was recorded from a transcript with no measured confidence. The
+    #: physician screen surfaces these for verification rather than hiding them.
+    needs_verification: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -69,6 +86,7 @@ class VoiceOutcome:
             "factsRecorded": len(self.facts),
             "extraction": self.extraction.to_dict() if self.extraction else None,
             "prompt": self.prompt,
+            "needsVerification": self.needs_verification,
         }
 
 
@@ -92,11 +110,20 @@ def handle_spoken_answer(
     if transcript.empty:
         return _degrade(machine, question_id, transcript, "silence", language)
 
-    if not transcript.reliable:
+    # An UNMEASURED score is not a low score. It is the absence of a measurement, and the
+    # two deserve different handling: a value nobody scored must never be silently trusted,
+    # but discarding it everywhere would throw away most spoken answers on the browsers that
+    # report nothing. So it degrades to touch where being wrong is dangerous, and is recorded
+    # as needing verification everywhere else.
+    if not transcript.measured:
+        if question.confidence_critical:
+            log.info("voice.unmeasured_critical", question=question_id)
+            return _degrade(machine, question_id, transcript, "unmeasured", language)
+    elif not transcript.reliable:
         log.info(
             "voice.degraded",
             question=question_id,
-            confidence=round(transcript.confidence, 3),
+            confidence=round(transcript.confidence or 0.0, 3),
             threshold=settings.asr_confidence_threshold,
         )
         return _degrade(machine, question_id, transcript, "unclear", language)

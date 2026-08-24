@@ -127,6 +127,12 @@ class Question(BaseModel):
     entry_of: str | None = None
     #: Answers to this question are fed to the red-flag rule engine (Invariant 3).
     red_flag_scan: bool = False
+    #: A wrong answer here is dangerous, so an UNMEASURED speech confidence is not good
+    #: enough: the question degrades to touch rather than recording a value nobody scored.
+    #: Set on allergies, medications and the red-flag screens — the three the build brief
+    #: singles out. Elsewhere an unmeasured answer is recorded and flagged for verification,
+    #: because losing it would be worse than reviewing it.
+    confidence_critical: bool = False
     socrates: str | None = None
     system: str | None = None
     parameter: str | None = None

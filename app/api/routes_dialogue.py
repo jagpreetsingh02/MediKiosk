@@ -129,9 +129,11 @@ async def answer_voice(
     if not turn_id or not question_id:
         raise ValidationError("turnId and questionId are both required.")
 
+    raw_confidence = payload.get("confidence")
     transcript = get_client_backend().accept(
         text=str(payload.get("transcript", "")),
-        confidence=float(payload.get("confidence", 0.0)),
+        # `null` from the client stays None. See Transcript.confidence.
+        confidence=None if raw_confidence is None else float(raw_confidence),
         language=context.row.language,
     )
 
@@ -174,7 +176,10 @@ async def answer_voice(
         consent_ref=context.row.consent_ref,
         request_summary={
             "questionId": question_id,
-            "asrConfidence": round(transcript.confidence, 3),
+            "asrConfidence": (
+                round(transcript.confidence, 3) if transcript.confidence is not None else None
+            ),
+            "confidenceStatus": transcript.confidence_status,
         },
         response_summary={
             "accepted": outcome.accepted,

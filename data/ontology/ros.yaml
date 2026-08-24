@@ -20,6 +20,7 @@ sections:
 
       - id: ros.cardio
         path: review_of_systems.cardiovascular
+        confidence_critical: true
         label: "Cardiovascular"
         kind: multi_choice
         system: "Cardiovascular"
@@ -37,6 +38,7 @@ sections:
 
       - id: ros.resp
         path: review_of_systems.respiratory
+        confidence_critical: true
         label: "Respiratory"
         kind: multi_choice
         system: "Respiratory"
@@ -55,6 +57,7 @@ sections:
 
       - id: ros.gi
         path: review_of_systems.gastrointestinal
+        confidence_critical: true
         label: "Gastrointestinal"
         kind: multi_choice
         system: "Gastrointestinal"
@@ -76,6 +79,7 @@ sections:
 
       - id: ros.neuro
         path: review_of_systems.neurological
+        confidence_critical: true
         label: "Neurological"
         kind: multi_choice
         system: "Neurological"
@@ -98,6 +102,7 @@ sections:
 
       - id: ros.gu
         path: review_of_systems.genitourinary
+        confidence_critical: true
         label: "Genitourinary"
         kind: multi_choice
         system: "Genitourinary"
@@ -132,6 +137,7 @@ sections:
 
       - id: ros.general
         path: review_of_systems.general
+        confidence_critical: true
         label: "General"
         kind: multi_choice
         system: "General"

@@ -25,9 +25,15 @@ class ClientSpeechBackend:
             "posts the transcript with the answer."
         )
 
-    def accept(self, *, text: str, confidence: float, language: str) -> Transcript:
-        """Wrap a client transcript. The confidence policy applies identically."""
-        if not 0.0 <= confidence <= 1.0:
+    def accept(
+        self, *, text: str, confidence: float | None, language: str
+    ) -> Transcript:
+        """Wrap a client transcript. `None` means the browser gave no score, and stays None.
+
+        Several browsers report no confidence at all for Indic locales. Substituting a value
+        here would put a number nobody measured onto a clinical fact.
+        """
+        if confidence is not None and not 0.0 <= confidence <= 1.0:
             raise ValidationError(f"ASR confidence {confidence} is outside [0, 1].")
         stripped = text.strip()
         return Transcript(

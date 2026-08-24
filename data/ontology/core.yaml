@@ -90,6 +90,7 @@ sections:
 
       - id: hpi.onset
         path: hpi.onset
+        confidence_critical: true
         kind: single_choice
         socrates: "O — Onset"
         prompt:
@@ -136,6 +137,7 @@ sections:
 
       - id: hpi.radiation
         path: hpi.radiation
+        confidence_critical: true
         kind: single_choice
         socrates: "R — Radiation"
         red_flag_scan: true
@@ -162,6 +164,7 @@ sections:
 
       - id: hpi.associated
         path: hpi.associated
+        confidence_critical: true
         label: "Associated symptoms"
         kind: multi_choice
         socrates: "A — Associations"
@@ -331,6 +334,7 @@ sections:
     questions:
       - id: med.taking
         path: drug_allergy.taking_medicines
+        confidence_critical: true
         label: "On medication"
         kind: boolean
         prompt:
@@ -342,6 +346,7 @@ sections:
 
       - id: med.list
         path: drug_allergy.medicines
+        confidence_critical: true
         label: "Medication"
         kind: open_text
         repeatable: true
@@ -357,6 +362,7 @@ sections:
 
       - id: med.ayush_taking
         path: drug_allergy.ayush_medicines
+        confidence_critical: true
         label: "On AYUSH medication"
         kind: boolean
         prompt:
@@ -365,6 +371,7 @@ sections:
 
       - id: allergy.any
         path: drug_allergy.has_allergy
+        confidence_critical: true
         label: "Any allergy"
         kind: boolean
         red_flag_scan: true
@@ -374,6 +381,7 @@ sections:
 
       - id: allergy.what
         path: drug_allergy.allergy_substance
+        confidence_critical: true
         label: "Allergen"
         kind: open_text
         repeatable: true
@@ -386,6 +394,7 @@ sections:
 
       - id: allergy.reaction
         path: drug_allergy.allergy_reaction
+        confidence_critical: true
         label: "Allergic reaction"
         kind: single_choice
         red_flag_scan: true

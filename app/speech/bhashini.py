@@ -76,12 +76,12 @@ class BhashiniSpeechBackend:
         )
         output = (body.get("pipelineResponse") or [{}])[0].get("output") or [{}]
         text = str(output[0].get("source", "")).strip()
-        # Dhruva does not return a confidence. Assigning a fake high one would defeat the
-        # degradation policy, so an absent confidence is treated as exactly the threshold:
-        # usable, but never trusted more than a transcript we can actually score.
+        # Dhruva returns no confidence, so this reports none. Assigning one — even the
+        # threshold itself, as an earlier version did — would claim a measurement that was
+        # never made. The caller handles `unavailable` explicitly.
         return Transcript(
             text=text,
-            confidence=settings.asr_confidence_threshold,
+            confidence=None,
             language=language,
             backend=self.name,
             empty=not text,

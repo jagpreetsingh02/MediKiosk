@@ -50,7 +50,17 @@ const LOCALES: Record<string, string> = {
 
 export interface SpeechResult {
   transcript: string;
-  confidence: number;
+  /**
+   * The browser's own score, or `null` when it did not give one.
+   *
+   * `null` is reported as `null`. An earlier version substituted 0.7 here because Chrome
+   * reports 0 on several Indic locales and passing that through degraded every spoken
+   * answer to touch. That was fabricating provenance: a confidence nobody measured, attached
+   * to a clinical fact, indistinguishable downstream from one that was. The backend now
+   * handles an unmeasured score explicitly — recording the fact as needing verification, and
+   * degrading to touch outright on the questions where being wrong is dangerous.
+   */
+  confidence: number | null;
   bargeIn: boolean;
 }
 
@@ -160,11 +170,12 @@ export function useSpeech(language: string): UseSpeech {
         if (finalText) {
           setInterim('');
           setListening(false);
-          // Chrome reports confidence 0 on some Indic locales. Passing that through would
-          // degrade every single answer to touch, so an absent score is treated as "unknown
-          // but usable" — the backend still applies its own threshold to the value.
-          const confidence = finalConfidence > 0 ? finalConfidence : 0.7;
-          onResult({ transcript: finalText.trim(), confidence, bargeIn: bargedIn.current });
+          onResult({
+            transcript: finalText.trim(),
+            // Reported as-is, or null. Never substituted. See SpeechResult.confidence.
+            confidence: finalConfidence > 0 ? finalConfidence : null,
+            bargeIn: bargedIn.current,
+          });
         }
       };
 

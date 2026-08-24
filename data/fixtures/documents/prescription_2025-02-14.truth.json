@@ -1,0 +1,29 @@
+{
+  "medications": [
+    {
+      "name": "METFORMIN",
+      "dose": "500MG",
+      "frequency": "1-0-1"
+    },
+    {
+      "name": "AMLODIPINE",
+      "dose": "5MG",
+      "frequency": "OD"
+    },
+    {
+      "name": "ATORVASTATIN",
+      "dose": "10MG",
+      "frequency": "HS"
+    },
+    {
+      "name": "OMEPRAZOLE",
+      "dose": "20MG",
+      "frequency": "1-0-0"
+    }
+  ],
+  "diagnoses": [
+    "Type 2 diabetes mellitus with hypertension"
+  ],
+  "investigations": [],
+  "documentDate": "2025-02-14"
+}

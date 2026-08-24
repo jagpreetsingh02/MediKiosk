@@ -73,7 +73,13 @@ export interface VoiceOutcome {
   accepted: boolean;
   degradedToTouch: boolean;
   reason: 'unclear' | 'silence' | null;
-  transcript: { text: string; confidence: number; reliable: boolean; threshold: number };
+  transcript: {
+    text: string;
+    confidence: number | null;
+    confidenceStatus: 'measured' | 'unavailable';
+    reliable: boolean;
+    threshold: number;
+  };
   factsRecorded: number;
   prompt: string | null;
 }
@@ -370,7 +376,7 @@ export const api = {
     turnId: string,
     questionId: string,
     transcript: string,
-    confidence: number,
+    confidence: number | null,
     bargeIn: boolean,
   ) =>
     request<StepResponse>(`/api/v1/sessions/${ref}/dialogue/answer/voice`, {

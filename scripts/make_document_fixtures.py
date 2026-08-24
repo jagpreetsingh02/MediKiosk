@@ -165,6 +165,37 @@ def write_png(name: str, lines: list[str], *, degraded: bool) -> None:
     image.save(OUT / f"{name}{'_degraded' if degraded else '_scan'}.png")
 
 
+#: Dated variants for the seeded demo patient's history.
+#:
+#: The seed cannot simply stamp its own encounter date onto entities extracted from a
+#: fixture: the physician can open the page, and a timeline date that contradicts the date
+#: printed on the document would destroy the provenance the whole system rests on. So the
+#: historical documents genuinely bear the dates of the visits they belong to.
+HISTORICAL = (
+    ("prescription", "2025-02-14", "Date: 14/02/2025"),
+    ("lab_report", "2024-06-03", "Sample collected on 03/06/2024"),
+)
+
+
+def write_historical() -> list[str]:
+    written: list[str] = []
+    for base, iso, replacement in HISTORICAL:
+        lines = []
+        for line in DOCS[base]:
+            if line.startswith(("Date:", "Sample collected on")):
+                lines.append(replacement)
+            else:
+                lines.append(line)
+        name = f"{base}_{iso}"
+        write_pdf(name, lines)
+        (OUT / f"{name}.txt").write_text("\n".join(lines) + "\n")
+        truth = dict(TRUTH[base])
+        truth["documentDate"] = iso
+        (OUT / f"{name}.truth.json").write_text(json.dumps(truth, indent=2) + "\n")
+        written.append(name)
+    return written
+
+
 def main() -> None:
     for name, lines in DOCS.items():
         write_pdf(name, lines)
@@ -172,6 +203,8 @@ def main() -> None:
         write_png(name, lines, degraded=True)
         (OUT / f"{name}.truth.json").write_text(json.dumps(TRUTH[name], indent=2) + "\n")
         (OUT / f"{name}.txt").write_text("\n".join(lines) + "\n")
+
+    historical = write_historical()
 
     (OUT / "README.md").write_text(
         "# Document fixtures\n\n"
@@ -184,6 +217,13 @@ def main() -> None:
         "| `_degraded.png` | rotated, blurred, noisy, low contrast | the low-confidence / verification lane |\n"
         "| `.truth.json` | ground truth | scoring for `eval/ocr_bench.py` |\n"
         "| `.txt` | plain text | fast unit tests |\n"
+        "| `<name>_<YYYY-MM-DD>.pdf` | the same document dated for the seeded patient's "
+        "history | `app/modules/encounter/seed.py` |\n\n"
+        f"Historical variants: {', '.join(historical)}.\n\n"
+        "The seed uses the dated variants because it cannot stamp its own encounter date "
+        "onto entities extracted from a fixture: a physician can open the page, and a "
+        "timeline date contradicting the date printed on the document would destroy the "
+        "provenance the system rests on.\n"
     )
     print(f"wrote {len(list(OUT.iterdir()))} files to {OUT}")
 
