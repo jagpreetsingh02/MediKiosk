@@ -121,7 +121,7 @@ in `docs/EVALUATION.md`.
 | Metric | Offline rules | Groq `gpt-oss-120b` |
 |---|---|---|
 | Hallucination rate | **0.0000** | **0.0000** |
-| Red-flag sensitivity | **1.0000** | **1.0000** |
+| Red-flag sensitivity | **1.0000** | 1.0000, then 0.8571 on a re-run |
 | Extraction accuracy | 0.9048 | **0.9524** |
 | Median time to summary | **1 ms** | 1,843 ms |
 

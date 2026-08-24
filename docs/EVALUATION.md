@@ -198,29 +198,60 @@ exists to remove.
 | Metric | Offline rules | Groq `gpt-oss-120b` |
 |---|---|---|
 | Hallucination rate | **0.0000** | **0.0000** |
-| Red-flag sensitivity | **1.0000** | **1.0000** |
+| Red-flag sensitivity | **1.0000** | 1.0000 *(0.8571 on a second run — see below)* |
 | Priority under-calls | **0** | **0** |
 | Extraction accuracy | 0.9048 | **0.9524** |
 | History completeness | 0.9695 | **0.9778** |
 | Median time to summary | **1 ms** | 1,843 ms |
 
 **On phrasing neither backend has seen, the model is about 5 points better at extraction and
-about 1,800× slower, and the two are indistinguishable on every safety metric.**
+about 1,800× slower.** The safety row above says the two are level. Read the next section
+before quoting that.
+
+### The hosted model's red-flag sensitivity is not stable between runs
+
+The table above is one run. Running the identical suite against the identical model a second
+time, changing nothing:
+
+| Run | Development (n=50) | Held-out (n=12) | Missed |
+|---|---|---|---|
+| 1 | 0.9333 | **1.0000** | `s05-ectopic`, `s34-lowlit-breathless`, `s35-lowlit-fever` |
+| 2 | 0.9333 | **0.8571** | the same three, **plus `h06-anaphylaxis-plain` (RF-SYS-02)** |
+
+The development misses reproduce exactly, so they are a property of the model on that
+phrasing, not noise. The held-out column is the problem: an anaphylaxis history caught in one
+run was missed in the next, from the same input, with temperature and prompt unchanged.
+
+The offline extractor scores 1.0000 on both sets in every run, because a lexicon and a rule
+engine have no run-to-run variance to have.
+
+**Two runs is not a sample, and the honest statement is not "the model is 0.857".** It is that
+a single hosted measurement of red-flag sensitivity does not license the word *indistinguishable*
+— the metric moved, on the axis where movement is least acceptable, and finding out how far it
+moves would take far more runs than this repo has made. That is a reason to publish the
+variance rather than the better of the two numbers.
+
+It is also why **`make eval-strict` is pinned to the offline extractor** and `make eval-hosted`
+reports without gating. A build gate that flips colour on a vendor's sampling is a gate that
+teaches people to re-run until it passes.
 
 ### What that actually means
 
 Three conclusions, and the third is the one that matters architecturally.
 
-1. **The LLM buys extraction recall on novel phrasing, and nothing else.** +4.8 points on
-   held-out extraction is real and worth having. It bought exactly zero on hallucination rate,
-   red-flag sensitivity and priority accuracy, because those are not extractor properties.
+1. **The LLM buys extraction recall on novel phrasing, and costs determinism.** +4.8 points on
+   held-out extraction is real and worth having. It bought nothing on hallucination rate, and
+   on red-flag sensitivity it bought a number that will not sit still.
 2. **The rule extractor generalises better than expected.** 0.9048 on phrasing it was never
    tuned for is a high floor for a phrase lexicon, and it is the reason the offline default is
    defensible rather than a compromise. The two held-out misses are listed above.
-3. **The safety guarantees are backend-independent.** Swap the extraction engine entirely —
-   rules for a 120-billion-parameter model — and hallucination rate stays 0 and red-flag
-   sensitivity stays 1.0. That is the strongest evidence in this document that the guarantees
-   come from `record_fact()` and the rule engine rather than from anything being clever.
+3. **The safety guarantees are backend-independent — the *measurements* are not.** Swap the
+   extraction engine entirely, rules for a 120-billion-parameter model, and hallucination rate
+   stays 0: `record_fact()` refuses an unsourced fact whatever produced it, and that guarantee
+   is structural. Red-flag sensitivity is different in kind. It depends on something reaching
+   the rule engine, so it inherits the extractor's variance, and the hosted path demonstrably
+   has some. The rules do not. For a system whose one unacceptable error is a missed
+   escalation, that asymmetry is the argument for the default.
 
 ### A prediction that was wrong, recorded because it was wrong
 
