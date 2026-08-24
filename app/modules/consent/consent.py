@@ -40,11 +40,18 @@ class Scope(BaseModel):
     required: bool
     title_en: str
     title_hi: str
+    #: The compact label on the consent screen. Optional so a scope added without one still
+    #: loads; `short()` falls back to the full title.
+    short_en: str | None = None
+    short_hi: str | None = None
     audio_en: str
     audio_hi: str
 
     def title(self, language: str) -> str:
         return getattr(self, f"title_{language}", None) or self.title_en
+
+    def short(self, language: str) -> str:
+        return getattr(self, f"short_{language}", None) or self.title(language)
 
     def audio(self, language: str) -> str:
         return getattr(self, f"audio_{language}", None) or self.audio_en
@@ -83,6 +90,7 @@ def presentation(language: str = "en") -> dict[str, Any]:
                 "id": scope.id,
                 "required": scope.required,
                 "title": scope.title(language),
+                "short": scope.short(language),
                 "audio": scope.audio(language),
             }
             for scope in policy.scopes

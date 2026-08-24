@@ -4,6 +4,10 @@
 # and the session simply ends with nothing captured, which is the correct outcome of a refusal.
 # Everything else is genuinely optional and refusing it must not degrade the rest of the visit.
 #
+# `short_en` / `short_hi` are the compact labels on the consent screen; `title_*` is the
+# full sentence, and `audio_*` is what is read aloud. Three lengths because the screen,
+# the detail line and the spoken version genuinely want different wording.
+#
 # `audio_hi` / `audio_en` are read aloud by the kiosk. They are written for someone who has
 # never used a computer, and they say what actually happens, including deletion.
 
@@ -13,6 +17,8 @@ policy_version: "1.0.0"
 scopes:
   - id: history
     required: true
+    short_en: "Record today's health history"
+    short_hi: "आज की सेहत की जानकारी लिखना"
     title_en: "Record what you tell me about your health"
     title_hi: "आपकी सेहत के बारे में जो आप बताएँगे, वह लिखना"
     audio_en: >-
@@ -24,6 +30,8 @@ scopes:
 
   - id: voice
     required: false
+    short_en: "Use the microphone"
+    short_hi: "माइक्रोफ़ोन इस्तेमाल करना"
     title_en: "Listen to your voice while you answer"
     title_hi: "जवाब देते समय आपकी आवाज़ सुनना"
     audio_en: >-
@@ -37,6 +45,8 @@ scopes:
 
   - id: documents
     required: false
+    short_en: "Scan my old records"
+    short_hi: "पुराने काग़ज़ स्कैन करना"
     title_en: "Scan your old prescriptions and reports"
     title_hi: "आपकी पुरानी पर्चियाँ और रिपोर्ट स्कैन करना"
     audio_en: >-
@@ -48,6 +58,8 @@ scopes:
 
   - id: abdm_share
     required: false
+    short_en: "Save the approved record"
+    short_hi: "मंज़ूर रिकॉर्ड सहेजना"
     title_en: "Send the summary to your health record after the doctor approves it"
     title_hi: "डॉक्टर की मंज़ूरी के बाद सारांश आपके स्वास्थ्य रिकॉर्ड में भेजना"
     audio_en: >-
@@ -61,6 +73,8 @@ scopes:
 
   - id: ayush
     required: false
+    short_en: "Ask Ayurveda questions"
+    short_hi: "आयुर्वेद के सवाल पूछना"
     title_en: "Ask a few extra questions used in Ayurvedic assessment"
     title_hi: "आयुर्वेदिक आकलन में काम आने वाले कुछ अतिरिक्त सवाल पूछना"
     audio_en: >-

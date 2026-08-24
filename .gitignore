@@ -16,3 +16,4 @@ data/uploads/
 
 # scratch output from local runs
 tmp/
+frontend/tsconfig.tsbuildinfo

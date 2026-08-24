@@ -7,8 +7,9 @@
  */
 import { useRef, useState } from 'react';
 import { ApiError, api, type UploadResult } from '../shared/api';
-import { DocumentReview } from './DocumentReview';
 import { Icon } from '../shared/Icon';
+import { CameraCapture } from './CameraCapture';
+import { DocumentReview } from './DocumentReview';
 
 interface Props {
   sessionRef: string;
@@ -33,25 +34,51 @@ export function DocumentUpload({
   const [reviewing, setReviewing] = useState<UploadResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [granting, setGranting] = useState(false);
+  const [camera, setCamera] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const input = useRef<HTMLInputElement>(null);
+  /** Two pickers, because "a photo" and "a PDF" are different things to a patient and the
+   *  file dialog should not offer both when they have already said which they have. */
+  const imageInput = useRef<HTMLInputElement>(null);
+  const pdfInput = useRef<HTMLInputElement>(null);
+
+  async function send(file: File): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api.upload(sessionRef, file);
+      setUploads((current) => [...current, result]);
+      // Straight into the readback. An extraction the patient never saw is an extraction
+      // that became true without anybody agreeing to it.
+      setReviewing(result);
+    } catch (exc) {
+      // Whatever went wrong — a missing OCR engine, an unreadable file, a dead network —
+      // the patient gets one sentence they can act on. The detail is in the server log,
+      // where the person who can fix it will look.
+      setError(
+        exc instanceof ApiError && exc.status === 413
+          ? 'That file is too large. Please take a photo instead.'
+          : 'We could not read that paper. Please try another photo, or skip this step.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function upload(files: FileList | null): Promise<void> {
     if (!files?.length) return;
-    setBusy(true);
-    setError(null);
-    for (const file of Array.from(files)) {
-      try {
-        const result = await api.upload(sessionRef, file);
-        setUploads((current) => [...current, result]);
-        // Straight into the readback. An extraction the patient never saw is an extraction
-        // that became true without anybody agreeing to it.
-        setReviewing(result);
-      } catch (exc) {
-        setError(exc instanceof ApiError ? exc.message : `Could not read ${file.name}.`);
-      }
-    }
-    setBusy(false);
+    for (const file of Array.from(files)) await send(file);
+  }
+
+  if (camera) {
+    return (
+      <CameraCapture
+        onCancel={() => setCamera(false)}
+        onCaptured={(file) => {
+          setCamera(false);
+          void send(file);
+        }}
+      />
+    );
   }
 
   if (reviewing) {
@@ -119,22 +146,66 @@ export function DocumentUpload({
         </div>
       )}
 
-      <button
-        type="button"
-        className="upload-drop"
-        style={{ width: '100%' }}
-        onClick={() => input.current?.click()}
-        disabled={busy || !consented}
-      >
-        <Icon name="camera" />
-        <div style={{ marginTop: 12 }}>
-          {busy ? 'Reading your document…' : 'Touch here to add a prescription or report'}
+      {busy ? (
+        <div className="upload-working" role="status">
+          <Icon name="camera" />
+          <div>
+            <strong>Reading your paper…</strong>
+            <div className="upload-working-step">Finding the words, then the medicines.</div>
+          </div>
         </div>
-      </button>
+      ) : (
+        <div className="doc-actions">
+          <button
+            type="button"
+            className="doc-action primary"
+            disabled={!consented}
+            onClick={() => setCamera(true)}
+          >
+            <Icon name="camera" />
+            <span>Take Photo</span>
+          </button>
+          <button
+            type="button"
+            className="doc-action"
+            disabled={!consented}
+            onClick={() => imageInput.current?.click()}
+          >
+            <Icon name="other" />
+            <span>Upload Image</span>
+          </button>
+          <button
+            type="button"
+            className="doc-action"
+            disabled={!consented}
+            onClick={() => pdfInput.current?.click()}
+          >
+            <Icon name="checkup" />
+            <span>Upload PDF</span>
+          </button>
+          <button
+            type="button"
+            className="doc-action quiet"
+            onClick={() => onDone(alreadyUploaded + uploads.length)}
+          >
+            <Icon name="cross" />
+            <span>Skip</span>
+          </button>
+        </div>
+      )}
+
       <input
-        ref={input}
+        ref={imageInput}
         type="file"
-        accept="application/pdf,image/png,image/jpeg,text/plain"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        hidden
+        onChange={(event) => void upload(event.target.files)}
+      />
+      <input
+        ref={pdfInput}
+        type="file"
+        accept="application/pdf,text/plain"
         multiple
         hidden
         onChange={(event) => void upload(event.target.files)}
@@ -165,16 +236,18 @@ export function DocumentUpload({
         </div>
       ))}
 
-      <div className="kiosk-actions">
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => onDone(alreadyUploaded + uploads.length)}
-          disabled={busy}
-        >
-          {uploads.length || alreadyUploaded ? 'Done — continue' : 'I have no papers'}
-        </button>
-      </div>
+      {(uploads.length > 0 || alreadyUploaded > 0) && (
+        <div className="kiosk-actions">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => onDone(alreadyUploaded + uploads.length)}
+            disabled={busy}
+          >
+            Done — continue
+          </button>
+        </div>
+      )}
     </div>
   );
 }

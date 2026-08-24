@@ -100,9 +100,8 @@ class TextLayerOCR:
             return self._read_text(data)
         if media_type == "application/pdf" or filename.lower().endswith(".pdf"):
             return self._read_pdf(data)
-        raise ValidationError(
-            f"{self.name} handles PDFs and plain text. {media_type!r} needs an image-capable "
-            "backend — set OCR_BACKEND=tesseract."
+        raise UnsupportedMedia(
+            f"{self.name} reads PDFs and plain text, not {media_type!r}."
         )
 
     def _read_text(self, data: bytes) -> OCRResult:
@@ -124,9 +123,10 @@ class TextLayerOCR:
                     continue
                 pages.append(self._page_from_text(page.extract_text() or "", index))
         if not any(p.blocks for p in pages):
-            raise UpstreamUnavailable(
-                "This PDF has no embedded text layer — it is a scan. Use the tesseract "
-                "backend (OCR_BACKEND=tesseract) for scanned documents."
+            # A scan wearing a PDF extension. `read_document()` catches this and retries
+            # on an image-capable engine rather than surfacing it.
+            raise UnsupportedMedia(
+                "This PDF carries no text layer — it is a scan, and needs image OCR."
             )
         return OCRResult(backend=self.name, pages=tuple(pages))
 
@@ -250,10 +250,15 @@ class TesseractOCR:
 
     def read(self, data: bytes, *, filename: str, media_type: str) -> OCRResult:
         if not self.available:
-            raise UpstreamUnavailable(
-                "The `tesseract` binary is not installed. `brew install tesseract` (add "
-                "`tesseract-lang` for Devanagari), or use OCR_BACKEND=textlayer."
+            # The install hint is for whoever runs the kiosk, and it goes to the log where
+            # they will look. The patient gets a sentence they can act on: take a photo
+            # again, or hand the paper to the doctor. Telling them to install a binary is
+            # noise at best and alarming at worst.
+            log.error(
+                "ocr.tesseract_missing",
+                remedy="brew install tesseract (add tesseract-lang for Devanagari)",
             )
+            raise UpstreamUnavailable("This kiosk cannot read photographs at the moment.")
         is_pdf = media_type == "application/pdf" or filename.lower().endswith(".pdf")
         with tempfile.TemporaryDirectory() as tmp:
             if is_pdf:
@@ -398,6 +403,72 @@ def _normalise(raw: tuple[int, int, int, int], page_w: int, page_h: int) -> Boun
 
 
 _BACKENDS: dict[str, type] = {"textlayer": TextLayerOCR, "tesseract": TesseractOCR}
+
+
+
+class UnsupportedMedia(ValidationError):
+    """This engine cannot read this kind of file. Another one might.
+
+    Its own class so `read_document()` can tell "wrong engine for this file" apart from
+    "this file is broken", and retry rather than give up.
+    """
+
+
+#: Which engine reads which kind of file. Dispatch on the media type, because the alternative
+#: — a single configured default — is what made photographs unreadable: `textlayer` was the
+#: default, a phone photo is a PNG, and the patient was told to set an environment variable.
+#: A patient cannot set an environment variable.
+_IMAGE_TYPES = ("image/",)
+_TEXT_TYPES = ("application/pdf", "text/plain")
+
+
+def backend_for(media_type: str, filename: str, *, requested: str | None = None) -> OCRBackend:
+    """Choose the engine from what the file actually is.
+
+    An explicit `requested` still wins: the OCR benchmark compares engines on identical
+    inputs, and the physician lane may re-run a page on a different one. This only decides
+    what happens when nobody asked for anything, which is every patient upload.
+    """
+    if requested:
+        return get_ocr_backend(requested)
+
+    lowered = filename.lower()
+    is_image = media_type.startswith(_IMAGE_TYPES) or lowered.endswith(
+        (".png", ".jpg", ".jpeg", ".webp", ".heic")
+    )
+    if is_image:
+        tesseract = get_ocr_backend("tesseract")
+        if not tesseract.available:
+            raise UpstreamUnavailable(
+                "This kiosk cannot read photographs at the moment."
+            )
+        return tesseract
+    return get_ocr_backend("textlayer")
+
+
+def read_document(data: bytes, *, filename: str, media_type: str, requested: str | None = None):
+    """Read a document, retrying on an image-capable engine when the file turns out to be one.
+
+    A PDF exported from a phone scanner app has no text layer, and `textlayer` is right to
+    refuse it — but refusing is not the patient's problem to solve. The retry is what makes
+    "Upload PDF" work for the documents people actually have.
+    """
+    backend = backend_for(media_type, filename, requested=requested)
+    try:
+        return backend.read(data, filename=filename, media_type=media_type)
+    except UnsupportedMedia:
+        if requested:
+            raise
+        fallback = get_ocr_backend("tesseract")
+        if not fallback.available or fallback.name == backend.name:
+            raise
+        log.info(
+            "ocr.retrying_on_image_engine",
+            first=backend.name,
+            then=fallback.name,
+            media_type=media_type,
+        )
+        return fallback.read(data, filename=filename, media_type=media_type)
 
 
 def get_ocr_backend(name: str | None = None) -> OCRBackend:

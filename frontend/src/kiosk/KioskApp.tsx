@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, setToken, type StepResponse, type VoiceOutcome } from '../shared/api';
 import { Icon } from '../shared/Icon';
+import { unlock } from '../shared/tts';
 import { AbhaLogin } from './AbhaLogin';
 import { ConsentGate } from './ConsentGate';
 import { DocumentUpload } from './DocumentUpload';
@@ -176,7 +177,11 @@ export function KioskApp(): JSX.Element {
   const question = step?.question ?? null;
 
   return (
-    <div className="kiosk">
+    // Every browser refuses audio until the user has interacted with the page, and the
+    // kiosk's first prompt speaks by itself as soon as a question renders. Priming the
+    // speech engine from the first tap anywhere — a language, a consent toggle, a keypad
+    // digit — is what makes that prompt audible. `unlock()` is idempotent and inaudible.
+    <div className="kiosk" onPointerDownCapture={() => unlock()}>
       <div className="mock-banner">
         Demo identity — mock ABHA issuer, synthetic patients only. Not an ABDM integration.
       </div>
@@ -250,6 +255,10 @@ export function KioskApp(): JSX.Element {
             voice={voice}
             busy={busy}
             voiceEnabled={scopes.includes('voice')}
+            reopened={Boolean(step?.reopened)}
+            currentAnswer={step?.currentAnswer ?? null}
+            canGoBack={step?.canGoBack !== false}
+            onBack={() => void guard(() => api.back(sessionRef))}
             onAnswer={(value) => {
               setAnswered((n) => n + 1);
               void guard(() => api.answer(sessionRef, question.turnId, question.questionId, value));

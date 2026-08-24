@@ -67,6 +67,12 @@ export interface StepResponse {
   voice?: VoiceOutcome;
   escalation?: Escalation;
   recorded?: { factId: string; path: string; tier: Tier }[];
+  /** True when this question is being corrected rather than asked for the first time. */
+  reopened?: boolean | string;
+  /** The answer already on file for a reopened question, so the kiosk can pre-fill it. */
+  currentAnswer?: { value: unknown; verbatim: string | null; declined: boolean } | null;
+  /** False on the first question, where Back has nowhere to go. */
+  canGoBack?: boolean;
 }
 
 export interface VoiceOutcome {
@@ -103,6 +109,8 @@ export interface ConsentScope {
   id: string;
   required: boolean;
   title: string;
+  /** The compact label for the consent screen; falls back to `title` when absent. */
+  short?: string;
   audio: string;
 }
 
@@ -537,6 +545,12 @@ export const api = {
     request<StepResponse & { reopened: string }>(`/api/v1/sessions/${ref}/dialogue/reopen`, {
       method: 'POST',
       body: JSON.stringify({ questionId }),
+    }),
+  /** Reopen the previous answered question. The old fact is superseded, never deleted. */
+  back: (ref: string) =>
+    request<StepResponse & { reopened: string }>(`/api/v1/sessions/${ref}/dialogue/back`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
   skip: (ref: string, questionId: string) =>
     request<StepResponse>(`/api/v1/sessions/${ref}/dialogue/skip`, {

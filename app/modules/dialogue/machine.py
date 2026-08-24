@@ -334,6 +334,46 @@ class DialogueMachine:
         self.state.cursor = index
         return True
 
+    def previous_answered(self) -> str | None:
+        """The most recent question before the cursor that the patient actually answered.
+
+        This is what Back means. Not "the previous question in the file": the interview
+        branches, so the question before this one in the ontology may never have been asked.
+        Walking back from the cursor over questions that *have* an answer (or an explicit
+        decline) lands on the last thing the patient actually saw and responded to.
+
+        `derived` questions are skipped: the patient never answered them, the machine
+        computed them, and putting one in front of a person to "correct" is meaningless.
+        """
+        answered = {fact.path for fact in self.ledger.active_facts()}
+        start = min(self.state.cursor, len(self._flat)) - 1
+        for index in range(start, -1, -1):
+            _, _, question = self._flat[index]
+            if question.kind == "derived":
+                continue
+            if question.path in answered or question.id in self.state.declined:
+                return question.id
+        return None
+
+    def current_answer(self, question_id: str) -> dict[str, Any] | None:
+        """The answer already on file for a question, so a reopened one is pre-filled.
+
+        A patient who taps Back and sees an empty screen cannot tell whether their answer was
+        lost. Showing what they said, selected, is the difference between correcting an
+        answer and re-entering one.
+        """
+        question = next((q for _, _, q in self._flat if q.id == question_id), None)
+        if question is None:
+            return None
+        if question_id in self.state.declined:
+            return {"declined": True, "value": None, "verbatim": None}
+        fact = next(
+            (f for f in self.ledger.active_facts() if f.path == question.path), None
+        )
+        if fact is None:
+            return None
+        return {"declined": False, "value": fact.value, "verbatim": fact.source.verbatim}
+
     def answered_summary(self) -> list[dict[str, Any]]:
         """What the patient told us, in the words they saw, for the review screen."""
         out: list[dict[str, Any]] = []

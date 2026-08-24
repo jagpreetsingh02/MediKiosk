@@ -5,10 +5,18 @@
  * spoken aloud, the tap options are always visible, the microphone is offered alongside them
  * rather than instead of them, and a low-confidence transcript re-presents the question with
  * an explanation instead of recording a guess.
+ *
+ * ONE TAP ANSWERS. A single-choice option, a Yes/No, a face on the pain scale — each of those
+ * is a complete answer, and it now submits on the tap that gives it. The Continue button that
+ * used to follow was not a harmless extra click: the patient tapped an option, the screen did
+ * not move, and nothing told them whether the machine had heard them. Multi-select keeps a
+ * Done button because "I have finished choosing" is genuinely information the interface
+ * cannot infer.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Question, VoiceOutcome } from '../shared/api';
 import { Icon } from '../shared/Icon';
+import { unlock } from '../shared/tts';
 import { useSpeech } from '../shared/useSpeech';
 import { FaceScale } from './FaceScale';
 import { TapGrid } from './TapGrid';
@@ -23,10 +31,17 @@ interface Props {
    *  microphone is not offered at all — showing a button that 403s is worse than not
    *  showing it, and the patient explicitly said no. */
   voiceEnabled: boolean;
+  /** True when this question is being corrected rather than asked for the first time. */
+  reopened?: boolean;
+  /** The answer already on file, so a correction starts from what the patient said. */
+  currentAnswer?: { value: unknown; verbatim: string | null; declined: boolean } | null;
+  /** False on the very first question of the interview, where Back means nothing. */
+  canGoBack?: boolean;
   onAnswer: (value: unknown) => void;
   onTyped: (value: string) => void;
   onSpoken: (transcript: string, confidence: number | null, bargeIn: boolean) => void;
   onSkip: () => void;
+  onBack: () => void;
 }
 
 export function QuestionCard({
@@ -34,10 +49,14 @@ export function QuestionCard({
   voice,
   busy,
   voiceEnabled,
+  reopened,
+  currentAnswer,
+  canGoBack,
   onAnswer,
   onTyped,
   onSpoken,
   onSkip,
+  onBack,
 }: Props): JSX.Element {
   const [selected, setSelected] = useState<string[]>([]);
   const [typed, setTyped] = useState('');
@@ -49,35 +68,77 @@ export function QuestionCard({
 
   // Speech SYNTHESIS is always allowed: reading a question aloud captures nothing, so it
   // needs no consent. Only recognition — the microphone — is gated.
-  // Read the prompt aloud once per turn. Keyed on turnId, not questionId, so a re-presented
-  // question is read again — the patient needs to hear it a second time, not be left in
-  // silence wondering what happened.
+  //
+  // Keyed on turnId, not questionId, so a re-presented question is read again — the patient
+  // needs to hear it a second time, not be left in silence wondering what happened.
+  //
+  // NOTE the missing cleanup. This effect used to `return () => speech.cancelSpeech()`, and
+  // under React 18 StrictMode that was the entire "no sound is heard" bug: the effect runs,
+  // cleans up, and runs again in development, so the first invocation spoke, the cleanup
+  // cancelled it, and the second invocation saw `spokenFor.current === turnId` and returned
+  // without speaking. Every question, silent. Cancelling on unmount belongs with the mic
+  // teardown in `useSpeech`, which already does it.
   useEffect(() => {
-    setSelected([]);
     setTyped('');
+    // A reopened question starts from the answer already on file, so the patient sees what
+    // they are changing instead of a blank screen that looks like lost work.
+    const existing = reopened && currentAnswer?.value != null ? currentAnswer.value : null;
+    setSelected(
+      existing == null
+        ? []
+        : Array.isArray(existing)
+          ? existing.map(String)
+          : [String(existing)],
+    );
+
     if (spokenFor.current === question.turnId) return;
     spokenFor.current = question.turnId;
     const help = question.help ? ` ${question.help}` : '';
     void speech.speak(`${question.prompt}${help}`);
-    return () => speech.cancelSpeech();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.turnId]);
 
   const listen = useCallback(() => {
+    unlock();
     speech.cancelSpeech();
     speech.start(({ transcript, confidence, bargeIn }) => {
       onSpoken(transcript, confidence, bargeIn);
     });
   }, [speech, onSpoken]);
 
-  function submitChoice(): void {
-    if (question.kind === 'boolean') return;
-    if (!selected.length) return;
-    onAnswer(multi ? selected : selected[0]);
-  }
+  const hearQuestion = useCallback(() => {
+    // From a real tap, so this also satisfies the autoplay policy for every later prompt.
+    unlock();
+    const help = question.help ? ` ${question.help}` : '';
+    void speech.speak(`${question.prompt}${help}`);
+  }, [speech, question.prompt, question.help]);
 
   return (
     <>
+      <div className="question-topbar">
+        <button
+          type="button"
+          className="btn-back"
+          onClick={onBack}
+          disabled={busy || canGoBack === false}
+          aria-label="Go back to the previous question"
+        >
+          <Icon name="cross" />
+          Back
+        </button>
+
+        {speech.canSpeak && (
+          <button
+            type="button"
+            className={`audio-button${speech.speaking ? ' speaking' : ''}`}
+            onClick={speech.speaking ? speech.cancelSpeech : hearQuestion}
+          >
+            <Icon name="speaker" />
+            {speech.speaking ? 'Stop' : 'Hear the question'}
+          </button>
+        )}
+      </div>
+
       <div className="kiosk-section-label">
         {question.sectionTitle}
         {question.socrates && ` · ${question.socrates}`}
@@ -88,16 +149,33 @@ export function QuestionCard({
       </h1>
       {question.help && <p className="kiosk-help">{question.help}</p>}
 
+      {reopened && (
+        <div className="reopened-note" role="status">
+          <Icon name="check" />
+          <div>
+            You are changing this answer.
+            {currentAnswer?.verbatim && (
+              <>
+                {' '}
+                You said: <strong>“{currentAnswer.verbatim}”</strong>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {question.translationMissing && (
         <p className="kiosk-help" style={{ color: 'var(--warn)' }}>
           This question is not yet translated into your language and is shown in English.
         </p>
       )}
 
-      <button type="button" className="audio-button" onClick={() => void speech.speak(question.prompt)}>
-        <Icon name="speaker" />
-        Say it again
-      </button>
+      {/* Silence is a failure the patient can see coming only if we say so. */}
+      {speech.speechNotice && (
+        <p className="kiosk-help" style={{ color: 'var(--warn)' }}>
+          {speech.speechNotice}
+        </p>
+      )}
 
       {voice?.degradedToTouch && voice.prompt && (
         <div className="voice-degraded" role="status">
@@ -121,11 +199,29 @@ export function QuestionCard({
       <div style={{ marginTop: 24 }}>
         {question.kind === 'boolean' ? (
           <div className="tap-grid">
-            <button type="button" className="tap-option" disabled={busy} onClick={() => onAnswer(true)}>
+            <button
+              type="button"
+              className="tap-option"
+              aria-pressed={selected[0] === 'true'}
+              disabled={busy}
+              onClick={() => {
+                setSelected(['true']);
+                onAnswer(true);
+              }}
+            >
               <Icon name="check" />
               <span>Yes</span>
             </button>
-            <button type="button" className="tap-option" disabled={busy} onClick={() => onAnswer(false)}>
+            <button
+              type="button"
+              className="tap-option"
+              aria-pressed={selected[0] === 'false'}
+              disabled={busy}
+              onClick={() => {
+                setSelected(['false']);
+                onAnswer(false);
+              }}
+            >
               <Icon name="cross" />
               <span>No</span>
             </button>
@@ -135,15 +231,27 @@ export function QuestionCard({
             scale={question.scale}
             language={question.language}
             value={selected.length ? Number(selected[0]) : null}
-            onSelect={(value) => onAnswer(value)}
+            onSelect={(value) => {
+              setSelected([String(value)]);
+              onAnswer(value);
+            }}
           />
         ) : question.options.length ? (
-          <TapGrid options={question.options} selected={selected} multi={multi} onSelect={setSelected} />
+          <TapGrid
+            options={question.options}
+            selected={selected}
+            multi={multi}
+            busy={busy}
+            onSelect={setSelected}
+            onAnswer={(value) => onAnswer(value)}
+          />
         ) : (
           <TypedAnswer
             value={typed}
             placeholder="Type here, or use the microphone below"
+            busy={busy}
             onChange={setTyped}
+            onSubmit={onTyped}
           />
         )}
       </div>
@@ -153,36 +261,44 @@ export function QuestionCard({
           <p className="kiosk-help" style={{ marginBottom: 12 }}>
             Or describe it in your own words:
           </p>
-          <TypedAnswer value={typed} placeholder="Type here…" onChange={setTyped} />
+          <TypedAnswer
+            value={typed}
+            placeholder="Type here…"
+            busy={busy}
+            onChange={setTyped}
+            onSubmit={onTyped}
+          />
         </div>
       )}
 
       {voiceEnabled && !speech.unavailable && (
-        <>
-          <VoiceButton
-            supported={speech.supported}
-            listening={speech.listening}
-            interim={speech.interim}
-            disabled={busy || degraded}
-            label="Speak my answer"
-            onStart={listen}
-            onStop={speech.stop}
-          />
-        </>
+        <VoiceButton
+          supported={speech.supported}
+          listening={speech.listening}
+          interim={speech.interim}
+          disabled={busy || degraded}
+          label="Speak my answer"
+          onStart={listen}
+          onStop={speech.stop}
+        />
       )}
       {voiceEnabled && speech.error && (
-        <div className="kiosk-error" style={{ marginTop: 16 }}>{speech.error}</div>
+        <div className="kiosk-error" style={{ marginTop: 16 }}>
+          {speech.error}
+        </div>
       )}
 
       <div className="kiosk-actions">
-        {typed.trim() && (
-          <button type="button" className="btn-primary" disabled={busy} onClick={() => onTyped(typed.trim())}>
-            Send what I typed
-          </button>
-        )}
-        {selected.length > 0 && question.kind !== 'boolean' && question.kind !== 'scale' && (
-          <button type="button" className="btn-primary" disabled={busy} onClick={submitChoice}>
-            {multi ? `Continue with ${selected.length} selected` : 'Continue'}
+        {/* The ONLY closing action left, and only where the interface genuinely cannot know
+            the patient has finished choosing. */}
+        {multi && selected.length > 0 && (
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={busy}
+            onClick={() => onAnswer(selected)}
+          >
+            Done — {selected.length} selected
           </button>
         )}
         <button type="button" className="btn-quiet" disabled={busy} onClick={onSkip}>

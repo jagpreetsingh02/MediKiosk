@@ -52,15 +52,16 @@ await page.waitForSelector("button:has-text(\"Start today's visit\")", { timeout
 check('patient memory screen reached', await page.locator('.memory-id').count() > 0);
 await page.getByRole('button', { name: /Start today's visit/ }).click();
 
-await page.waitForSelector('text=Before we begin', { timeout: 8000 });
+await page.waitForSelector('.consent-row', { timeout: 8000 });
 check('consent screen reached', true);
 
+// Every optional scope on, so the rest of the smoke run exercises voice and documents.
 for (let i = 0; i < 6; i++) {
-  const off = page.locator('.consent-toggle:not(.on):not([disabled])');
+  const off = page.locator('.consent-switch:not(.on)');
   if (!(await off.count())) break;
   await off.first().click();
 }
-await page.getByRole('button', { name: /I agree — start/ }).click();
+await page.getByRole('button', { name: /Start intake/ }).click();
 await page.waitForSelector('.kiosk-prompt', { timeout: 12000 });
 const sessionRef = (await page.locator('.kiosk-top').innerText()).match(/sess_\w+/)?.[0];
 check('interview started', Boolean(sessionRef), sessionRef);
@@ -95,14 +96,15 @@ for (; asked < 90; asked++) {
   if (await page.locator('.face-option').count()) {
     await page.locator('.face-option').nth(3).click();
   } else if (await page.locator('.tap-option').count()) {
+    // One tap is the whole answer now. A multi-select still needs its Done.
     await page.locator('.tap-option').first().click();
-    const cont = page.getByRole('button', { name: /^Continue$|^Continue with/ });
-    if (await cont.count()) await cont.first().click();
+    const done = page.getByRole('button', { name: /^Done — \d+ selected$/ });
+    if (await done.count()) await done.first().click();
   } else {
     const box = page.locator('.typed-answer textarea').first();
     if (!(await box.count())) break;
     await box.fill('free text answer');
-    await page.getByRole('button', { name: /Send what I typed/ }).click();
+    await page.getByRole('button', { name: /^Send$/ }).click();
   }
   await page.waitForTimeout(140);
 }
@@ -112,36 +114,40 @@ check('interview completes', asked > 20, `${asked} questions`);
 // A kiosk browser reloads. Losing the sessionRef used to send the patient back to the
 // language picker with their answers apparently gone.
 {
-  const beforeReload = await page.locator('.upload-drop').count();
+  const beforeReload = await page.locator('.doc-actions').count();
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   const stillHere =
-    (await page.locator('.upload-drop').count()) > 0 ||
+    (await page.locator('.doc-actions').count()) > 0 ||
     (await page.locator('.kiosk-prompt').count()) > 0 ||
     (await page.locator('.review-row').count()) > 0;
   check('refresh resumes the session', stillHere,
     beforeReload ? 'was at the document step' : 'was mid-interview');
-  if (!(await page.locator('.upload-drop').count())) {
-    await page.waitForSelector('.upload-drop', { timeout: 15000 }).catch(() => {});
+  if (!(await page.locator('.doc-actions').count())) {
+    await page.waitForSelector('.doc-actions', { timeout: 15000 }).catch(() => {});
   }
 }
-check('document stage offered', await page.locator('.upload-drop').count() > 0);
+check('document stage offered', await page.locator('.doc-actions').count() > 0);
+check('all four document actions present',
+  (await page.locator('.doc-action').count()) === 4);
 
-await page.locator('input[type=file]').setInputFiles('../data/fixtures/documents/prescription.pdf');
+// The PDF picker specifically — Take Photo opens a camera, which headless cannot grant.
+await page.locator('input[type=file][accept*="pdf"]')
+  .setInputFiles('../data/fixtures/documents/prescription.pdf');
 
 // The readback. An extraction the patient never saw is an extraction that became true
 // without anyone agreeing to it, so the upload goes straight here.
-await page.waitForSelector('.extract-row', { timeout: 25000 }).catch(() => {});
-const extracted = await page.locator('.extract-row').count();
+await page.waitForSelector('.extract-item', { timeout: 25000 }).catch(() => {});
+const extracted = await page.locator('.extract-item').count();
 check('OCR readback shown to the patient', extracted > 0, `${extracted} items`);
 check('every item carries a confidence word, not a percentage',
   extracted > 0 && !(await page.locator('.extract-band').first().innerText()).includes('%'));
 
 if (extracted > 0) {
-  await page.locator('.extract-row').first().getByRole('button', { name: /^Yes$/ }).click();
+  await page.locator('.extract-item').first().getByRole('button', { name: /^Yes$/ }).click();
   await page.waitForTimeout(400);
   check('confirming an item is recorded', await page.locator('.extract-outcome').count() > 0);
-  await page.getByRole('button', { name: /Looks right — continue|Continue — / }).click();
+  await page.getByRole('button', { name: /^Done$/ }).click();
 }
 
 await page.waitForFunction(() => document.querySelectorAll('.upload-item').length > 0, null, { timeout: 15000 }).catch(() => {});
@@ -165,7 +171,7 @@ if (await page.locator('.tap-option').count()) {
   if (await cont.count()) await cont.first().click();
 } else {
   await page.locator('.typed-answer textarea').first().fill('corrected answer');
-  await page.getByRole('button', { name: /Send what I typed/ }).click();
+  await page.getByRole('button', { name: /^Send$/ }).click();
 }
 await page.waitForSelector('.review-row', { timeout: 10000 });
 check('correction returns to review, not to documents', await page.locator('.review-row').count() > 5);

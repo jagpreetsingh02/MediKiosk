@@ -11,6 +11,13 @@
  * A patient should never have to wait for a machine to finish talking.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  cancelSpeech as cancelTts,
+  localeFor,
+  speak as speakTts,
+  ttsSupported,
+  type SpeakResult,
+} from './tts';
 
 interface SpeechRecognitionAlternative { transcript: string; confidence: number }
 interface SpeechRecognitionResult { 0: SpeechRecognitionAlternative; isFinal: boolean; length: number }
@@ -42,12 +49,6 @@ function recognitionCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-/** BCP-47 tags. The Web Speech API wants a region, not a bare ISO 639-1 code. */
-const LOCALES: Record<string, string> = {
-  en: 'en-IN', hi: 'hi-IN', bn: 'bn-IN', ta: 'ta-IN', te: 'te-IN',
-  mr: 'mr-IN', kn: 'kn-IN', ml: 'ml-IN', gu: 'gu-IN', pa: 'pa-IN',
-};
-
 export interface SpeechResult {
   transcript: string;
   /**
@@ -74,8 +75,17 @@ export interface UseSpeech {
   error: string | null;
   start(onResult: (result: SpeechResult) => void): void;
   stop(): void;
-  speak(text: string): Promise<void>;
+  speak(text: string): Promise<SpeakResult>;
   cancelSpeech(): void;
+  /** True while a prompt is being read, so the UI can show it and offer Stop. */
+  speaking: boolean;
+  /** Speech synthesis exists in this browser. Independent of the microphone. */
+  canSpeak: boolean;
+  /**
+   * Why the last prompt was not heard, in words a patient can act on. `null` when the
+   * prompt was read, or when none has been attempted yet.
+   */
+  speechNotice: string | null;
 }
 
 /**
@@ -100,10 +110,12 @@ export function useSpeech(language: string): UseSpeech {
   const [interim, setInterim] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [speechNotice, setSpeechNotice] = useState<string | null>(null);
 
   const recognition = useRef<SpeechRecognitionLike | null>(null);
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const speaking = useRef(false);
+  const speakingRef = useRef(false);
   const bargedIn = useRef(false);
   const supported = recognitionCtor() !== null;
 
@@ -115,8 +127,9 @@ export function useSpeech(language: string): UseSpeech {
   }, []);
 
   const cancelSpeech = useCallback(() => {
-    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
-    speaking.current = false;
+    cancelTts();
+    speakingRef.current = false;
+    setSpeaking(false);
   }, []);
 
   const stop = useCallback(() => {
@@ -137,7 +150,7 @@ export function useSpeech(language: string): UseSpeech {
       bargedIn.current = false;
 
       const instance = new Ctor();
-      instance.lang = LOCALES[language] ?? 'en-IN';
+      instance.lang = localeFor(language);
       instance.continuous = false;
       instance.interimResults = true;
       instance.maxAlternatives = 1;
@@ -146,7 +159,7 @@ export function useSpeech(language: string): UseSpeech {
         // The engine is alive: it heard something. Stand the watchdog down.
         clearWatchdog();
         // Barge-in: the patient started talking, so stop talking at them.
-        if (speaking.current) {
+        if (speakingRef.current) {
           cancelSpeech();
           bargedIn.current = true;
         }
@@ -230,27 +243,28 @@ export function useSpeech(language: string): UseSpeech {
   );
 
   const speak = useCallback(
-    (text: string) =>
-      new Promise<void>((resolve) => {
-        if (typeof speechSynthesis === 'undefined' || !text.trim()) {
-          resolve();
-          return;
-        }
-        speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = LOCALES[language] ?? 'en-IN';
-        utterance.rate = 0.92; // a touch slower than default: this is read to an elderly patient
-        const voice = speechSynthesis
-          .getVoices()
-          .find((v) => v.lang === utterance.lang) ??
-          speechSynthesis.getVoices().find((v) => v.lang.startsWith(language));
-        if (voice) utterance.voice = voice;
+    async (text: string): Promise<SpeakResult> => {
+      setSpeaking(true);
+      speakingRef.current = true;
+      const result = await speakTts(text, language);
+      speakingRef.current = false;
+      setSpeaking(false);
 
-        speaking.current = true;
-        utterance.onend = () => { speaking.current = false; resolve(); };
-        utterance.onerror = () => { speaking.current = false; resolve(); };
-        speechSynthesis.speak(utterance);
-      }),
+      // Silence is the failure mode this whole path exists to make visible. Say which kind
+      // it was, in a sentence that tells the patient what to do instead.
+      setSpeechNotice(
+        result.status === 'spoken' || result.status === 'cancelled'
+          ? null
+          : result.status === 'no-voice'
+            ? 'This device has no voice installed for reading aloud. Please read the question on screen.'
+            : result.status === 'unsupported'
+              ? 'This browser cannot read aloud. Please read the question on screen.'
+              : result.status === 'blocked'
+                ? 'Tap “Hear the question” to turn sound on.'
+                : 'Could not read the question aloud. Please read it on screen.',
+      );
+      return result;
+    },
     [language],
   );
 
@@ -263,5 +277,18 @@ export function useSpeech(language: string): UseSpeech {
     [cancelSpeech, clearWatchdog],
   );
 
-  return { supported, unavailable, listening, interim, error, start, stop, speak, cancelSpeech };
+  return {
+    supported,
+    unavailable,
+    listening,
+    interim,
+    error,
+    start,
+    stop,
+    speak,
+    cancelSpeech,
+    speaking,
+    canSpeak: ttsSupported(),
+    speechNotice,
+  };
 }

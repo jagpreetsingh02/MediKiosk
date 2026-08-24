@@ -22,7 +22,7 @@ from app.contracts.record import FactLedger, record_fact
 from app.core.config import settings
 from app.core.errors import ValidationError
 from app.core.logging import get_logger
-from app.modules.documents.backends import OCRResult, get_ocr_backend
+from app.modules.documents.backends import OCRResult, get_ocr_backend, read_document
 from app.modules.documents.entities import ExtractedEntity, extract_entities, page_summary
 from app.modules.documents.timeline import build_timeline, order_timeline
 
@@ -237,8 +237,13 @@ def ingest(
     if not data:
         raise ValidationError(f"{filename} is empty.")
 
-    backend = get_ocr_backend(backend_name)
-    ocr = backend.read(data, filename=filename, media_type=media_type)
+    # Which engine reads this file is decided by what the file IS, not by a setting. A
+    # patient photographing a prescription gets an image engine; a digital PDF gets the exact
+    # text-layer reader. See backends.read_document().
+    ocr = read_document(
+        data, filename=filename, media_type=media_type, requested=backend_name
+    )
+    backend = get_ocr_backend(ocr.backend)
     doc_id = document_id or f"doc_{uuid.uuid4().hex[:10]}"
 
     confident, needs_check = extract_entities(ocr, sex=sex)

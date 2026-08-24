@@ -38,11 +38,18 @@ async def _next_payload(db, context) -> dict[str, Any]:
             "progress": context.machine.progress(),
             "sections": context.machine.section_progress(),
         }
+    # A reopened question is being corrected, not asked for the first time. Sending the
+    # answer already on file lets the kiosk show it selected, so the patient can see what
+    # they are changing rather than facing a blank screen that looks like lost work.
+    reopened = question.question_id in context.machine.state.reopened
     return {
         "complete": False,
         "question": question.to_dict(),
         "progress": context.machine.progress(),
         "sections": context.machine.section_progress(),
+        "reopened": reopened,
+        "currentAnswer": context.machine.current_answer(question.question_id) if reopened else None,
+        "canGoBack": context.machine.previous_answered() is not None,
     }
 
 
@@ -243,6 +250,36 @@ async def reopen(
     result = await _next_payload(db, context)
     await save_context(db, context)
     return {**result, "reopened": question_id}
+
+
+@router.post("/back")
+async def back(
+    db: DbSession, session_ref: str, identity: CurrentIdentity
+) -> dict[str, Any]:
+    """Reopen the previous answered question so the patient can change their answer.
+
+    Back is `reopen()` aimed at whatever the patient last answered, which is why there is no
+    new correction machinery here. Re-answering supersedes the old fact through the ordinary
+    ledger path — the previous answer stays in the record, marked superseded, and the
+    physician sees both it and the correction. Nothing is deleted and nothing is edited in
+    place, because a patient changing their mind is clinically interesting.
+
+    Branching recalculates itself: `next_question()` re-evaluates every condition against the
+    current values on each call, so an answer that opens or closes a later section takes
+    effect the moment it changes. Answers already given to questions that a new answer makes
+    irrelevant stay in the ledger — superseding a fact the patient never retracted would be
+    inventing a retraction.
+    """
+    context = await load_context(db, session_ref, identity=identity)
+    target = context.machine.previous_answered()
+    if target is None:
+        raise ValidationError(
+            "There is no earlier question to go back to — this is the first one."
+        )
+    context.machine.reopen(target)
+    result = await _next_payload(db, context)
+    await save_context(db, context)
+    return {**result, "reopened": target}
 
 
 @router.post("/speak")

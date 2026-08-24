@@ -4,6 +4,13 @@
  * "Speech OR touch, interchangeably, at any point" means touch is never the fallback — it is
  * always right there. A patient who finds the microphone intimidating never has to discover
  * that tapping was possible.
+ *
+ * ONE TAP IS THE WHOLE ANSWER on a single-choice question. There used to be a Continue button
+ * after it, and it was a real usability failure rather than an extra click: the option
+ * highlighted, nothing else happened, and the patient had no way to know whether the machine
+ * had taken their answer or was waiting for something they had not spotted. Multi-select is
+ * the one case that genuinely needs a closing action, because "I have finished choosing" is
+ * information the interface cannot infer — so Done stays there and only there.
  */
 import type { Option } from '../shared/api';
 import { Icon } from '../shared/Icon';
@@ -12,13 +19,30 @@ interface Props {
   options: Option[];
   selected: string[];
   multi: boolean;
+  /** Disabled while an answer is in flight, so a double tap cannot record two facts. */
+  busy?: boolean;
+  /** Multi-select only: track the running selection. */
   onSelect: (values: string[]) => void;
+  /** Single-choice only: this tap IS the answer. */
+  onAnswer: (value: string) => void;
 }
 
-export function TapGrid({ options, selected, multi, onSelect }: Props): JSX.Element {
+export function TapGrid({
+  options,
+  selected,
+  multi,
+  busy,
+  onSelect,
+  onAnswer,
+}: Props): JSX.Element {
   function choose(option: Option): void {
+    if (busy) return;
     if (!multi) {
+      // Selected and submitted in the same gesture. The highlight still paints, because the
+      // parent keeps the value until the next question arrives — a tap with no visible
+      // effect feels broken even when it worked.
       onSelect([option.value]);
+      onAnswer(option.value);
       return;
     }
     // An exclusive option ("None of these") clears everything else, and picking anything
@@ -45,6 +69,7 @@ export function TapGrid({ options, selected, multi, onSelect }: Props): JSX.Elem
           type="button"
           className={`tap-option${option.exclusive ? ' exclusive' : ''}`}
           aria-pressed={selected.includes(option.value)}
+          disabled={busy}
           onClick={() => choose(option)}
         >
           {option.icon && <Icon name={option.icon} />}

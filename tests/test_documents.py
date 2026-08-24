@@ -38,8 +38,26 @@ def test_both_backends_exist_and_report_availability_honestly() -> None:
 
 
 def test_textlayer_refuses_images_rather_than_returning_nothing() -> None:
-    with pytest.raises(ValidationError, match="image-capable backend"):
+    """Still refuses — but as UnsupportedMedia, which read_document() knows how to retry."""
+    from app.modules.documents.backends import UnsupportedMedia
+
+    with pytest.raises(UnsupportedMedia):
         TextLayerOCR().read(b"\x89PNG", filename="scan.png", media_type="image/png")
+
+
+def test_no_patient_facing_message_names_an_environment_variable() -> None:
+    """The old message told a patient to `set OCR_BACKEND=tesseract`.
+
+    A patient holding a phone cannot set an environment variable. Worse, the instruction was
+    wrong as advice: the fix was never configuration, it was routing on the media type, which
+    the code now does. This scans the module so the string cannot come back.
+    """
+    from pathlib import Path
+
+    source = Path("app/modules/documents/backends.py").read_text()
+    assert "OCR_BACKEND=" not in source, (
+        "a deployment setting leaked into a message a patient reads"
+    )
 
 
 def test_textlayer_reads_a_digital_pdf_exactly() -> None:
