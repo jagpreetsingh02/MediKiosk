@@ -297,5 +297,11 @@ Three things turned out differently from the plan, all recorded here rather than
 | `12f280e` | Phases 2–4 — extraction, voice, documents |
 | `103fd9f` | Phases 5–6 — red flags, summary, consent, FHIR, API surface |
 | `0ce2ed1` | Evaluation harness — 50 gold scripts, 12 held-out, and the gap |
+| `63d8ec2` | Longitudinal core — durable Patient/Encounter, promotion, patient memory |
+| `7825f67` | Session ownership at the choke point; the OCR readback the patient sees |
+| `81a4416` | Clinical memory — the physician reviews a patient, not a session |
+| `acdc220` | The two §26 tests that were missing |
+| `796c31d` | The hosted model's red-flag sensitivity does not reproduce |
+| `83b1873` | Progress by section, because the interview branches |
 
 Each message records whether a rule or the LLM was chosen for that phase's work, and why.
