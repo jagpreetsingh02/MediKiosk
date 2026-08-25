@@ -17,6 +17,7 @@ import {
   type TimelinePeriod,
 } from '../shared/api';
 import { AppNav } from '../design/AppNav';
+import { useSummaryReviewed } from './useSummaryReviewed';
 import { JuryDrawer } from '../shared/JuryDrawer';
 import { CommitBar } from './CommitBar';
 import { ContradictionPanel } from './ContradictionPanel';
@@ -72,7 +73,11 @@ export function PhysicianApp(): JSX.Element {
     label: string;
     item: ExtractedItem | null;
   } | null>(null);
-  const [reviewed, setReviewed] = useState(false);
+  /** The physician's attestation — the actual arming condition for commit. Reaching the end
+   *  of the summary is a separate, measured signal (`reachedEnd`) that gates the checkbox.
+   *  See CommitBar and useSummaryReviewed for why scroll position is not sufficient. */
+  const [attested, setAttested] = useState(false);
+  const { containerRef, sentinelRef, reachedEnd, reset: resetReview } = useSummaryReviewed();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [committed, setCommitted] = useState<{ bundleId: string; entries: number; hisStatus: string } | null>(null);
@@ -107,7 +112,8 @@ export function PhysicianApp(): JSX.Element {
     setError(null);
     setActiveRef(ref);
     setSelected(null);
-    setReviewed(false);
+    setAttested(false);
+    resetReview();
     setCommitted(null);
     setPanel('source');
     setView('visit');
@@ -187,7 +193,7 @@ export function PhysicianApp(): JSX.Element {
       }
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
         event.preventDefault();
-        if (reviewed && !committed) void commit();
+        if (attested && !committed) void commit();
         return;
       }
       if (!summary) return;
@@ -202,7 +208,8 @@ export function PhysicianApp(): JSX.Element {
         const position = selected === null ? -1 : factIndexes.indexOf(selected);
         const next = factIndexes[Math.min(position + 1, factIndexes.length - 1)];
         setSelected(next);
-        if (next === factIndexes[factIndexes.length - 1]) setReviewed(true);
+        // Traversing to the last line no longer *asserts* a review — the IntersectionObserver
+        // reports whether the end is genuinely on screen, and the physician still attests.
         document.querySelector(`[data-index="${next}"]`)?.scrollIntoView({ block: 'nearest' });
       }
       if (event.key === 'k' || event.key === 'ArrowUp') {
@@ -220,16 +227,7 @@ export function PhysicianApp(): JSX.Element {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [queue, summary, selected, reviewed, committed, open, commit]);
-
-  // Scrolling to the bottom of the summary counts as having read it.
-  function onScroll(event: React.UIEvent<HTMLElement>): void {
-    const el = event.currentTarget;
-    // A generous tolerance on purpose. `scroll-behavior: smooth` settles asynchronously
-    // and can stop a pixel or two short of the exact bottom; a physician who has
-    // visibly reached the end of the summary must not be told they have not read it.
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 96) setReviewed(true);
-  }
+  }, [queue, summary, selected, attested, committed, open, commit]);
 
   if (!role) {
     return (
@@ -334,7 +332,7 @@ export function PhysicianApp(): JSX.Element {
         <QueueList entries={queue} activeRef={activeRef} onSelect={(ref) => void open(ref)} />
       </aside>
 
-      <main className="phys-main" onScroll={onScroll}>
+      <main className="phys-main" ref={containerRef}>
         {error && <div className="phys-error">{error}</div>}
 
         {!summary && !error && (
@@ -481,6 +479,14 @@ export function PhysicianApp(): JSX.Element {
             />
           </>
         )}
+
+        {/* The end of the record. The IntersectionObserver in `useSummaryReviewed` watches
+            this, which is what makes "the physician reached the end" a measured fact rather
+            than an inference from scroll position. It is inside the scrolling column and
+            after every view's content, so it works for the brief and the timeline too — not
+            only the visit summary. Zero height and aria-hidden: it is an instrument, not
+            content, and a screen reader has no use for it. */}
+        <div ref={sentinelRef} className="phys-end-sentinel" aria-hidden="true" />
       </main>
 
       <aside className="phys-side">
@@ -601,7 +607,9 @@ export function PhysicianApp(): JSX.Element {
             status={summary.status}
             traceable={summary.traceability.ok}
             completeness={summary.completeness}
-            reviewed={reviewed}
+            reachedEnd={reachedEnd}
+            attested={attested}
+            onAttest={setAttested}
             busy={busy}
             committed={committed}
             onCommit={() => void commit()}

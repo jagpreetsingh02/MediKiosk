@@ -370,10 +370,20 @@ await doc.locator('.phys-main').evaluate((el) => {
 });
 const commit = doc.getByRole('button', { name: /Confirm and commit/ });
 await commit.waitFor({ state: 'visible', timeout: 30000 });
-for (let i = 0; i < 40 && (await commit.isDisabled()); i += 1) {
+
+// Commit is armed by an ATTESTATION, not by a scroll position. Reaching the end of the
+// summary only enables the checkbox; the physician still has to say they reviewed it.
+// See CommitBar and useSummaryReviewed for why scrolling was never sufficient — it could
+// not fire at all for a summary shorter than the viewport.
+const attest = doc.locator('.phys-attest input[type=checkbox]');
+for (let i = 0; i < 60 && !(await attest.isEnabled()); i += 1) {
   await doc.locator('.phys-main').evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await doc.waitForTimeout(250);
 }
+check('attestation offered once the summary end is reached', await attest.isEnabled());
+check('commit refuses an unattested summary', await commit.isDisabled());
+await attest.check();
+for (let i = 0; i < 60 && (await commit.isDisabled()); i += 1) await doc.waitForTimeout(250);
 check('commit enabled after review', !(await commit.isDisabled()));
 await commit.click();
 await doc.waitForFunction(

@@ -1901,3 +1901,142 @@ kbd {
   border: 1px solid var(--mk-line);
   color: var(--mk-ink-muted);
 }
+
+/* The review sentinel. Watched by `useSummaryReviewed` to decide whether the end of the
+   summary has actually been on screen. It must have non-zero height or an
+   IntersectionObserver can never report it as intersecting; 1px is enough and is invisible
+   against the column's bottom padding. */
+.phys-end-sentinel {
+  height: 1px;
+  width: 100%;
+  flex: none;
+  pointer-events: none;
+}
+
+/* The attestation. This is the control Invariant 4 actually turns on, so it is styled to be
+   found rather than to be tidy — a physician must not have to hunt for the thing standing
+   between them and a committed record. */
+.phys-attest {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  padding: var(--mk-space-2) var(--mk-space-3);
+  border-radius: var(--mk-radius-pill);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-ink-subtle);
+  background: var(--mk-light-05);
+  box-shadow: var(--mk-edge-light);
+  cursor: not-allowed;
+  transition:
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    color var(--mk-dur-normal) var(--mk-ease-hero);
+  white-space: nowrap;
+}
+
+/* Only becomes live once the end of the summary has been seen. Until then it is visibly
+   present but inert, so the physician can see what will be asked of them. */
+.phys-attest[data-ready] {
+  cursor: pointer;
+  color: var(--mk-ink);
+  background: var(--mk-light-08);
+}
+
+.phys-attest[data-ready]:hover {
+  background: var(--mk-glass-fill-hover);
+  color: var(--mk-ink-strong);
+}
+
+.phys-attest input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--mk-accent);
+  cursor: inherit;
+}
+
+/* Focus must be obvious: this control is normally reached by Tab, not by pointer. */
+.phys-attest:focus-within {
+  outline: 2px solid var(--mk-accent);
+  outline-offset: 2px;
+}
+
+.phys-commit__detail {
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-muted);
+}
+
+.phys-commit__detail code {
+  font-family: var(--mk-font-mono);
+}
+
+.phys-commit__note {
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-subtle);
+}
+
+.phys-commit__ok {
+  color: var(--mk-accent-ink);
+}
+
+.phys-commit__bad {
+  color: var(--mk-danger-ink);
+}
+
+/* ─────────────────────────────────────── state glyphs ───────────────────────
+ * Shape carries the meaning; colour reinforces it. See `StateGlyph.tsx` for why
+ * amber-vs-rose could not be left to carry it alone.
+ */
+.mk-state-glyph {
+  flex: none;
+  vertical-align: -0.15em;
+}
+
+.mk-state-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-semibold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+  padding: 0.2em 0.7em 0.2em 0.5em;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.mk-state-tag--critical {
+  background: var(--mk-status-alert-bg);
+  border-color: var(--mk-status-alert-edge);
+  color: var(--mk-status-alert-fg);
+}
+
+.mk-state-tag--caution {
+  background: var(--mk-status-warn-bg);
+  border-color: var(--mk-status-warn-edge);
+  color: var(--mk-status-warn-fg);
+}
+
+.mk-state-tag--ok {
+  background: var(--mk-status-ok-bg);
+  border-color: var(--mk-status-ok-edge);
+  color: var(--mk-status-ok-fg);
+}
+
+.mk-state-tag--info {
+  background: var(--mk-status-info-bg);
+  border-color: var(--mk-status-info-edge);
+  color: var(--mk-status-info-fg);
+}
+
+/* The banner title now leads with a glyph, so it is a row rather than a line. */
+.flag-title {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+}
+
+.flag-banner.routine .flag-title {
+  color: var(--mk-ink-muted);
+}

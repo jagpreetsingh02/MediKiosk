@@ -6,6 +6,7 @@
  * the rules are recall-biased detectors, not a clean bill of health (Invariant 3).
  */
 import type { Escalation } from '../shared/api';
+import { StateGlyph, stateForPriority } from '../design/ui';
 
 interface Props {
   escalation: Escalation;
@@ -18,7 +19,8 @@ export function RedFlagBanner({ escalation, onSelectFlag }: Props): JSX.Element 
   if (!flags.length) {
     return (
       <div className="flag-banner routine">
-        <div className="flag-title" style={{ color: 'var(--ink-3)' }}>
+        <div className="flag-title">
+          <StateGlyph state="ok" size={18} />
           No emergency rule fired
         </div>
         <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
@@ -31,8 +33,18 @@ export function RedFlagBanner({ escalation, onSelectFlag }: Props): JSX.Element 
 
   return (
     <div className={`flag-banner ${priority}`}>
+      {/* Shape, then word, then colour. The octagon and the triangle are distinguishable
+          in monochrome, on a printout, and under any colour vision deficiency — which the
+          amber/rose pair alone is not. */}
       <div className="flag-title">
-        {priority === 'immediate' ? 'Immediate — interrupt triage now' : 'Urgent — see within the hour'}
+        <StateGlyph
+          state={stateForPriority(priority)}
+          size={18}
+          title={priority === 'immediate' ? 'Critical' : 'Caution'}
+        />
+        {priority === 'immediate'
+          ? 'CRITICAL · Immediate — interrupt triage now'
+          : 'CAUTION · Urgent — see within the hour'}
         {' · '}
         {flags.length} rule{flags.length === 1 ? '' : 's'} fired
       </div>

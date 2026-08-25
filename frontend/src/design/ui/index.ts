@@ -4,6 +4,8 @@ export type { ButtonVariant, ButtonSize } from './Button';
 export { Card, CardButton } from './Card';
 export { Badge } from './Badge';
 export type { BadgeTone } from './Badge';
+export { StateGlyph, StateTag, STATE_LABEL, stateForPriority } from './StateGlyph';
+export type { ClinicalState } from './StateGlyph';
 export { Chip } from './Chip';
 export { Toggle } from './Toggle';
 export { Skeleton, SkeletonText } from './Skeleton';

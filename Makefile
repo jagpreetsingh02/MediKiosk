@@ -33,7 +33,7 @@ supabase-check:
 
 e2e:
 	@echo "Both browser suites. The stack must already be running (make demo)."
-	cd frontend && node e2e/smoke.mjs && node e2e/interaction.mjs && node e2e/offline.mjs
+	cd frontend && node e2e/smoke.mjs && node e2e/interaction.mjs && node e2e/offline.mjs && node e2e/commit-arming.mjs
 
 api:
 	$(PY) -m uvicorn app.main:app --reload --port 8000
