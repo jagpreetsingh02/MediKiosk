@@ -28,6 +28,7 @@ from app.core.logging import get_logger
 from app.modules.dialogue.answers import record_answer, record_derived
 from app.modules.dialogue.voice import handle_spoken_answer
 from app.modules.documents.pipeline import ingest
+from app.modules.encounter import guest
 from app.redflags.engine import evaluate, raise_priority
 from app.speech.protocol import Transcript
 
@@ -367,3 +368,52 @@ async def load_case(
         "contradictions": len(contradictions),
         "document": document_result,
     }
+
+
+# ──────────────────────────────────────────────── guest mode
+
+
+@router.post("/guest", status_code=201)
+async def start_guest(db: DbSession) -> dict[str, Any]:
+    """Start a demo session. No account, no personal information, no ABHA.
+
+    Creates a REAL patient row flagged `is_synthetic=True`, with the full seeded history —
+    three dated lab reports, a prescription OCR genuinely misreads, two prior visits and a
+    voice answer with a measured ASR confidence. Built by the same `seed.build_history` the
+    canonical demo patient uses, so a judge sees the real pipeline rather than a lighter
+    imitation of it.
+
+    DELIBERATELY UNAUTHENTICATED. Guest mode exists so somebody can try the product without
+    handing over an identity; requiring one to get in would defeat it. What keeps this safe
+    is not a token but `cohort.restrict_to_cohort()`: a synthetic record cannot retrieve
+    against a clinical one, or the reverse.
+    """
+    result = await guest.create(db)
+    await db.commit()
+    log.info("guest.session_started", patientRef=result["patientRef"])
+    return {
+        **result,
+        "notice": (
+            "This is a demonstration record. Every value in it is synthetic and it is kept "
+            "entirely separate from any clinical data."
+        ),
+    }
+
+
+@router.post("/guest/{patient_ref}/reset")
+async def reset_guest(db: DbSession, patient_ref: str) -> dict[str, Any]:
+    """Restore the demo to its starting state, in one call.
+
+    A demo is run repeatedly in front of people and the second run starting from the first
+    run's leftovers is how it goes wrong. This deletes the record and rebuilds it, and
+    returns the row counts on both sides so the caller can SEE that the starting state was
+    restored exactly rather than approximately.
+    """
+    if not guest.is_guest_ref(patient_ref):
+        # Refusing by NAME SHAPE before touching the database. `reset` deletes a patient and
+        # everything cascading from it; pointing it at a clinical record would be
+        # catastrophic and irreversible, so the guard is the first thing that runs.
+        raise ValidationError("Only a demo record can be reset.")
+    result = await guest.reset(db, patient_ref)
+    await db.commit()
+    return result

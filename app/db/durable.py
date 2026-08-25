@@ -40,12 +40,27 @@ from app.db.base import Base, ts_column
 
 
 class Patient(Base):
-    """A person with a history in MediKiosk. Synthetic only — see docs/CURRENT_STATE.md."""
+    """A person with a history in MediKiosk.
+
+    EVERY patient in this repository is synthetic today (see docs/CURRENT_STATE.md), but
+    `is_synthetic` is not a comment about that — it is a boundary the query layer enforces.
+    Guest mode creates real rows in the real schema, and the moment a genuine record exists
+    beside them, "which of these two identical-looking stomach complaints may I retrieve
+    against?" becomes a question with a wrong answer.
+
+    See `app/modules/encounter/cohort.py`. The rule is symmetric: a demo patient must never
+    retrieve against a real one, AND a real patient must never retrieve against a demo one.
+    The second direction is the one that would actually harm someone — a clinician shown a
+    "similar previous visit" that was invented for a conference stand.
+    """
 
     __tablename__ = "patient"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     patient_ref: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    #: True for guest/demo records. Indexed because it is a WHERE clause on every
+    #: cross-patient retrieval, not an occasional filter.
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     #: Pseudonymous ABHA reference (a hash, never the address). The join key across visits.
     abha_ref: Mapped[str | None] = mapped_column(String(128), unique=True, index=True)
     display_name: Mapped[str | None] = mapped_column(String(255))

@@ -176,10 +176,33 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
         )
     )
 
+    result = await build_history(db, patient)
+    log.info("demo.patient_seeded", patient=patient.patient_ref, **result)
+    return {"created": True, "patientRef": patient.patient_ref,
+            "abhaRef": patient.abha_ref, **result}
+
+
+async def build_history(db: AsyncSession, patient: Patient, *, suffix: str = "") -> dict[str, Any]:
+    """Every encounter, document and fact that makes a patient worth opening a brief on.
+
+    `suffix` DISAMBIGUATES THE REFS, and exists because this function is now called more than
+    once against the same database. `encounter_ref` and `document_ref` are UNIQUE, and the
+    seeded refs are derived from fixed dates — so the second patient built from this history
+    collided on `enc_demo20240603` and the whole guest path failed at the first insert.
+    Guests pass their own suffix; the canonical demo patient passes "" so its refs stay
+    exactly what production already has and what the demo script names.
+
+    EXTRACTED SO GUEST MODE SHARES IT RATHER THAN REIMPLEMENTING IT. A demo whose history is
+    built by a second, simpler code path is a demo that proves the second code path works.
+    The judge sees the same lab trajectory, the same prescription, the same 5-to-S OCR misread
+    and the same "What changed?" diff that the seeded record has, because it is the same
+    function — including the real OCR run and the real ASR transcription inside it.
+    """
     # ---------------------------------------------------- 2024: a lab report
     lab = await _seed_document_encounter(
         db,
         patient=patient,
+        suffix=suffix,
         fixture="lab_report_2024-06-03.pdf",
         occurred=datetime(2024, 6, 3, 10, 30, tzinfo=UTC),
         headline="Laboratory report",
@@ -199,6 +222,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     lab_2025 = await _seed_document_encounter(
         db,
         patient=patient,
+        suffix=suffix,
         fixture="lab_report_2025-02-10.pdf",
         occurred=datetime(2025, 2, 10, 9, 20, tzinfo=UTC),
         headline="Laboratory report",
@@ -210,6 +234,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     prescription = await _seed_document_encounter(
         db,
         patient=patient,
+        suffix=suffix,
         fixture="prescription_2025-02-14.pdf",
         occurred=datetime(2025, 2, 14, 11, 15, tzinfo=UTC),
         headline="Prescription",
@@ -221,6 +246,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     lab_2026 = await _seed_document_encounter(
         db,
         patient=patient,
+        suffix=suffix,
         fixture="lab_report_2026-01-18.pdf",
         occurred=datetime(2026, 1, 18, 8, 40, tzinfo=UTC),
         headline="Laboratory report",
@@ -230,7 +256,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
 
     # ---------------------------------------------------- 2025 Aug: a real visit
     visit = Encounter(
-        encounter_ref="enc_demo20250820",
+        encounter_ref=f"enc_demo20250820{suffix}",
         patient_id=patient.id,
         occurred_at=datetime(2025, 8, 20, 9, 45, tzinfo=UTC),
         kind="intake",
@@ -247,7 +273,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     for path, value, verbatim, tier in PRIOR_VISIT_FACTS:
         fact = ClinicalFactRecord(
             encounter_id=visit.id,
-            fact_ref=f"fact_seed{abs(hash(path)) % 10**8:08d}",
+            fact_ref=f"fact_seed{abs(hash(path)) % 10**8:08d}{suffix}",
             path=path,
             value_json={"v": value},
             display_value=verbatim,
@@ -278,7 +304,7 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
         TimelineEventRecord(
             patient_id=patient.id,
             encounter_id=visit.id,
-            event_ref="evt_demo20250820",
+            event_ref=f"evt_demo20250820{suffix}",
             occurred_on=visit.occurred_at.date(),
             date_precision="exact",
             kind="encounter",
@@ -313,23 +339,10 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
     # changed?" needs a prior, and the four evidence types need somewhere to live together —
     # a physician clicking through a record should be able to reach a spoken answer, a typed
     # one, a tapped one and a document region without hunting across visits.
-    await _seed_follow_up_visit(db, patient=patient, prescription_ref=prescription)
+    await _seed_follow_up_visit(db, patient=patient, prescription_ref=prescription, suffix=suffix)
 
     await db.flush()
-    documents = [lab, lab_2025, lab_2026, prescription]
-    log.info(
-        "demo.patient_seeded",
-        patient=patient.patient_ref,
-        encounters=6,
-        documents=documents,
-    )
-    return {
-        "created": True,
-        "patientRef": patient.patient_ref,
-        "abhaRef": patient.abha_ref,
-        "encounters": 6,
-        "documents": documents,
-    }
+    return {"encounters": 6, "documents": [lab, lab_2025, lab_2026, prescription]}
 
 
 #: The follow-up visit's answers. Same complaint as 2025 — which is the point: `persisting`
@@ -351,7 +364,7 @@ FOLLOW_UP_FACTS: tuple[tuple[str, Any, str, str, str], ...] = (
 
 
 async def _seed_follow_up_visit(
-    db: AsyncSession, *, patient: Patient, prescription_ref: str
+    db: AsyncSession, *, patient: Patient, prescription_ref: str, suffix: str = ""
 ) -> None:
     """The 2026 intake: touch, typed, voice and document evidence on one encounter.
 
@@ -362,7 +375,7 @@ async def _seed_follow_up_visit(
     paper and look like a bug in the drawer rather than a lie in the data.
     """
     visit = Encounter(
-        encounter_ref="enc_demo20260118v",
+        encounter_ref=f"enc_demo20260118v{suffix}",
         patient_id=patient.id,
         occurred_at=datetime(2026, 1, 18, 10, 20, tzinfo=UTC),
         kind="intake",
@@ -394,7 +407,7 @@ async def _seed_follow_up_visit(
         spoken = modality == "voice"
         fact = ClinicalFactRecord(
             encounter_id=visit.id,
-            fact_ref=f"fact_fu{abs(hash(path)) % 10**8:08d}",
+            fact_ref=f"fact_fu{abs(hash(path)) % 10**8:08d}{suffix}",
             path=path,
             value_json={"v": value},
             display_value=verbatim,
@@ -436,7 +449,7 @@ async def _seed_follow_up_visit(
         if medicine is not None:
             fact = ClinicalFactRecord(
                 encounter_id=visit.id,
-                fact_ref="fact_fudoc0001",
+                fact_ref=f"fact_fudoc0001{suffix}",
                 path="medications[0].name",
                 value_json={"v": medicine.text},
                 display_value=medicine.text,
@@ -474,7 +487,7 @@ async def _seed_follow_up_visit(
         TimelineEventRecord(
             patient_id=patient.id,
             encounter_id=visit.id,
-            event_ref="evt_demo20260118v",
+            event_ref=f"evt_demo20260118v{suffix}",
             occurred_on=visit.occurred_at.date(),
             date_precision="exact",
             kind="encounter",
@@ -498,6 +511,7 @@ async def _seed_document_encounter(
     *,
     patient: Patient,
     fixture: str,
+    suffix: str = "",
     occurred: datetime,
     headline: str,
     kind: str,
@@ -512,7 +526,7 @@ async def _seed_document_encounter(
     content = path.read_bytes() if path.exists() else None
 
     encounter = Encounter(
-        encounter_ref=f"enc_demo{occurred:%Y%m%d}",
+        encounter_ref=f"enc_demo{occurred:%Y%m%d}{suffix}",
         patient_id=patient.id,
         occurred_at=occurred,
         kind="document",
@@ -528,7 +542,7 @@ async def _seed_document_encounter(
 
     document = DocumentRecord(
         encounter_id=encounter.id,
-        document_ref=f"doc_demo{occurred:%Y%m%d}",
+        document_ref=f"doc_demo{occurred:%Y%m%d}{suffix}",
         filename=fixture,
         media_type="application/pdf",
         document_kind=kind,
