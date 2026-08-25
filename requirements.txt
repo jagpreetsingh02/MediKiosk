@@ -25,3 +25,18 @@ pypdfium2>=4.30
 # nonsense, silently.
 numpy>=2.0            # deskew projection profile and the local-mean threshold
 pillow-heif>=1.0      # iPhones shoot HEIC by default; Pillow cannot open one without this
+
+# OPTIONAL, and deliberately not required to run or test anything.
+#
+# `vosk` gives genuine offline ASR, which the voice fixture is transcribed through
+# (scripts/make_voice_fixture.py). Without it the seed records the spoken answer with its
+# confidence marked UNAVAILABLE rather than substituting a number — the honest branch, and
+# the one a fresh clone actually takes. The acoustic model is a separate ~40MB download:
+#
+#   pip install vosk
+#   curl -sSLO https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+#   unzip vosk-model-small-en-us-0.15.zip -d ~/.cache/medikiosk-models
+#   export VOSK_MODEL_DIR=~/.cache/medikiosk-models/vosk-model-small-en-us-0.15
+#
+# Nobody should need 40MB to clone this repo, which is why it is a comment and not a pin.
+# vosk>=0.3.44
