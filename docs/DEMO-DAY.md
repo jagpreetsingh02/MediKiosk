@@ -5,6 +5,40 @@ development. Read it the morning of, not during.
 
 ---
 
+## 0. The deployed URLs — this is what you actually present
+
+* **Frontend (Vercel):** `https://medikiosk.vercel.app` — static build of the Vite app.
+  `<update this line once the Vercel import finishes; the placeholder is the requested name>`
+* **Backend (Render, Docker, free tier):** `https://medikiosk-api-docker.onrender.com` —
+  built from the repo's own `Dockerfile`, so Tesseract is the same binary that was tested
+  locally, not a substitute. Confirmed via `/about`: `isSupabase: true`, both OCR backends
+  report `available: true`.
+* **Database:** Supabase, session-mode pooler — the same one local development uses. Render's
+  outbound network reaches it over IPv4, same as the pooler was chosen for in the first place.
+
+**COLD START IS REAL ON THE FREE TIER.** Render spins the backend down after inactivity; the
+first request after a sleep can take 30–60 seconds while the container boots and reconnects to
+Supabase. **Warm it up about two minutes before you present**, with one plain request:
+
+```bash
+curl https://medikiosk-api-docker.onrender.com/health
+```
+
+Do this *again* right before walking up — a second gap (a judge's question, a room change) is
+enough for it to sleep again on the free tier.
+
+The frontend calls `/api/*`, `/about`, and `/mock-idp/*` as relative paths; `vercel.json`
+rewrites those to the Render URL, so the browser never talks cross-origin and there is nothing
+to reconfigure per-environment. CORS on the Render service is locked to the Vercel origin only
+— a stray `curl` from elsewhere gets a database and API that work, but a browser tab pointed at
+any other origin does not.
+
+`DEMO_LOCAL_DB` plays no part in the deployed path. It stays what it always was: the
+offline-presentation fallback for §2 below, clearly badged, never silently substituted for the
+real thing.
+
+---
+
 ## 1. Check the network can reach a database — before you present
 
 Outbound port 5432 is blocked on a great many venue networks: conference NAT, hotel Wi-Fi,
@@ -117,3 +151,21 @@ Tesseract does not read handwriting. The kiosk says so plainly, does not guess, 
 patient the doctor will still see the photograph, and offers to let them type the important
 parts. Do not apologise for this in the room — guessing at a medicine name is the single most
 dangerous thing this product could do, and declining to is the feature.
+
+---
+
+## 6. Local development runs on one fixed port
+
+`http://localhost:5173` — the port `vite.config.ts` already declares, nothing configurable
+per-run. Past sessions accumulated stale `vite` processes on 5174/5175 serving pre-hero code
+next to the current one on a different port, which is how a demo ends up presenting the wrong
+build by accident. Before presenting locally:
+
+```bash
+lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(517[0-9]) '   # find anything already listening
+kill <pid> ...                                          # stop stale servers
+cd frontend && npx vite --port 5173 --strictPort         # the one true instance
+```
+
+`--strictPort` refuses to silently move to 5174 if 5173 is taken — that failure is the point;
+it means a stale process is still up and needs killing first, not working around.
