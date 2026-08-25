@@ -1066,6 +1066,20 @@ export const api = {
   brief: (patientRef: string) => request<Brief>(`/api/v1/patients/${patientRef}/brief`),
   patientBrief: (patientRef: string) =>
     request<PatientBrief>(`/api/v1/patients/${patientRef}/brief/patient`),
+  /**
+   * The brief as a PDF, rendered server-side. Returns a blob URL the caller must revoke.
+   * A plain <a href> cannot carry the bearer token, so it is fetched like any other route.
+   */
+  briefPdf: async (patientRef: string, audience: 'clinician' | 'patient'): Promise<{ url: string; filename: string }> => {
+    const headers = new Headers();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const response = await fetch(`/api/v1/patients/${patientRef}/brief.pdf?audience=${audience}`, { headers });
+    if (!response.ok) throw new ApiError('The report could not be prepared.', response.status, 'pdf');
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = /filename="([^"]+)"/.exec(disposition);
+    return { url: URL.createObjectURL(await response.blob()), filename: match?.[1] ?? 'medikiosk-report.pdf' };
+  },
+
   /** Click-to-source: opens the original statement, voice segment or document region. */
   briefEvidence: (patientRef: string, encounterRef: string, factRef: string) =>
     request<FactEvidence>(

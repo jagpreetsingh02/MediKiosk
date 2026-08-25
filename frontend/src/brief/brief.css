@@ -856,3 +856,11 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ── export ────────────────────────────────────────────────────────────── */
+
+.bx-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-3);
+}

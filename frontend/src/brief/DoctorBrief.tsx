@@ -22,6 +22,7 @@ import { api, type Brief, type BriefLine } from '../shared/api';
 import { EvidencePanel } from './EvidencePanel';
 import { StateGlyph } from '../design/ui/StateGlyph';
 import { Icon } from '../shared/Icon';
+import { ExportButtons } from './ExportButtons';
 
 interface Props {
   patientRef: string;
@@ -477,6 +478,8 @@ export function DoctorBrief({ patientRef }: Props): JSX.Element {
             )}
           </p>
         </Section>
+
+        <ExportButtons patientRef={patientRef} />
 
         <p className="bx-notice">{brief.notice}</p>
         <p className="bx-version">

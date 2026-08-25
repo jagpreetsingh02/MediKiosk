@@ -19,6 +19,7 @@
  */
 import { useEffect, useState } from 'react';
 import { api, type PatientBrief } from '../shared/api';
+import { ExportButtons } from './ExportButtons';
 
 interface Props {
   patientRef: string;
@@ -79,6 +80,8 @@ export function PatientBriefView({ patientRef }: Props): JSX.Element {
             )}
           </section>
         ))}
+
+        <ExportButtons patientRef={patientRef} />
 
         <p className="bx-notice">{brief.notice}</p>
       </div>

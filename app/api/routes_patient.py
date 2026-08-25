@@ -20,6 +20,7 @@ from app.modules.encounter import history as H
 from app.modules.encounter import report as R
 from app.modules.report import brief as B
 from app.modules.report import loader as L
+from app.modules.report import pdf as PDF
 from app.modules.report.patient_view import to_patient_view
 
 router = APIRouter(prefix="/api/v1/patients", tags=["patient-memory"])
@@ -355,3 +356,54 @@ async def patient_brief(
         response_summary={"groups": len(payload["groups"])},
     )
     return payload
+
+
+@router.get(
+    "/{patient_ref}/brief.pdf",
+    dependencies=[Depends(require_any_action("session.read", "report.read_own"))],
+)
+async def brief_pdf(
+    db: DbSession, patient_ref: str, identity: CurrentIdentity, audience: str = "clinician"
+) -> Response:
+    """The brief as a PDF, rendered SERVER-SIDE from the same deterministic payload.
+
+    Not a screenshot of the DOM: the glass theme is white-on-black over a video and would
+    rasterise into an unreadable page, and an image has no selectable text — nothing a
+    hospital system, a search, or a screen reader can get at. This is real type.
+
+    `audience=patient` renders the patient grouping from the SAME assembled brief, through
+    `to_patient_view()`, exactly as the screen does.
+    """
+    if audience not in ("clinician", "patient"):
+        raise ValidationError("audience must be 'clinician' or 'patient'.")
+
+    patient = await _resolve(db, identity, patient_ref)
+    rows = await L.load(db, patient)
+    payload = B.assemble(rows)
+    if audience == "patient":
+        payload = to_patient_view(payload)
+
+    # The demo band is driven by the RECORD, not by a query parameter. A caller must not be
+    # able to ask for an unbadged PDF of synthetic data.
+    data = PDF.render(payload, audience=audience, demo=bool(patient.is_synthetic))
+
+    await record(
+        db,
+        actor=identity.actor,
+        actor_role=identity.role,
+        purpose_of_use="TREATMENT",
+        action="report.export",
+        abha_ref=patient.abha_ref,
+        request_summary={"patientRef": patient.patient_ref, "audience": audience},
+        response_summary={"bytes": len(data), "demo": bool(patient.is_synthetic)},
+    )
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="'
+                f'{PDF.filename_for(payload, audience=audience, demo=bool(patient.is_synthetic))}"'
+            )
+        },
+    )
