@@ -45,6 +45,15 @@ async def about() -> dict[str, Any]:
     return {
         "name": "MediKiosk",
         "version": __version__,
+        # Which database is actually behind this process. Reported here so a judge can check
+        # it without reading a log, and so the frontend can show a badge — a demo running on
+        # local data must never be presentable as Supabase.
+        "database": {
+            "backend": settings.database_backend,
+            "host": settings.database_host,
+            "isLocalDemo": settings.demo_local_db,
+            "isSupabase": settings.is_supabase,
+        },
         "problemStatement": "SIH26047 — All India Institute of Ayurveda, Ministry of Ayush",
         "purpose": (
             "Produces a structured, source-linked clinical HISTORY for a physician to review. "

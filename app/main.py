@@ -55,7 +55,21 @@ async def lifespan(app: FastAPI):
         backend=settings.database_backend,
         host=settings.database_host,  # host only; the URL carries the password
         pooled=settings.is_pooled,
+        demo_local=settings.demo_local_db,
     )
+    if settings.demo_local_db:
+        # Deliberately a warning, deliberately shouty, deliberately repeated in /about and
+        # as a badge in the UI. Someone presenting from local data must not be able to
+        # believe they are showing Supabase.
+        log.warning(
+            "startup.database.LOCAL_DEMO_DATABASE",
+            message=(
+                "DEMO_LOCAL_DB=true — this process is running on a LOCAL Postgres, NOT "
+                "Supabase. Nothing written here reaches the hosted project. Presentation "
+                "use only."
+            ),
+            host=settings.database_host,
+        )
 
     # Reach the database once, with backoff, before anything else needs it. This both
     # survives a transient network blip on a venue Wi-Fi and pays the ~800ms cold connect

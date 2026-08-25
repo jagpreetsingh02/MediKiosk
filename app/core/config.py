@@ -70,6 +70,27 @@ class Settings(BaseSettings):
     #: connection strings to use for the app and which for migrations.
     database_url: str = ""
     db_echo: bool = False
+    #: PRESENTATION FALLBACK. Selects a local Postgres instead of Supabase.
+    #:
+    #: This exists for one reason: outbound port 5432 is blocked on a great many venue
+    #: networks — conference NAT, hotel Wi-Fi, corporate egress filtering — and when it is,
+    #: NO Supabase endpoint works, pooler included. A pre-flight check that tells you the
+    #: demo is doomed is not a mitigation.
+    #:
+    #: It is opt-in and never a fallback in the automatic sense. Nothing silently switches
+    #: to it: if Supabase is unreachable and this flag is off, the application refuses to
+    #: start, exactly as before. A silent switch is how a demo ends up presenting local
+    #: data as though it came from Supabase, which is worse than not presenting at all.
+    #:
+    #: The dialect guard is unaffected — this is still PostgreSQL, so `require_postgres()`
+    #: has nothing to forgive.
+    demo_local_db: bool = False
+    #: Where that local Postgres lives. Port 5433 so it cannot collide with a Postgres the
+    #: developer already runs on 5432.
+    demo_local_database_url: str = (
+        "postgresql+asyncpg://medikiosk:medikiosk@127.0.0.1:5433/medikiosk"
+    )
+
     #: The ONLY way to reach SQLite. Set by `tests/conftest.py`, never by `.env`, and
     #: deliberately not named `environment=test` — that was an ordinary config value a
     #: developer could set by accident, which made the guard bypassable by typo.
@@ -170,24 +191,40 @@ class Settings(BaseSettings):
     )
 
     @property
+    def resolved_database_url(self) -> str:
+        """The URL the application actually connects to.
+
+        Every other database property reads this rather than the raw field, so the demo
+        fallback cannot be half-applied — a code path that checked `database_url` directly
+        would report Supabase while talking to localhost, which is precisely the confusion
+        this whole flag is designed to prevent.
+        """
+        if self.demo_local_db:
+            return self.demo_local_database_url
+        return self.database_url
+
+    @property
     def is_sqlite(self) -> bool:
-        return self.database_url.startswith("sqlite")
+        return self.resolved_database_url.startswith("sqlite")
 
     @property
     def is_postgres(self) -> bool:
         """The dialect the application requires. Checked at startup, not hoped for."""
-        return self.database_url.startswith(("postgresql", "postgres+", "postgres:"))
+        return self.resolved_database_url.startswith(("postgresql", "postgres+", "postgres:"))
 
     @property
     def is_supabase(self) -> bool:
         """True for both the direct endpoint (`db.<ref>.supabase.co`) and the pooler
         (`aws-N-<region>.pooler.supabase.com`)."""
-        return "supabase.co" in self.database_url or "supabase.com" in self.database_url
+        return (
+            "supabase.co" in self.resolved_database_url
+            or "supabase.com" in self.resolved_database_url
+        )
 
     @property
     def is_pooled(self) -> bool:
         """Supavisor (Supabase's pooler) rather than the direct Postgres endpoint."""
-        return "pooler" in self.database_url
+        return "pooler" in self.resolved_database_url
 
     @property
     def is_transaction_pooler(self) -> bool:
@@ -201,13 +238,16 @@ class Settings(BaseSettings):
         life of the connection, so prepared statements work normally and application-side
         pooling remains valid — which is exactly why the runtime uses session mode.
         """
-        return self.is_pooled and ":6543" in self.database_url
+        return self.is_pooled and ":6543" in self.resolved_database_url
 
     @property
     def database_backend(self) -> str:
         """A human label for the startup log. Never the URL — that carries the password."""
         if self.is_sqlite:
             return "SQLite (local file)"
+        if self.demo_local_db:
+            # Named so it cannot be mistaken for the real thing in a log or a screenshot.
+            return "LOCAL DEMO PostgreSQL — NOT Supabase"
         if self.is_supabase:
             if self.is_transaction_pooler:
                 return "Supabase PostgreSQL (pooler, transaction mode)"
@@ -231,7 +271,7 @@ class Settings(BaseSettings):
         """
         if self.testing:
             return
-        if not self.database_url:
+        if not self.resolved_database_url:
             raise RuntimeError(
                 "DATABASE_URL is not set. There is no default and no SQLite fallback: a "
                 "fallback is what let this application write a whole consultation to a "
@@ -251,8 +291,8 @@ class Settings(BaseSettings):
     def database_host(self) -> str:
         """Host only, safe to log. Splitting on `@` is what drops the credentials."""
         if self.is_sqlite:
-            return self.database_url.rsplit("/", 1)[-1]
-        tail = self.database_url.rsplit("@", 1)[-1]
+            return self.resolved_database_url.rsplit("/", 1)[-1]
+        tail = self.resolved_database_url.rsplit("@", 1)[-1]
         return tail.split("/", 1)[0]
 
     @property

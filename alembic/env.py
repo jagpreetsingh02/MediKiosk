@@ -31,7 +31,13 @@ from app.db.base import Base
 # app at the pooler and this at the direct endpoint. When it is unset (the normal case, and
 # the case on this machine, where the direct IPv6 endpoint is reachable) migrations use the
 # same URL as the app.
-MIGRATION_URL = os.environ.get("MIGRATION_DATABASE_URL") or settings.database_url
+# When DEMO_LOCAL_DB is on, migrations follow the runtime to the local database — a demo
+# database with no schema is not a fallback. MIGRATION_DATABASE_URL still wins for the
+# Supabase case, where DDL wants the direct endpoint rather than the pooler.
+if settings.demo_local_db:
+    MIGRATION_URL = settings.resolved_database_url
+else:
+    MIGRATION_URL = os.environ.get("MIGRATION_DATABASE_URL") or settings.database_url
 
 # The same Postgres-or-nothing rule the app enforces. Running migrations against a local
 # SQLite file produces a perfectly migrated database that no deployment will ever read.

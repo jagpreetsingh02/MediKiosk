@@ -1,0 +1,40 @@
+# PRESENTATION FALLBACK ONLY. This is not the deployment shape (that is docker-compose.yml).
+#
+# WHY IT EXISTS. Outbound port 5432 is blocked on a great many venue networks — conference
+# NAT, hotel Wi-Fi, corporate egress filtering. When it is, NO Supabase endpoint works: not
+# the direct one, not the pooler. Both failure modes were hit on this project within a single
+# working session. A pre-flight check that reports the demo is doomed is not a mitigation, so
+# this is the mitigation.
+#
+# It is NEVER selected automatically. `DEMO_LOCAL_DB=true` is the only way in, the startup log
+# says so as a warning, /about reports it, and the UI carries a badge. A silent fallback would
+# let someone present local data believing it came from Supabase, which is worse than not
+# presenting at all.
+#
+#   make demo-local-up     bring it up, migrate and seed
+#   make demo-local-down   stop it (data is kept)
+#   make demo-local-reset  stop it and DELETE the volume
+services:
+  demo-db:
+    # Same major version family as the hosted project (Supabase reports PostgreSQL 17.6), so
+    # a behaviour difference in the demo cannot be blamed on a version gap. pgvector because
+    # the deployment image carries it and the schema should not diverge between the two.
+    image: pgvector/pgvector:pg17
+    container_name: medikiosk-demo-db
+    environment:
+      POSTGRES_USER: medikiosk
+      POSTGRES_PASSWORD: medikiosk
+      POSTGRES_DB: medikiosk
+    # 5433 on the host: a developer may already run Postgres on 5432, and a demo that fails
+    # because of a port collision is the same lost demo by another route.
+    ports: ["5433:5432"]
+    volumes:
+      - demo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medikiosk -d medikiosk"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  demo_pgdata:

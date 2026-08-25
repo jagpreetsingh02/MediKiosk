@@ -101,3 +101,68 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   padding: 6px 12px;
   flex: 0 0 auto;
 }
+
+/* The local-demo database badge. Like `.mock-banner`, this is chrome that is ALLOWED to break
+ * the glass language, because a warning that blends into the design is a warning nobody
+ * reads. Rose rather than amber: the mock-identity banner is already amber, and these two
+ * must not be mistaken for each other. */
+/* Height reserved by the layout below, so the bar never sits on top of the nav. */
+:root {
+  --mk-dbbadge-h: 30px;
+}
+
+.mk-dbbadge {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--mk-z-toast);
+  min-height: var(--mk-dbbadge-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--mk-space-2) var(--mk-space-3);
+  padding: var(--mk-space-2) var(--mk-space-4);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--mk-danger-soft),
+    var(--mk-danger-soft) 12px,
+    var(--mk-danger-soft-strong) 12px,
+    var(--mk-danger-soft-strong) 24px
+  );
+  border-bottom: 1px solid var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+  font-size: var(--mk-text-2xs);
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.mk-dbbadge strong {
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+}
+
+.mk-dbbadge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mk-danger);
+  flex: none;
+}
+
+/* Make room for the badge. Only ever active in local-demo mode, so the real product pays
+   nothing for it. `.phys` is a viewport-height grid and needs its height reduced rather
+   than merely padded, or its bottom row is pushed out of view. */
+[data-local-db] .mk-route {
+  padding-top: var(--mk-dbbadge-h);
+}
+
+[data-local-db] .phys {
+  height: calc(100dvh - var(--mk-dbbadge-h));
+}
+
+[data-local-db] .hx {
+  height: calc(100dvh - var(--mk-dbbadge-h));
+}

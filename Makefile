@@ -5,7 +5,7 @@ PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 export PYTHONPATH := .
 
-.PHONY: help setup demo api web test lint fmt eval eval-strict eval-hosted ocr-bench fixtures check clean
+.PHONY: help setup demo api web test lint fmt eval eval-strict eval-hosted ocr-bench fixtures check clean demo-local-up demo-local-down demo-local-reset
 
 help:
 	@echo "make setup        create the venv and install everything"
@@ -27,6 +27,23 @@ setup:
 
 demo:
 	./scripts/demo.sh
+
+# ---------------------------------------------------------------- demo fallback
+# Presentation only, and never automatic. See docker-compose.demo.yml for why it exists.
+demo-local-up:
+	docker compose -f docker-compose.demo.yml up -d --wait
+	DEMO_LOCAL_DB=true $(PY) -m alembic upgrade head
+	@echo ""
+	@echo "  LOCAL DEMO DATABASE is up and migrated on 127.0.0.1:5433."
+	@echo "  It is seeded on first boot of the API."
+	@echo "  Start the stack with:  DEMO_LOCAL_DB=true make demo"
+	@echo "  Everything will be labelled LOCAL in the log, in /about and in the UI."
+
+demo-local-down:
+	docker compose -f docker-compose.demo.yml down
+
+demo-local-reset:
+	docker compose -f docker-compose.demo.yml down -v
 
 supabase-check:
 	@$(PY) scripts/check_supabase.py

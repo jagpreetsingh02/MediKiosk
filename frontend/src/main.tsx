@@ -37,6 +37,7 @@ import { DemoLauncher } from './shared/DemoLauncher';
 import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
+import { DatabaseBadge } from './design/DatabaseBadge';
 import { reduced, route as routeVariants } from './design/motion';
 
 // Fonts are self-hosted through @fontsource, never linked from a CDN: the kiosk is expected to
@@ -93,6 +94,10 @@ function Shell(): JSX.Element {
   return (
     <>
       <Ambient depth={depth} />
+
+      {/* Renders nothing against Supabase. Mounted above `Routes` so there is no surface a
+          local-database demo could be presented from without it. */}
+      <DatabaseBadge />
 
       {/* `mode="wait"` so the outgoing surface is gone before the incoming one commits.
           Overlapping them cross-fades two full screens through each other, which on a moving

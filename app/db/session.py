@@ -91,7 +91,7 @@ def get_engine() -> AsyncEngine:
             connect_args["prepared_statement_cache_size"] = 0
 
         kwargs["connect_args"] = connect_args
-    engine = create_async_engine(settings.database_url, **kwargs)  # type: ignore[arg-type]
+    engine = create_async_engine(settings.resolved_database_url, **kwargs)  # type: ignore[arg-type]
     if not settings.is_sqlite:
         _stamp_every_connection(engine)
     return engine
@@ -138,6 +138,14 @@ def _stamp_every_connection(engine: AsyncEngine) -> None:
             cursor.execute(f"set application_name = '{settings.app_name}-api'")
         finally:
             cursor.close()
+        # THE COMMIT IS NOT OPTIONAL, and leaving it out fails in a way that looks like
+        # success. `SET` is transactional in PostgreSQL, the statements above run inside an
+        # implicit transaction, and SQLAlchemy's pool issues a ROLLBACK when a connection is
+        # returned — which silently undoes both settings. Testing it through
+        # `engine.connect()` hides the bug completely, because that reads the value back
+        # inside the same checkout, before the reset. Only a session taken from the pool
+        # afterwards sees the truth: application_name empty, idle_session_timeout back to 0.
+        dbapi_connection.commit()
 
 
 @lru_cache(maxsize=1)

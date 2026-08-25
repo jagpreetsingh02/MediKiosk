@@ -170,3 +170,56 @@ def test_alembic_refuses_a_non_postgres_url() -> None:
     assert result.returncode != 0, "alembic ran against SQLite without TESTING=1"
     assert "Refusing to migrate" in (result.stderr + result.stdout)
     assert not (PROJECT_ROOT / "should-never-be-built.db").exists()
+
+
+# ------------------------------------------------- the demo-local escape hatch
+
+
+def test_demo_local_db_is_opt_in_and_never_automatic() -> None:
+    """`DEMO_LOCAL_DB` exists so a demo survives a venue that blocks outbound 5432.
+
+    It must be a DECISION, never a fallback. If Supabase is unreachable and the flag is off,
+    the correct behaviour is to refuse to start — a silent switch is how local data gets
+    presented as though it came from the hosted project.
+    """
+    supabase = "postgresql+asyncpg://u:p@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+
+    off = _settings(database_url=supabase)
+    assert not off.demo_local_db
+    assert off.resolved_database_url == supabase, "the flag defaults on — it must not"
+
+    on = _settings(database_url=supabase, demo_local_db=True)
+    assert on.resolved_database_url != supabase
+    assert "127.0.0.1" in on.resolved_database_url
+
+
+def test_the_local_demo_database_is_labelled_unmistakably() -> None:
+    """The label ends up in the startup log, in /about and in a UI badge.
+
+    Anything ambiguous here is a chance for someone to present local data believing it is
+    Supabase, so the name says what it is not, as well as what it is.
+    """
+    local = _settings(
+        database_url="postgresql+asyncpg://u:p@aws-0-ap-south-1.pooler.supabase.com:5432/postgres",
+        demo_local_db=True,
+    )
+    assert "LOCAL" in local.database_backend
+    assert "NOT Supabase" in local.database_backend
+    assert not local.is_supabase, "the local database must never report itself as Supabase"
+
+
+def test_the_dialect_guard_still_applies_to_the_local_database() -> None:
+    """The escape hatch is about WHICH Postgres, not about whether it is Postgres.
+
+    A local SQLite would satisfy "runs without the network" just as well and is exactly what
+    the guard exists to prevent, so the flag buys no exemption from it.
+    """
+    local = _settings(demo_local_db=True)
+    assert local.is_postgres
+    local.require_postgres()
+
+    sqlite_local = _settings(
+        demo_local_db=True, demo_local_database_url="sqlite+aiosqlite:///./demo.db"
+    )
+    with pytest.raises(RuntimeError, match="requires PostgreSQL"):
+        sqlite_local.require_postgres()

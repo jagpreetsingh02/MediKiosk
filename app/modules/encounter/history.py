@@ -89,6 +89,24 @@ async def encounters_for(db: AsyncSession, patient_id: int) -> list[Encounter]:
     )
 
 
+def _bounded(gate: asyncio.Semaphore):  # type: ignore[no-untyped-def]
+    """Hold `gate` for the whole of the wrapped coroutine, session included.
+
+    Acquiring around the *session* rather than around the query is the point: a connection is
+    held from `async with maker()` to its close, so gating only the execute would let all four
+    branches open a connection and merely queue their statements.
+    """
+
+    def decorate(fn):  # type: ignore[no-untyped-def]
+        async def run():  # type: ignore[no-untyped-def]
+            async with gate:
+                return await fn()
+
+        return run
+
+    return decorate
+
+
 async def overview(db: AsyncSession, patient: Patient) -> dict[str, Any]:
     """The patient home screen: what this person already has on file.
 
@@ -99,14 +117,16 @@ async def overview(db: AsyncSession, patient: Patient) -> dict[str, Any]:
     sequential reads therefore spent about half a second doing nothing but waiting, and the
     endpoint measured 2.2 s end to end.
 
-    A NOTE ON THE COST, because it is a real trade. `AsyncSession` is not safe for concurrent
-    use — issuing four statements on one session raises "another operation is in progress" —
-    so each branch takes its own short-lived session, and a single request therefore holds up
-    to four connections for the duration of one round-trip. The pool ceiling is 5 + 5 per
-    process, deliberately tight because the project's `max_connections` is 60. That is
-    comfortable for this surface (a kiosk serves one patient at a time) and would need
-    revisiting before this route saw real concurrency. The sessions are read-only and
-    short-lived, so they return to the pool immediately.
+    BOUNDED TO TWO AT A TIME. `AsyncSession` is not safe for concurrent use — issuing four
+    statements on one session raises "another operation is in progress" — so each branch
+    takes its own short-lived session. Unbounded, that is four connections held by a single
+    request against a 5 + 5 per-process ceiling, which is far too tight: two concurrent
+    requests would exhaust the pool on their own.
+
+    A semaphore of 2 keeps the win and drops the risk. Four sequential round-trips become
+    two waves, so the latency saving is most of what full concurrency would give (2 x RTT
+    instead of 4 x RTT), while a request never holds more than two connections. The sessions
+    are read-only and short-lived, so they return to the pool immediately.
     """
     # The concurrent sessions are bound to the SAME engine the caller handed us, not to a
     # globally-resolved one. That distinction is load-bearing: reaching for the process-wide
@@ -116,10 +136,16 @@ async def overview(db: AsyncSession, patient: Patient) -> dict[str, Any]:
     bind = db.get_bind() if db.bind is None else db.bind
     maker = async_sessionmaker(bind, expire_on_commit=False, class_=AsyncSession)
 
+    #: At most two of the four reads are in flight at once. See the docstring: this is the
+    #: line that stops one patient-home request from claiming most of the connection pool.
+    gate = asyncio.Semaphore(2)
+
+    @_bounded(gate)
     async def _encounters() -> list[Encounter]:
         async with maker() as session:
             return await encounters_for(session, patient.id)
 
+    @_bounded(gate)
     async def _documents() -> list[DocumentRecord]:
         async with maker() as session:
             return list(
@@ -132,6 +158,7 @@ async def overview(db: AsyncSession, patient: Patient) -> dict[str, Any]:
                 ).scalars().all()
             )
 
+    @_bounded(gate)
     async def _medications() -> list[MedicationEvent]:
         async with maker() as session:
             return list(
@@ -142,6 +169,7 @@ async def overview(db: AsyncSession, patient: Patient) -> dict[str, Any]:
                 ).scalars().all()
             )
 
+    @_bounded(gate)
     async def _observations() -> list[ObservationEvent]:
         async with maker() as session:
             return list(
