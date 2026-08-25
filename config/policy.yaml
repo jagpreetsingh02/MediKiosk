@@ -56,6 +56,11 @@ roles:
       # Deliberately NOT `document.read`, which is the clinician's action over ANY session
       # and carries no ownership constraint; `load_context()` proves ownership for this one.
       - document.read_own
+      # The patient may read their OWN brief, in the patient-facing grouping. `_resolve()`
+      # matches the token's abha_ref against the record before anything is assembled, so this
+      # cannot reach another person's history. Deliberately NOT `session.read`, which is the
+      # clinician's action over any patient and carries no ownership constraint.
+      - report.read_own
       - session.submit
       - system.about
 
