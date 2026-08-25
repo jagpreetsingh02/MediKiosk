@@ -180,17 +180,28 @@ class Settings(BaseSettings):
 
     @property
     def is_supabase(self) -> bool:
-        return "supabase." in self.database_url
+        """True for both the direct endpoint (`db.<ref>.supabase.co`) and the pooler
+        (`aws-N-<region>.pooler.supabase.com`)."""
+        return "supabase.co" in self.database_url or "supabase.com" in self.database_url
 
     @property
     def is_pooled(self) -> bool:
-        """Supabase's pooler (pgbouncer) rather than the direct Postgres endpoint.
-
-        Matters because pgbouncer in transaction mode cannot hold a prepared statement
-        across statements, and asyncpg prepares everything by default. See
-        `app/db/session.py` for what that forces.
-        """
+        """Supavisor (Supabase's pooler) rather than the direct Postgres endpoint."""
         return "pooler" in self.database_url
+
+    @property
+    def is_transaction_pooler(self) -> bool:
+        """Supavisor in TRANSACTION mode — port 6543.
+
+        The distinction is not cosmetic. Transaction mode hands a different backend
+        connection to every transaction, so a prepared statement created in one is gone by
+        the next; asyncpg prepares everything by default, and the result is an intermittent
+        `InvalidSQLStatementNameError: prepared statement "__asyncpg_stmt_N__" does not
+        exist` under load. SESSION mode (port 5432) keeps one backend per client for the
+        life of the connection, so prepared statements work normally and application-side
+        pooling remains valid — which is exactly why the runtime uses session mode.
+        """
+        return self.is_pooled and ":6543" in self.database_url
 
     @property
     def database_backend(self) -> str:
@@ -198,7 +209,11 @@ class Settings(BaseSettings):
         if self.is_sqlite:
             return "SQLite (local file)"
         if self.is_supabase:
-            return f"Supabase PostgreSQL ({'pooled' if self.is_pooled else 'direct'})"
+            if self.is_transaction_pooler:
+                return "Supabase PostgreSQL (pooler, transaction mode)"
+            if self.is_pooled:
+                return "Supabase PostgreSQL (pooler, session mode)"
+            return "Supabase PostgreSQL (direct)"
         if self.is_postgres:
             return "PostgreSQL"
         return "unset" if not self.database_url else "unknown"

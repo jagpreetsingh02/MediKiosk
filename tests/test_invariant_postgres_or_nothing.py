@@ -104,13 +104,22 @@ def test_pooled_connections_are_detected() -> None:
     way to learn the same fact.
     """
     direct = _settings(database_url="postgresql+asyncpg://u:p@db.x.supabase.co:5432/postgres")
+    # 5432 on a pooler host is SESSION mode — the runtime's endpoint.
     pooled = _settings(
-        database_url="postgresql+asyncpg://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+        database_url="postgresql+asyncpg://u:p@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
     )
     assert not direct.is_pooled
     assert pooled.is_pooled
     assert "direct" in direct.database_backend
-    assert "pooled" in pooled.database_backend
+    assert "session mode" in pooled.database_backend
+
+    # Session mode keeps prepared statements; only transaction mode must give them up.
+    txn = _settings(
+        database_url="postgresql+asyncpg://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+    )
+    assert not pooled.is_transaction_pooler, "5432 is session mode, not transaction mode"
+    assert txn.is_transaction_pooler
+    assert "transaction mode" in txn.database_backend
 
 
 def test_the_logged_host_never_carries_the_password() -> None:

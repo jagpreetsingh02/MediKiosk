@@ -106,9 +106,16 @@ def test_env_example_and_env_do_not_drift() -> None:
     ("url", "expected"),
     [
         ("sqlite+aiosqlite:///./medikiosk.db", "SQLite (local file)"),
+        # Session mode (5432) and transaction mode (6543) are named apart because they
+        # behave differently: only session mode can carry a prepared statement, and the
+        # startup log is where that gets noticed before it becomes an intermittent 500.
         (
             "postgresql+asyncpg://postgres.abc:pw@aws-0-ap-south-1.pooler.supabase.com:5432/postgres",
-            "Supabase PostgreSQL (pooled)",
+            "Supabase PostgreSQL (pooler, session mode)",
+        ),
+        (
+            "postgresql+asyncpg://postgres.abc:pw@aws-0-ap-south-1.pooler.supabase.com:6543/postgres",
+            "Supabase PostgreSQL (pooler, transaction mode)",
         ),
         (
             "postgresql+asyncpg://postgres:pw@db.abc.supabase.co:5432/postgres",

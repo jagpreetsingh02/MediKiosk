@@ -61,6 +61,48 @@ looks like random query corruption, which is a terrible thing to debug during a 
 `postgresql+asyncpg`, and `app/db/session.py` sets `pool_pre_ping=True` for non-SQLite
 engines, which matters on a pooler that can drop idle connections.
 
+### Two URLs: runtime and migrations
+
+`DATABASE_URL` is the **session pooler**, as above. `MIGRATION_DATABASE_URL` is a second,
+optional variable used by Alembic only, and it exists because migrations want one session for
+their DDL and version bookkeeping:
+
+```
+DATABASE_URL=postgresql+asyncpg://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres
+MIGRATION_DATABASE_URL=postgresql+asyncpg://postgres:<pw>@db.<ref>.supabase.co:5432/postgres
+```
+
+**Fallback:** if the direct endpoint is unreachable from where you run migrations — it is
+IPv6-only, so any IPv4-only network — point `MIGRATION_DATABASE_URL` at the **session** pooler
+too. Port 5432, never 6543: a migration through the transaction pooler can stop partway with
+some DDL already committed. If `MIGRATION_DATABASE_URL` is unset, Alembic uses `DATABASE_URL`.
+
+### If the direct endpoint will not resolve at all
+
+Symptom: `socket.gaierror: [Errno 8] nodename nor servname provided`, while
+`dscacheutil -q host -a name db.<ref>.supabase.co` clearly shows an `ipv6_address`.
+
+That combination means the DNS record exists but the machine has no usable IPv6 **route**, so
+`getaddrinfo` returns nothing usable. It is not a DNS problem and retrying will not fix it.
+Use the pooler. This was observed live on this project.
+
+### If port 5432 itself is blocked
+
+Some networks — conference NAT, corporate egress filtering, hotel Wi-Fi — block outbound 5432
+entirely. Then **no** Postgres endpoint works, pooler included, and the symptom is a TCP
+timeout rather than a DNS failure.
+
+Diagnose it in one command, using a host that accepts any port:
+
+```bash
+python3 -c "import socket; socket.create_connection(('portquiz.net', 5432), timeout=8)"
+```
+
+If that times out while HTTPS works, the network is the problem and no connection string will
+help. Options are a tethered phone, a VPN, or running the demo against a local Postgres. The
+application will not start in this state — by design — and says so within about a minute, with
+the endpoint named. Do not spend the demo debugging it: check this before you present.
+
 ---
 
 ## The schema is owned by Alembic

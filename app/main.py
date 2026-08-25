@@ -28,7 +28,7 @@ from app.auth import mock_idp
 from app.core.config import settings
 from app.core.errors import MediKioskError
 from app.core.logging import configure_logging, get_logger
-from app.db.session import create_all, get_sessionmaker
+from app.db.session import create_all, get_sessionmaker, wait_for_database
 from app.fhir.outcomes import outcome_from_error
 
 log = get_logger(__name__)
@@ -56,6 +56,12 @@ async def lifespan(app: FastAPI):
         host=settings.database_host,  # host only; the URL carries the password
         pooled=settings.is_pooled,
     )
+
+    # Reach the database once, with backoff, before anything else needs it. This both
+    # survives a transient network blip on a venue Wi-Fi and pays the ~800ms cold connect
+    # here rather than making the first patient's first tap wait for it.
+    if not settings.testing:
+        await wait_for_database()
 
     if settings.testing:
         # The in-memory schema the suite runs on. Unreachable from a dev or demo process.
