@@ -37,9 +37,18 @@ captured?" without joining through a row that was deliberately destroyed.
 capture-side table with its own lifecycle, and constraining it from the durable side would
 make purging a session depend on what the durable half happens to reference.
 
-Existing encounters keep NULL — the link genuinely was not recorded at the time, and writing
-a plausible value into it would be inventing consent provenance, which is the one thing this
-column exists to prevent.
+BACKFILLED FROM AN EXACT JOIN, NOT A GUESS. An earlier draft of this migration left every
+existing encounter NULL, on the reasoning that filling it in would invent consent provenance.
+That reasoning was wrong, and checking production is what showed it: the link IS recorded,
+just indirectly — `encounter.source_session_ref` and `consent_record.session_ref` are the same
+string, written by the same request. Recovering it is not inference.
+
+    UPDATE encounter SET consent_ref = (matching consent_record.consent_ref)
+
+Encounters with no `source_session_ref` stay NULL, correctly: those are the seeded
+document-only encounters, which never had a capture session and so never had a consent to
+reach. An encounter whose consent_record was purged also stays NULL — absent is said, not
+filled.
 
 ═══ 3. REPORT SNAPSHOTS ═══
 
@@ -170,6 +179,31 @@ def upgrade() -> None:
     # ---- 2. encounter -> consent --------------------------------------------
     op.add_column("encounter", sa.Column("consent_ref", sa.String(length=64), nullable=True))
     op.create_index(op.f("ix_encounter_consent_ref"), "encounter", ["consent_ref"])
+
+    # Recover the link that was already recorded, via the exact session ref both rows carry.
+    # Nullable throughout: an encounter with no capture session, or whose consent_record has
+    # been purged, keeps NULL rather than acquiring a nearby-looking value.
+    # A CORRELATED SUBQUERY, not `UPDATE ... FROM`. The latter is PostgreSQL-only syntax and
+    # the test suite builds this whole schema on SQLite, where it fails with a bare syntax
+    # error — the tested schema would then differ from the one production runs.
+    #
+    # `ORDER BY granted_at DESC LIMIT 1` is defensive: `consent_record.session_ref` is indexed
+    # but not unique, and a scalar subquery that returns two rows ABORTS the migration on
+    # PostgreSQL. There are no duplicates today; a migration should not depend on that staying
+    # true. Re-granting narrows consent, so the most recent record is also the correct one.
+    op.execute(
+        """
+        UPDATE encounter
+           SET consent_ref = (
+                 SELECT c.consent_ref
+                   FROM consent_record c
+                  WHERE c.session_ref = encounter.source_session_ref
+                  ORDER BY c.granted_at DESC
+                  LIMIT 1
+               )
+         WHERE source_session_ref IS NOT NULL
+        """
+    )
 
 
 def downgrade() -> None:

@@ -17,3 +17,7 @@ data/uploads/
 # scratch output from local runs
 tmp/
 frontend/tsconfig.tsbuildinfo
+
+# Database restore points. Real patient-shaped data, however synthetic — and 6MB of it per
+# dump. Kept locally as a restore point, never committed.
+backups/
