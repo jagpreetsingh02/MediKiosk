@@ -16,6 +16,7 @@ from app.api.deps import (
     save_context,
 )
 from app.audit.chain import record
+from app.core.config import settings
 from app.core.errors import ConsentRequired, ValidationError
 from app.db.models import SessionDocument
 from app.modules.documents.backends import available_backends
@@ -57,6 +58,25 @@ async def upload(
         raise ConsentRequired("The documents scope was not granted for this session.")
 
     data = await file.read()
+
+    # A SPECIFIC ERROR, NOT A GENERIC ONE. There was no limit at all here: a 40MB burst photo
+    # from a modern phone was read entirely into memory and then rasterised, and the patient's
+    # experience of that is a screen that hangs and then fails for no stated reason. An
+    # explicit ceiling with a sentence the patient can act on is the difference between a
+    # dead end and a retake.
+    if len(data) > settings.max_upload_bytes:
+        raise ValidationError(
+            f"That file is {len(data) / 1_000_000:.0f} MB, which is larger than this kiosk "
+            f"can read ({settings.max_upload_bytes // 1_000_000} MB). Please take a photo "
+            "using the camera button on this screen — those are smaller — or upload a "
+            "single page instead of the whole file."
+        )
+    if not data:
+        raise ValidationError(
+            "That file appears to be empty. Please choose it again, or take a photo of the "
+            "paper using the camera button."
+        )
+
     sex = context.state.values.get("demographics.gender")
 
     result: IngestResult = ingest(

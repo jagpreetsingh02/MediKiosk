@@ -18,3 +18,10 @@ python-multipart>=0.0.9
 pypdf>=5.0
 pillow>=10.4
 pypdfium2>=4.30
+
+# Image conditioning for OCR (app/modules/documents/imaging.py). A phone photo needs EXIF
+# orientation applied, greyscale, resolution normalisation, deskew and an adaptive threshold
+# before Tesseract can read it; without them image OCR returns empty output or confident
+# nonsense, silently.
+numpy>=2.0            # deskew projection profile and the local-mean threshold
+pillow-heif>=1.0      # iPhones shoot HEIC by default; Pillow cannot open one without this

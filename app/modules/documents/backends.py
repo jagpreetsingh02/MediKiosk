@@ -20,13 +20,14 @@ from __future__ import annotations
 import shutil
 import subprocess
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Protocol
 
 from app.contracts.provenance import BoundingBox
 from app.core.errors import UpstreamUnavailable, ValidationError
 from app.core.logging import get_logger
+from app.modules.documents import imaging
 
 log = get_logger(__name__)
 
@@ -64,6 +65,11 @@ class OCRPage:
 class OCRResult:
     backend: str
     pages: tuple[OCRPage, ...] = field(default_factory=tuple)
+    #: What the imaging step had to do to the page, when there was one. Carried through so the
+    #: failure UX can say something specific — "the photo is too small to read" rather than
+    #: "we could not read that paper" — and so a physician can see that a source image was
+    #: rotated or deskewed before the text they are reading was extracted from it.
+    preparation: imaging.Prepared | None = None
 
     @property
     def mean_confidence(self) -> float:
@@ -244,9 +250,10 @@ class TesseractOCR:
         self.binary = shutil.which("tesseract")
         self.available = self.binary is not None
 
-    #: Rasterisation DPI for PDFs. 200 is the knee of the curve: 150 loses thin digits in
-    #: dosages, 300 doubles the runtime for no measured recall gain (eval/ocr_bench.py).
-    PDF_DPI = 200
+    #: Rasterisation DPI for a scanned PDF. 300 is what Tesseract's own guidance asks for
+    #: and what the brief specifies; the earlier 200 was chosen before any image had been
+    #: through this path, and it loses thin digits in dosages on a genuine scan.
+    PDF_DPI = 300
 
     def read(self, data: bytes, *, filename: str, media_type: str) -> OCRResult:
         if not self.available:
@@ -266,9 +273,15 @@ class TesseractOCR:
                 # first. A scanned prescription arrives as a PDF far more often than as a
                 # PNG, so this is the common path, not an edge case.
                 return self._read_rasterised(data, Path(tmp))
-            source = Path(tmp) / filename.replace("/", "_")
-            source.write_bytes(data)
-            return self._run(source)
+            # EVERY IMAGE IS CONDITIONED FIRST. Handing raw camera bytes to Tesseract is
+            # what made image OCR untested-and-broken: a HEIC it cannot open, an EXIF
+            # rotation it does not apply, a photo too small to resolve, and uneven corridor
+            # light it has no answer for. See `imaging.py` for why each step is there.
+            prepared = imaging.prepare(data, filename=filename)
+            source = Path(tmp) / "prepared.png"
+            source.write_bytes(imaging.to_png(prepared))
+            result = self._run(source)
+            return replace(result, preparation=prepared)
 
     def _read_rasterised(self, data: bytes, workdir: Path) -> OCRResult:
         try:
@@ -284,8 +297,14 @@ class TesseractOCR:
         pages: list[OCRPage] = []
         try:
             for index in range(len(document)):
+                # A rasterised page is an image and gets the same conditioning as a photo.
+                # It arrives square and correctly sized, so deskew and scaling are no-ops —
+                # but the adaptive threshold still earns its place on a grey scan.
+                raw = workdir / f"page_{index + 1}_raw.png"
+                document[index].render(scale=self.PDF_DPI / 72).to_pil().save(raw)
+                prepared = imaging.prepare(raw.read_bytes(), filename=raw.name)
                 image_path = workdir / f"page_{index + 1}.png"
-                document[index].render(scale=self.PDF_DPI / 72).to_pil().save(image_path)
+                image_path.write_bytes(imaging.to_png(prepared))
                 rendered = self._run(image_path)
                 for page in rendered.pages:
                     pages.append(

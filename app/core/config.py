@@ -158,6 +158,14 @@ class Settings(BaseSettings):
     ocr_backend: Literal["textlayer", "tesseract"] = "textlayer"
     #: Anything at or below this goes to the handwriting lane and is never auto-merged.
     ocr_low_confidence_threshold: float = 0.72
+    #: Largest upload the kiosk will accept. This value already existed and was NEVER
+    #: ENFORCED — the upload route read the whole body into memory and rasterised it with no
+    #: check at all, so a 40 MB burst photo produced a screen that hung and then failed
+    #: without saying why. `routes_documents.upload` now enforces it, with a message that
+    #: names the size and tells the patient what to do instead.
+    #:
+    #: 20 MiB comfortably holds a multi-page scanned PDF and a full-resolution phone photo
+    #: (a 12MP JPEG is ~4 MB, HEIC ~2 MB).
     max_upload_bytes: int = 20 * 1024 * 1024
 
     # --- terminology (coding sidecar) ---
