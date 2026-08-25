@@ -29,6 +29,12 @@ reconnects to Supabase.
 Do this *again* right before walking up — a second gap (a judge's question, a room change) is
 enough for it to sleep again on the free tier.
 
+**THE EVIDENCE CROP TAKES ~5 SECONDS THE FIRST TIME.** Opening a document-sourced line in
+the brief rasterises the PDF page server-side, and on free-tier CPU that measured 4.8s in
+production (61KB PNG, HTTP 200 — it is working, not hanging). It is cached per page after
+that. If you are demonstrating click-to-source, open one document line during the warm-up so
+the second one is instant in front of the audience.
+
 If you forget, the product does not lie about it: the first slow request raises a
 "Waking the server… this can take up to a minute on first load" notice, so a cold boot reads as
 a wait rather than a crash. It clears itself the moment the response lands — on the real
