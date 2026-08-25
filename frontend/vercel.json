@@ -5,6 +5,7 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://medikiosk-api-docker.onrender.com/api/:path*" },
     { "source": "/mock-idp/:path*", "destination": "https://medikiosk-api-docker.onrender.com/mock-idp/:path*" },
-    { "source": "/about", "destination": "https://medikiosk-api-docker.onrender.com/about" }
+    { "source": "/about", "destination": "https://medikiosk-api-docker.onrender.com/about" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ]
 }
