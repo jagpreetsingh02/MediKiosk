@@ -37,7 +37,7 @@
   --warn-soft: var(--mk-warm-soft);
   --danger: var(--mk-danger-ink);
   --danger-soft: var(--mk-danger-soft);
-  --immediate: var(--mk-coral-300);
+  --immediate: var(--mk-danger-ink);
 
   /* --- type (aliases) ------------------------------------------------------ */
   --font: var(--mk-font-ui);
@@ -80,19 +80,19 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
  *
  * It is the one piece of chrome allowed to break the glass language — a disclaimer that
  * blends into the design is a disclaimer that is not doing its job. The hazard stripe stays;
- * it is simply re-cut for a dark ground, in saffron rather than the old mud brown, since
- * saffron is already this product's colour for "pay attention to this".
+ * it is simply re-cut for a dark ground, in amber rather than the old mud brown, since
+ * amber is already this product's colour for "pay attention to this".
  */
 .mock-banner {
   background: repeating-linear-gradient(
     45deg,
-    rgba(226, 144, 15, 0.18),
-    rgba(226, 144, 15, 0.18) 12px,
-    rgba(226, 144, 15, 0.32) 12px,
-    rgba(226, 144, 15, 0.32) 24px
+    var(--mk-hazard-a),
+    var(--mk-hazard-a) 12px,
+    var(--mk-hazard-b) 12px,
+    var(--mk-hazard-b) 24px
   );
   border-bottom: 1px solid var(--mk-warm-edge);
-  color: var(--mk-saffron-300);
+  color: var(--mk-warm-ink);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;

@@ -56,11 +56,24 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # --- persistence ---
-    #: SQLite stays the default so `pytest` and a cold clone run with no network at all.
-    #: The demo and any deployment point this at Supabase — see docs/SUPABASE.md for which
-    #: of the two connection strings Supabase offers to use, and why.
-    database_url: str = "sqlite+aiosqlite:///./medikiosk.db"
+    #: THERE IS NO DEFAULT, AND THAT IS THE POINT.
+    #:
+    #: This used to default to `sqlite+aiosqlite:///./medikiosk.db`. That one line is the
+    #: root of the recurring failure in this project: a missing or misspelled DATABASE_URL
+    #: produced a *working* application that wrote every patient, encounter and clinical
+    #: fact to a local file, while the Supabase tables everyone was watching stayed empty.
+    #: Nothing failed. Nothing warned. The bug was only visible as absence.
+    #:
+    #: An empty string cannot connect, so a missing value is now a startup crash with a
+    #: clear message instead of a silent divergence. `require_postgres()` below is the
+    #: check that actually enforces it; see docs/SUPABASE.md for which of Supabase's two
+    #: connection strings to use for the app and which for migrations.
+    database_url: str = ""
     db_echo: bool = False
+    #: The ONLY way to reach SQLite. Set by `tests/conftest.py`, never by `.env`, and
+    #: deliberately not named `environment=test` — that was an ordinary config value a
+    #: developer could set by accident, which made the guard bypassable by typo.
+    testing: bool = False
     #: Supabase project URL (`https://<ref>.supabase.co`). Used for Storage and for the
     #: preflight check, NOT for SQL: clinical reads and writes go through SQLAlchemy on
     #: `database_url`, per §4 and §23 of the brief.
@@ -161,8 +174,23 @@ class Settings(BaseSettings):
         return self.database_url.startswith("sqlite")
 
     @property
+    def is_postgres(self) -> bool:
+        """The dialect the application requires. Checked at startup, not hoped for."""
+        return self.database_url.startswith(("postgresql", "postgres+", "postgres:"))
+
+    @property
     def is_supabase(self) -> bool:
         return "supabase." in self.database_url
+
+    @property
+    def is_pooled(self) -> bool:
+        """Supabase's pooler (pgbouncer) rather than the direct Postgres endpoint.
+
+        Matters because pgbouncer in transaction mode cannot hold a prepared statement
+        across statements, and asyncpg prepares everything by default. See
+        `app/db/session.py` for what that forces.
+        """
+        return "pooler" in self.database_url
 
     @property
     def database_backend(self) -> str:
@@ -170,9 +198,39 @@ class Settings(BaseSettings):
         if self.is_sqlite:
             return "SQLite (local file)"
         if self.is_supabase:
-            pooled = "pooler" in self.database_url
-            return f"Supabase PostgreSQL ({'pooled' if pooled else 'direct'})"
-        return "PostgreSQL"
+            return f"Supabase PostgreSQL ({'pooled' if self.is_pooled else 'direct'})"
+        if self.is_postgres:
+            return "PostgreSQL"
+        return "unset" if not self.database_url else "unknown"
+
+    def require_postgres(self) -> None:
+        """Abort the process unless the resolved database is PostgreSQL.
+
+        Called once at startup and once when the engine is built, because those are the two
+        places a wrong value can enter: configuration, and a caller constructing an engine
+        directly. There is no warn-and-continue branch on purpose — the failure this guards
+        against is invisible at runtime, so it has to be loud at boot or it is not a guard.
+
+        SQLite is reachable only when `testing` is true, which only `tests/conftest.py`
+        sets. A dev or demo run cannot get there from `.env`.
+        """
+        if self.testing:
+            return
+        if not self.database_url:
+            raise RuntimeError(
+                "DATABASE_URL is not set. There is no default and no SQLite fallback: a "
+                "fallback is what let this application write a whole consultation to a "
+                "local file while the Supabase tables stayed empty. Set DATABASE_URL to "
+                "the Supabase connection string (see docs/SUPABASE.md), or run under "
+                "TESTING=1 if this is the test suite."
+            )
+        if not self.is_postgres:
+            raise RuntimeError(
+                f"DATABASE_URL resolves to {self.database_backend}, but this application "
+                "requires PostgreSQL. Refusing to start rather than silently writing "
+                "clinical data somewhere nobody is looking. Set DATABASE_URL to the "
+                "Supabase connection string, or run under TESTING=1 for the test suite."
+            )
 
     @property
     def database_host(self) -> str:

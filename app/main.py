@@ -38,6 +38,15 @@ log = get_logger(__name__)
 async def lifespan(app: FastAPI):
     configure_logging()
 
+    # POSTGRES OR NOTHING. Checked before anything else touches a session.
+    #
+    # This was previously opt-in, behind a REQUIRE_SUPABASE flag that defaulted to off and
+    # was exempted whenever `environment == "test"`. Both halves were escape hatches: a
+    # developer who never set the flag got a silent SQLite run, and anyone who set
+    # ENVIRONMENT=test in `.env` disabled the guard entirely. It is now unconditional, and
+    # the single exemption (`TESTING=1`) is set by the test suite and by nothing else.
+    settings.require_postgres()
+
     # Which database is actually behind this process, said out loud. A demo that silently
     # ran on an empty local SQLite file while everyone believed it was on Supabase would
     # look identical right up to the moment the patient history came back empty.
@@ -45,22 +54,13 @@ async def lifespan(app: FastAPI):
         "startup.database",
         backend=settings.database_backend,
         host=settings.database_host,  # host only; the URL carries the password
+        pooled=settings.is_pooled,
     )
-    # The guard protects a demo or a deployment from silently running on an empty local
-    # file. A TEST run wants SQLite by definition — an in-memory database per test is the
-    # whole reason the suite needs no network — so the guard must not fire there. Without
-    # this exemption, setting REQUIRE_SUPABASE in a developer's .env broke every test that
-    # starts the app, which is a booby trap, not a safety feature.
-    if settings.environment != "test" and settings.require_supabase and not settings.is_supabase:
-        raise RuntimeError(
-            f"REQUIRE_SUPABASE is set but DATABASE_URL points at {settings.database_backend}. "
-            "Refusing to start on the wrong database — set DATABASE_URL to the Supabase "
-            "connection string, or unset REQUIRE_SUPABASE for a local run."
-        )
 
-    if settings.is_sqlite:
+    if settings.testing:
+        # The in-memory schema the suite runs on. Unreachable from a dev or demo process.
         await create_all()
-        log.info("startup.schema", mode="create_all", note="SQLite dev only")
+        log.info("startup.schema", mode="create_all", note="TESTING=1 only")
     else:
         # Postgres is built by Alembic and nothing else. `create_all()` here would paper
         # over a missing migration, which is precisely how the durable schema went missing.

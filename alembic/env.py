@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -18,8 +19,33 @@ from app.core.config import settings
 from app.db import durable, models  # noqa: F401  (imports register the mappers)
 from app.db.base import Base
 
+# MIGRATIONS RUN AGAINST THE DIRECT ENDPOINT, NOT THE POOLER.
+#
+# Alembic's DDL and its version-table bookkeeping want a real session on one backend
+# connection. Supabase's transaction-mode pooler hands out a different backend per
+# transaction and cannot carry prepared statements between them, so a migration run through
+# it fails partway with `prepared statement "__asyncpg_stmt_N__" does not exist` — after
+# some DDL has already committed, which is the worst possible place to stop.
+#
+# `MIGRATION_DATABASE_URL` exists for the deployment where the app runs pooled: point the
+# app at the pooler and this at the direct endpoint. When it is unset (the normal case, and
+# the case on this machine, where the direct IPv6 endpoint is reachable) migrations use the
+# same URL as the app.
+MIGRATION_URL = os.environ.get("MIGRATION_DATABASE_URL") or settings.database_url
+
+# The same Postgres-or-nothing rule the app enforces. Running migrations against a local
+# SQLite file produces a perfectly migrated database that no deployment will ever read.
+if not settings.testing and not MIGRATION_URL.startswith(
+    ("postgresql", "postgres+", "postgres:")
+):
+    raise SystemExit(
+        "Refusing to migrate: MIGRATION_DATABASE_URL / DATABASE_URL does not resolve to "
+        "PostgreSQL. Set it to the Supabase DIRECT connection string (port 5432, not the "
+        "6543 pooler) — see docs/SUPABASE.md."
+    )
+
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", MIGRATION_URL)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -29,7 +55,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=settings.database_url,
+        url=MIGRATION_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},

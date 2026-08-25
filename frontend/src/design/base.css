@@ -241,8 +241,8 @@ ol {
  */
 @media print {
   body {
-    background: #fff;
-    color: #000;
+    background: var(--mk-paper);
+    color: var(--mk-print-ink);
   }
 
   /* Glass is a screen material. On paper it is an invisible box with an invisible
@@ -250,12 +250,12 @@ ol {
   .mk-glass,
   .liquid-glass,
   .mk-card {
-    background: #fff !important;
-    border: 1px solid #ccc !important;
+    background: var(--mk-paper) !important;
+    border: 1px solid var(--mk-print-line) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     box-shadow: none !important;
-    color: #000 !important;
+    color: var(--mk-print-ink) !important;
   }
 
   .mk-glass::before,

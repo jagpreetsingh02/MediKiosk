@@ -24,6 +24,12 @@ def _alembic(*args: str, db: Path) -> subprocess.CompletedProcess[str]:
         env={
             "PATH": "/usr/bin:/bin",
             "DATABASE_URL": f"sqlite+aiosqlite:///{db}",
+            # The sanctioned escape hatch, and the reason it exists. This test proves the
+            # migrations build the whole schema, which it does against a throwaway SQLite
+            # file so the suite needs no network. `alembic/env.py` refuses a non-Postgres
+            # URL for exactly the reason this test guards against — a migration run against
+            # the wrong database — so the test has to say out loud that it is the suite.
+            "TESTING": "1",
             "HOME": str(Path.home()),
         },
         capture_output=True,

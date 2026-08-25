@@ -47,6 +47,7 @@ test:
 lint:
 	$(VENV)/bin/ruff check app tests eval scripts
 	$(VENV)/bin/mypy app
+	$(PY) scripts/check_no_raw_colours.py
 	cd frontend && npx tsc --noEmit
 
 fmt:

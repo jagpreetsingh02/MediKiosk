@@ -43,7 +43,7 @@
   --warn-soft: var(--mk-warm-soft);
   --danger: var(--mk-danger-ink);
   --danger-soft: var(--mk-danger-soft);
-  --immediate: var(--mk-coral-300);
+  --immediate: var(--mk-danger-ink);
 
   --font: var(--mk-font-ui);
   --mono: var(--mk-font-mono);
@@ -72,7 +72,7 @@
   -webkit-backdrop-filter: var(--mk-glass-blur);
   backdrop-filter: var(--mk-glass-blur);
   border-bottom: 1px solid var(--mk-warm-edge);
-  color: var(--mk-saffron-300);
+  color: var(--mk-warm-ink);
   font-size: var(--mk-text-2xs);
   font-weight: var(--mk-weight-semibold);
   letter-spacing: var(--mk-tracking-wide);
@@ -84,7 +84,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--mk-saffron-400);
+  background: var(--mk-warm);
   flex: none;
   /* The one loop on the patient side that is not a process indicator. It is here
      because a synthetic-data warning that reads as static chrome gets ignored,
@@ -403,7 +403,7 @@
   padding: var(--mk-space-6);
   border-radius: var(--mk-radius-xl);
   background:
-    linear-gradient(135deg, rgba(43, 193, 150, 0.16) 0%, rgba(161, 137, 234, 0.1) 60%, transparent 100%),
+    linear-gradient(135deg, var(--mk-accent-soft) 0%, var(--mk-evidence-soft) 60%, transparent 100%),
     var(--mk-glass-fill-raised);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
@@ -413,7 +413,7 @@
   position: relative;
 }
 
-/* A soft jade bloom in the corner, so the identity card has depth without a
+/* A soft accent bloom in the corner, so the identity card has depth without a
    second border or a heavier shadow. */
 .kx-identity::after {
   content: '';
@@ -423,7 +423,7 @@
   width: 320px;
   height: 320px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(43, 193, 150, 0.35), transparent 68%);
+  background: radial-gradient(circle, var(--mk-accent-soft-strong), transparent 68%);
   pointer-events: none;
 }
 
@@ -434,8 +434,8 @@
   width: 64px;
   height: 64px;
   border-radius: var(--mk-radius-lg);
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--mk-light-12);
+  border: 1px solid var(--mk-light-18);
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-xl);
   font-weight: var(--mk-weight-medium);
@@ -452,7 +452,7 @@
 
 .kx-identity__meta {
   font-size: var(--mk-text-sm);
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--mk-ink-muted);
   margin-top: var(--mk-space-1);
   font-variant-numeric: tabular-nums;
 }
@@ -802,16 +802,16 @@
 .lx-cta {
   min-width: 240px;
   text-decoration: none;
-  /* A jade glow rather than a heavier drop shadow: it reads as lit rather than
+  /* An accent glow rather than a heavier drop shadow: it reads as lit rather than
      as floating, which suits an action that starts something. */
   box-shadow:
-    0 12px 32px -10px rgba(15, 138, 104, 0.55),
+    0 12px 32px -10px var(--mk-accent-soft-strong),
     var(--mk-shadow-sm);
 }
 
 .lx-cta:hover {
   box-shadow:
-    0 16px 40px -10px rgba(15, 138, 104, 0.65),
+    0 16px 40px -10px var(--mk-accent-soft-strong),
     var(--mk-shadow-md);
 }
 

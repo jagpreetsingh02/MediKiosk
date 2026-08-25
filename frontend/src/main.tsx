@@ -58,7 +58,11 @@ import './styles/tokens.css';
 import './styles/kiosk.css';
 import './styles/physician.css';
 
-// The design system. `tokens` and `base` come first — everything below reads from them.
+// The design system. `theme` is FIRST and is the only file holding a raw colour value;
+// `tokens` adds everything that is not a colour; `base` sets the document. Everything below
+// reads from those three and defines no palette of its own — `make lint` fails the build if
+// a literal appears outside `theme.css`.
+import './design/theme.css';
 import './design/tokens.css';
 import './design/base.css';
 import './design/ambient.css';

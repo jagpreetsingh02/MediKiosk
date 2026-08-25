@@ -53,7 +53,7 @@
   --warn-soft: var(--mk-warm-soft);
   --danger: var(--mk-danger-ink);
   --danger-soft: var(--mk-danger-soft);
-  --immediate: var(--mk-coral-300);
+  --immediate: var(--mk-danger-ink);
 
   --font: var(--mk-font-ui);
   --mono: var(--mk-font-mono);
@@ -64,14 +64,29 @@
 }
 
 .phys {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* HEIGHT, NOT MIN-HEIGHT — and the difference is a functional bug, not a nicety.
+   *
+   * With `min-height`, the grid is free to grow past the viewport, so `minmax(0, 1fr)`
+   * resolves to the *content* height: `.phys-main` became 2387px tall inside a 2387px row
+   * and stopped being a scroll container at all, despite its `overflow-y: auto`. The whole
+   * window scrolled instead, the sticky footer had nothing to stick within, and — the part
+   * that actually broke — the "Confirm and commit" gate never opened, because it is armed
+   * by a scroll event on `.phys-main` that could no longer fire. A physician could read the
+   * entire summary and still be told they had not.
+   *
+   * Constraining the shell to the viewport is what makes the three columns scroll
+   * independently, which is what every `overflow-y: auto` in this file already assumed.
+   */
+  height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: 288px minmax(0, 1fr) 400px;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* The commit bar gets a real row rather than being auto-placed into an implicit one. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     'top top top'
-    'queue main side';
+    'queue main side'
+    'queue bottom bottom';
   /* Transparent, not black: the shared ambient ground is behind this, dimmed to
      `deep`, and painting over it would sever the one element that carries
      continuity from the hero all the way into the workspace. */
@@ -91,7 +106,7 @@
   position: sticky;
   top: 0;
   z-index: var(--mk-z-header);
-  background: rgba(5, 6, 10, 0.72);
+  background: var(--mk-occlude-soft);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border-bottom: 1px solid var(--mk-line);
@@ -146,7 +161,7 @@
   gap: var(--mk-space-2);
 }
 
-/* A jade pip next to the wordmark: the same mark family as the kiosk, at the
+/* An accent pip next to the wordmark: the same mark family as the kiosk, at the
    scale a toolbar allows. */
 .phys-brand::before {
   content: '';
@@ -263,7 +278,7 @@
   border-radius: var(--mk-radius-lg);
   background: linear-gradient(
     120deg,
-    rgba(43, 193, 150, 0.12) 0%,
+    var(--mk-accent-soft) 0%,
     var(--mk-glass-fill-raised) 70%
   );
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
@@ -452,7 +467,7 @@
 
 .flag-row {
   padding: var(--mk-space-2) 0;
-  border-top: 1px solid rgba(224, 75, 75, 0.22);
+  border-top: 1px solid var(--mk-danger-soft-strong);
   margin-top: var(--mk-space-2);
 }
 
@@ -552,7 +567,7 @@
 }
 .lt-row[data-kind='lab']::after,
 .lt-row[data-kind='observation']::after {
-  border-color: var(--mk-lilac-400);
+  border-color: var(--mk-evidence);
 }
 .lt-row[data-kind='alert']::after {
   border-color: var(--mk-danger);
@@ -712,7 +727,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--mk-z-modal);
-  background: rgba(7, 10, 22, 0.7);
+  background: var(--mk-occlude-soft);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -763,7 +778,7 @@
   position: relative;
   border-radius: var(--mk-radius-md);
   overflow: hidden;
-  background: #fff;
+  background: var(--mk-paper);
   border: 1px solid var(--mk-line-strong);
 }
 
@@ -777,9 +792,9 @@
 .evi-box,
 .source-bbox-rect {
   position: absolute;
-  border: 3px solid var(--mk-saffron-400);
+  border: 3px solid var(--mk-warm);
   border-radius: 3px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 9999px var(--mk-scrim);
   pointer-events: none;
 }
 
@@ -797,7 +812,7 @@
   background: var(--mk-warm-soft);
   color: var(--mk-warm-ink);
   font-size: var(--mk-text-xs);
-  border: 1px solid var(--mk-saffron-400);
+  border: 1px solid var(--mk-warm);
 }
 
 /* ------------------------------------------------------- contradictions --- */
@@ -1021,7 +1036,7 @@
   align-items: center;
   gap: var(--mk-space-4);
   padding: var(--mk-space-3) var(--mk-space-5);
-  background: rgba(5, 6, 10, 0.82);
+  background: var(--mk-occlude-bar);
   backdrop-filter: var(--mk-glass-blur-deep);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   border-top: 1px solid var(--mk-line-strong);
@@ -1342,8 +1357,8 @@
 /* Out of the printed range. Saffron, not red: this is "outside the interval",
    which is a fact, not an emergency — red flags are a separate, louder channel. */
 .lab__dot--out {
-  stroke: var(--mk-saffron-400);
-  fill: var(--mk-saffron-400);
+  stroke: var(--mk-warm);
+  fill: var(--mk-warm);
 }
 
 .lab__hit {
@@ -1378,7 +1393,7 @@
   gap: 2px;
   padding: var(--mk-space-3);
   border-radius: var(--mk-radius-md);
-  background: rgba(5, 6, 10, 0.94);
+  background: var(--mk-occlude-bar);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border: 1px solid var(--mk-line-strong);
@@ -1628,11 +1643,11 @@
   background-color: var(--mk-accent-soft);
   color: var(--mk-ink-strong);
   --mk-glass-edge-top: var(--mk-accent-edge);
-  --mk-glass-edge-mid: rgba(94, 215, 180, 0.22);
+  --mk-glass-edge-mid: var(--mk-accent-soft-strong);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background-color: rgba(43, 193, 150, 0.28);
+  background-color: var(--mk-accent-soft-strong);
 }
 
 .btn.ok {
@@ -1661,7 +1676,7 @@ kbd {
   border-radius: var(--mk-radius-xs);
   background: var(--mk-glass-fill-sunken);
   border: 1px solid var(--mk-light-12);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--mk-shadow-inset-well);
   color: var(--mk-ink-muted);
 }
 
@@ -1706,7 +1721,7 @@ kbd {
 /* The provenance tier dots. Three hues that must stay distinguishable — this is
    Invariant 2 rendered as colour, and a physician reads it at a glance. */
 .tier-stated { background: var(--mk-accent); }
-.tier-confirmed { background: var(--mk-jade-200); }
+.tier-confirmed { background: var(--mk-accent-ink); }
 .tier-document { background: var(--mk-evidence); }
 .tier-mixed { background: var(--mk-ink-subtle); }
 
@@ -1714,7 +1729,7 @@ kbd {
    inside this one. */
 [data-surface='clinical'] .jury,
 .jury {
-  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  background: var(--mk-occlude);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border-left: 1px solid var(--mk-line);
@@ -1813,7 +1828,7 @@ kbd {
 .demo-result dl {
   background: var(--mk-glass-fill-sunken);
   border-radius: var(--mk-radius-md);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--mk-shadow-inset-well);
 }
 
 .demo-result dt { color: var(--mk-ink-subtle); }
@@ -1843,15 +1858,16 @@ kbd {
    straight through the words "Confirm and commit". This one bar is opaque, and
    the column reserves room so nothing is permanently hidden behind it. */
 .phys-bottom {
-  grid-column: main / span 2;
+  grid-area: bottom;
   background: var(--mk-void-900);
   border-top: 1px solid var(--mk-line-strong);
   flex-wrap: wrap;
   row-gap: var(--mk-space-2);
 }
 
+/* Enough that the last summary line clears the commit bar's shadow as it scrolls under. */
 .phys-main {
-  padding-bottom: var(--mk-space-24);
+  padding-bottom: var(--mk-space-12);
 }
 
 /* Timeline kind chips were light lozenges built for white; on the ground they

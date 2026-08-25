@@ -99,20 +99,20 @@
 /* Primary — the single "go forward" action on any screen. There is never more
    than one visible at a time.
 
-   It is the hero's CTA with jade light behind it: same pill, same glass, same
-   300ms brighten on hover. It is *not* a solid jade lozenge — that was the old
+   It is the hero's CTA with periwinkle light behind it: same pill, same glass,
+   same 300ms brighten on hover. It is *not* a solid lozenge — that was the old
    primary, and on this ground it was the one opaque object on an otherwise
    translucent screen, which is precisely how a button announces that it came
-   from a different design. The jade lives in the edge and the fill's tint. */
+   from a different design. The hue lives in the edge and the fill's tint. */
 .mk-btn--primary {
   background: var(--mk-accent-soft);
   color: var(--mk-ink-strong);
   --mk-glass-edge-top: var(--mk-accent-edge);
-  --mk-glass-edge-mid: rgba(94, 215, 180, 0.22);
+  --mk-glass-edge-mid: var(--mk-accent-soft-strong);
 }
 
 .mk-btn--primary:hover:not(:disabled) {
-  background: rgba(43, 193, 150, 0.28);
+  background: var(--mk-accent-soft-strong);
 }
 
 /* Secondary — a real alternative. The same glass with an accent-coloured label
@@ -169,11 +169,11 @@
   background: var(--mk-danger-soft);
   color: var(--mk-danger-ink);
   --mk-glass-edge-top: var(--mk-danger-edge);
-  --mk-glass-edge-mid: rgba(248, 163, 163, 0.22);
+  --mk-glass-edge-mid: var(--mk-danger-edge);
 }
 
 .mk-btn--danger:hover:not(:disabled) {
-  background: rgba(240, 112, 112, 0.3);
+  background: var(--mk-danger-soft-strong);
   color: var(--mk-ink-strong);
 }
 
@@ -421,7 +421,7 @@
   background: var(--mk-accent-soft);
   color: var(--mk-ink-strong);
   --mk-glass-edge-top: var(--mk-accent-edge);
-  --mk-glass-edge-mid: rgba(94, 215, 180, 0.2);
+  --mk-glass-edge-mid: var(--mk-accent-soft-strong);
 }
 
 .mk-chip svg {
@@ -457,7 +457,7 @@
   border-radius: var(--mk-radius-pill);
   background: var(--mk-glass-fill-sunken);
   box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    var(--mk-shadow-inset-well),
     inset 0 0 0 1px var(--mk-light-12);
   transition:
     background-color var(--mk-dur-normal) var(--mk-ease-hero),
@@ -468,9 +468,9 @@
 .mk-toggle[aria-checked='true'] .mk-toggle__track {
   background: var(--mk-accent-soft);
   box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    var(--mk-shadow-inset-well),
     inset 0 0 0 1px var(--mk-accent-edge),
-    0 0 16px -2px rgba(43, 193, 150, 0.4);
+    var(--mk-accent-halo);
 }
 
 .mk-toggle__thumb {
@@ -481,7 +481,7 @@
   height: 26px;
   border-radius: 50%;
   background: var(--mk-light-90);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--mk-shadow-thumb);
   transition:
     transform var(--mk-dur-normal) var(--mk-ease-spring),
     background-color var(--mk-dur-normal) var(--mk-ease-hero);
@@ -548,7 +548,7 @@
   background: var(--mk-glass-fill-sunken);
   -webkit-backdrop-filter: var(--mk-glass-blur);
   backdrop-filter: var(--mk-glass-blur);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--mk-shadow-inset-well);
   color: var(--mk-ink-strong);
   font-size: var(--mk-text-base);
   font-weight: var(--mk-weight-normal);
@@ -569,7 +569,7 @@
 .mk-field__input:focus {
   border-color: var(--mk-accent-edge);
   box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    var(--mk-shadow-inset-well),
     var(--mk-shadow-focus);
   outline: none;
 }
@@ -744,7 +744,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--mk-z-modal);
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--mk-scrim);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
@@ -757,7 +757,7 @@
   width: min(560px, 100%);
   max-height: 88vh;
   overflow-y: auto;
-  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  background: var(--mk-occlude);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border: 1px solid var(--mk-light-12);
@@ -774,7 +774,7 @@
   z-index: var(--mk-z-drawer);
   width: min(560px, 100vw);
   overflow-y: auto;
-  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  background: var(--mk-occlude);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border-left: 1px solid var(--mk-light-12);
@@ -802,7 +802,7 @@
   gap: var(--mk-space-3);
   padding: var(--mk-space-4) var(--mk-space-5);
   border-radius: var(--mk-radius-pill);
-  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.92), rgba(5, 6, 10, 0.94));
+  background: var(--mk-occlude);
   -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   backdrop-filter: var(--mk-glass-blur-deep);
   border: 1px solid var(--mk-light-12);

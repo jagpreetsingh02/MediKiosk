@@ -1,0 +1,306 @@
+/**
+ * theme.css — THE ONLY FILE IN THE APPLICATION THAT MAY CONTAIN A RAW COLOUR VALUE.
+ *
+ * Every hex, rgb() and hsl() lives here. `scripts/check_no_raw_colours.py` fails the build if
+ * one appears anywhere else (the hero is the one exemption, and only because it is a verbatim
+ * port whose values are the source of these). If you need a colour, add a semantic token here
+ * and use the token — do not reach for a literal at the call site.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * WHERE THESE NUMBERS COME FROM
+ *
+ * They are not picked. They are *measured* from the hero's own atmosphere.
+ *
+ * The hero's blue/lavender/pink ground is a looping video, not a CSS gradient, so there was no
+ * stylesheet to read the palette out of. It was sampled instead: seven frames spread across the
+ * loop, rendered at 1440×900 with the content layer hidden, downsampled and clustered by hue.
+ * 17,920 pixels. The distribution came back as three families:
+ *
+ *     hue 218–248°   periwinkle      ~59% of the frame   #81a6e5 #9da6e5 #818de5 #bfbae5
+ *     hue 248–292°   lavender        ~28%                #bfbae5 #cabae5 #d5bae5
+ *     hue 308–352°   rose            ~6%                 #e5bad5 #e581a6 #e5818d
+ *
+ * Periwinkle is therefore the product's accent: it is what the hero actually is. Rose is the
+ * minority hue and reads as heat against that ground, which makes it the right critical state.
+ * Lavender sits between them and carries provenance.
+ *
+ * THE ONE HUE NOT TAKEN FROM THE HERO IS AMBER, and it is deliberate. Caution has to be
+ * unmistakably distinct from critical at a glance, and the hero's palette has no warm hue that
+ * is not already rose. Amber is also the AYUSH colour, which is the right association for this
+ * product. Everything else is the hero's own light.
+ *
+ * There is no green anywhere in this file. There was — jade was the accent — and it was the
+ * single loudest signal that the application had been designed apart from its own front door.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LIGHTNESS. The sampled values sit at ~0.90 HSV because they are lit video. Used directly as
+ * ink on a near-black ground they are washed out, so each family below is a ramp: the sampled
+ * value is the 300 step, with 400 and 500 pulled down for fills and edges and 200 lifted for
+ * text that has to carry contrast. Every text pair is checked in
+ * `tests/test_contrast_tokens.py`, which computes real WCAG ratios and fails the build.
+ */
+
+:root {
+  /* ═══════════════════════════════════════════════════════ ground ═══
+   * The hero's black, and the near-blacks that sit on it. Not neutral grey:
+   * a trace of the periwinkle keeps the glass from looking like dirty plastic.
+   */
+  --mk-void: #000000;
+  --mk-void-900: #05060b;
+  --mk-void-800: #0a0b14;
+  --mk-void-700: #10121d;
+  --mk-void-600: #171a28;
+
+  /* ═══════════════════════════════════════════════════════ light ═══
+   * The hero writes exclusively in white at varying opacity. These are the exact
+   * steps it uses (1.0 / 0.8 / 0.7 / 0.6), extended downward for denser screens.
+   */
+  --mk-light-100: rgba(255, 255, 255, 1);
+  --mk-light-90: rgba(255, 255, 255, 0.9);
+  --mk-light-80: rgba(255, 255, 255, 0.8);
+  --mk-light-70: rgba(255, 255, 255, 0.7);
+  --mk-light-60: rgba(255, 255, 255, 0.6);
+  --mk-light-45: rgba(255, 255, 255, 0.45);
+  --mk-light-30: rgba(255, 255, 255, 0.3);
+  --mk-light-18: rgba(255, 255, 255, 0.18);
+  --mk-light-12: rgba(255, 255, 255, 0.12);
+  --mk-light-08: rgba(255, 255, 255, 0.08);
+  --mk-light-05: rgba(255, 255, 255, 0.05);
+  --mk-light-03: rgba(255, 255, 255, 0.03);
+  --mk-light-01: rgba(255, 255, 255, 0.01);
+
+  /* ═══════════════════════════════════════════════ periwinkle ═══
+   * hue ~232°. The hero's dominant. The product's accent: forward motion,
+   * primary action, current selection. 300 is the sampled value.
+   */
+  --mk-peri-200: #c3caf7;
+  --mk-peri-300: #9da6e5;
+  --mk-peri-400: #818de5;
+  --mk-peri-500: #6470d4;
+  --mk-peri-glow: rgba(129, 141, 229, 0.18);
+  --mk-peri-glow-strong: rgba(129, 141, 229, 0.3);
+  --mk-peri-edge: rgba(157, 166, 229, 0.5);
+
+  /* ══════════════════════════════════════════════════ violet ═══
+   * hue ~277°. Provenance and evidence — a third hue so "where did this come
+   * from" is never confused with "this is good" or "this is wrong".
+   *
+   * Taken from the FAR end of the hero's lavender family (the 278–292° cluster,
+   * ~3.6% of the frame) rather than its centre, and that choice is load-bearing.
+   * The centre of the lavender range sits at ~261°, which is only 28° from the
+   * periwinkle accent — close enough that a physician glancing at a provenance
+   * marker and a selected row could not reliably tell which was which. Moving to
+   * the violet end buys 44° of separation while staying inside the hero's own
+   * palette. `test_semantic_hues_are_distinguishable_from_each_other` pins it.
+   */
+  --mk-violet-200: #e8d6f5;
+  --mk-violet-300: #d5bae5;
+  --mk-violet-400: #c69ee0;
+  --mk-violet-glow: rgba(198, 158, 224, 0.18);
+  --mk-violet-edge: rgba(213, 186, 229, 0.45);
+
+  /* ═════════════════════════════════════════════════════ rose ═══
+   * hue ~350°. The hero's own warm minority hue, saturated up until it reads as
+   * heat rather than decoration. Red flags and destructive actions ONLY.
+   */
+  --mk-rose-200: #ffc2ce;
+  --mk-rose-300: #f8a3b3;
+  --mk-rose-400: #ef7f95;
+  --mk-rose-glow: rgba(239, 127, 149, 0.2);
+  --mk-rose-glow-strong: rgba(239, 127, 149, 0.32);
+  --mk-rose-edge: rgba(248, 163, 179, 0.55);
+
+  /* ════════════════════════════════════════════════════ amber ═══
+   * hue ~40°. NOT sampled from the hero — see the header. Caution must be
+   * unmistakably distinct from critical, and this is also the AYUSH colour.
+   */
+  --mk-amber-200: #ffe0a8;
+  --mk-amber-300: #f8c877;
+  --mk-amber-400: #f2ab3c;
+  --mk-amber-glow: rgba(242, 171, 60, 0.18);
+  --mk-amber-edge: rgba(248, 200, 119, 0.45);
+
+  /* ════════════════════════════════════════════════ elevation ═══
+   * On a black ground a drop shadow is invisible; depth comes from the glass.
+   * These say "how much light does this catch", not "how far off the page".
+   * The inset highlight is the hero's, unchanged.
+   */
+  --mk-edge-light: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  /* The same lip, inverted, for recessed surfaces — so the light source stays in
+     one place whether a pane sits above the surface or below it. */
+  --mk-edge-light-bottom: inset 0 -1px 1px rgba(255, 255, 255, 0.06);
+  --mk-shadow-xs: var(--mk-edge-light);
+  --mk-shadow-sm: var(--mk-edge-light), 0 2px 10px rgba(0, 0, 0, 0.35);
+  --mk-shadow-md: var(--mk-edge-light), 0 10px 30px -8px rgba(0, 0, 0, 0.55);
+  --mk-shadow-lg: var(--mk-edge-light), 0 24px 60px -14px rgba(0, 0, 0, 0.68);
+  --mk-shadow-xl: var(--mk-edge-light), 0 40px 90px -20px rgba(0, 0, 0, 0.78);
+  --mk-shadow-inset-well: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  --mk-shadow-thumb: 0 2px 6px rgba(0, 0, 0, 0.5);
+
+  /* Overlay and occluding surfaces. The hero's mobile menu backdrop is black at
+     80% behind a 24px blur; every overlay in the product uses exactly that. */
+  --mk-scrim: rgba(0, 0, 0, 0.8);
+  --mk-occlude: linear-gradient(to bottom, rgba(16, 18, 29, 0.94), rgba(5, 6, 11, 0.96));
+  --mk-occlude-soft: rgba(5, 6, 11, 0.72);
+  --mk-occlude-bar: rgba(5, 6, 11, 0.82);
+
+  /* The still ground behind the video: visible on the first frame, on a kiosk
+     with no network, and under the dimmed footage on inner routes. Three pools
+     carrying the same hues the footage does, so a screen never appears as flat
+     black even when the video never arrives. */
+  --mk-bg-ambient:
+    radial-gradient(1200px 720px at 12% -10%, rgba(129, 141, 229, 0.13), transparent 62%),
+    radial-gradient(1000px 620px at 92% 2%, rgba(198, 158, 224, 0.1), transparent 58%),
+    radial-gradient(900px 760px at 50% 112%, rgba(239, 127, 149, 0.07), transparent 60%);
+
+  /* ═══════════════════════════════════════════ ambient veils ═══
+   * The layer between the hero's video and the content on top of it, at each of
+   * the three depths. This is where clinical legibility is actually won: the veil
+   * is heaviest exactly where the content column sits, which is what lets text
+   * over moving footage clear WCAG AA without desaturating the footage itself.
+   */
+  --mk-veil-hero: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(0, 0, 0, 0.12) 35%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+  --mk-veil-surface:
+    radial-gradient(1200px 900px at 50% 45%, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.34) 70%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.55) 100%);
+  --mk-veil-deep:
+    radial-gradient(1400px 1000px at 50% 40%, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.5) 75%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.68) 100%);
+  /* What someone who asked for reduced motion sees instead of the footage. */
+  --mk-veil-still: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.55));
+
+  /* A few one-off surfaces that are genuinely their own colour rather than a
+     semantic role, kept here so the rule "no literal outside this file" holds. */
+  --mk-thumb: rgba(255, 255, 255, 0.9);
+  --mk-accent-halo: 0 0 16px -2px rgba(129, 141, 229, 0.4);
+  --mk-danger-pulse-from: rgba(239, 127, 149, 0.45);
+  --mk-danger-pulse-to: rgba(239, 127, 149, 0);
+  --mk-camera-guide: rgba(255, 255, 255, 0.75);
+  --mk-glass-fallback: rgba(16, 18, 29, 0.72);
+  --mk-glass-fallback-panel: rgba(16, 18, 29, 0.82);
+  /* The mock-identity hazard stripe. Two stops, deliberately — a repeating gradient
+     whose stops are the same colour is a flat fill, and this is the one piece of
+     chrome that must not blend into the design. */
+  --mk-hazard-a: rgba(242, 171, 60, 0.18);
+  --mk-hazard-b: rgba(242, 171, 60, 0.34);
+
+  --mk-print-ink: #000000;
+  --mk-print-line: #cccccc;
+
+  /* Viewfinders and document frames — the two places a real, opaque colour is
+     correct. A prescription photographed on paper is white; evidence is
+     displayed, never styled. */
+  --mk-paper: #ffffff;
+  --mk-viewfinder: #000000;
+}
+
+/* ═══════════════════════════════════════════════ semantic layer ═══
+ * What the rest of the application actually uses. Nothing below is a new colour;
+ * every value here points at a ramp above. Components read ONLY from these names,
+ * which is what makes a re-theme a change to this file and nothing else.
+ */
+:root {
+  --mk-bg: var(--mk-void);
+
+  /* Glass — the hero's material, as tokens. `--mk-glass-fill` is deliberately
+     almost nothing: the material reads as glass because of the blur and the
+     gradient edge, not because of the fill. Raising it is what makes
+     "glassmorphism" look like frosted plastic. */
+  --mk-glass-fill: rgba(255, 255, 255, 0.01);
+  --mk-glass-fill-raised: rgba(255, 255, 255, 0.035);
+  --mk-glass-fill-sunken: rgba(0, 0, 0, 0.28);
+  --mk-glass-fill-hover: rgba(255, 255, 255, 0.1);
+  --mk-glass-blur: blur(4px);
+  --mk-glass-blur-deep: saturate(140%) blur(18px);
+  --mk-glass-edge-top: rgba(255, 255, 255, 0.45);
+  --mk-glass-edge-mid: rgba(255, 255, 255, 0.15);
+  --mk-glass-edge-width: 1.4px;
+
+  --mk-surface: var(--mk-glass-fill);
+  --mk-surface-raised: var(--mk-glass-fill-raised);
+  --mk-surface-sunken: var(--mk-glass-fill-sunken);
+  --mk-surface-muted: var(--mk-light-05);
+  --mk-surface-glass: var(--mk-glass-fill);
+  --mk-surface-solid: var(--mk-void-800);
+
+  /* Ink. `ink` is body, `strong` is a heading, `muted` is supporting prose,
+     `subtle` is metadata, `faint` is a placeholder. */
+  --mk-ink: var(--mk-light-90);
+  --mk-ink-strong: var(--mk-light-100);
+  --mk-ink-muted: var(--mk-light-70);
+  --mk-ink-subtle: var(--mk-light-45);
+  --mk-ink-faint: var(--mk-light-30);
+  --mk-ink-inverse: var(--mk-void);
+
+  --mk-line: var(--mk-light-12);
+  --mk-line-strong: var(--mk-light-18);
+  --mk-line-hairline: var(--mk-light-08);
+
+  /* Accent — periwinkle. The hero's dominant hue is the product's action colour. */
+  --mk-accent: var(--mk-peri-400);
+  --mk-accent-hover: var(--mk-peri-300);
+  --mk-accent-soft: var(--mk-peri-glow);
+  --mk-accent-soft-strong: var(--mk-peri-glow-strong);
+  --mk-accent-edge: var(--mk-peri-edge);
+  --mk-accent-ink: var(--mk-peri-200);
+  --mk-accent-contrast: var(--mk-void);
+
+  /* Caution — amber. */
+  --mk-warm: var(--mk-amber-400);
+  --mk-warm-soft: var(--mk-amber-glow);
+  --mk-warm-edge: var(--mk-amber-edge);
+  --mk-warm-ink: var(--mk-amber-200);
+
+  /* Critical — rose. Red flags only. */
+  --mk-danger: var(--mk-rose-400);
+  --mk-danger-soft: var(--mk-rose-glow);
+  --mk-danger-soft-strong: var(--mk-rose-glow-strong);
+  --mk-danger-edge: var(--mk-rose-edge);
+  --mk-danger-ink: var(--mk-rose-200);
+
+  /* Evidence and provenance — violet. */
+  --mk-evidence: var(--mk-violet-400);
+  --mk-evidence-soft: var(--mk-violet-glow);
+  --mk-evidence-edge: var(--mk-violet-edge);
+  --mk-evidence-ink: var(--mk-violet-200);
+
+  --mk-focus-ring: var(--mk-peri-edge);
+  /* Keyboard focus. Always visible, never suppressed — a physician drives the whole
+     review from the keyboard and depends on it entirely. */
+  --mk-shadow-focus: 0 0 0 3px var(--mk-focus-ring);
+
+  /* Status pairs, used by badges, confidence bands and red flags on both
+     surfaces. Defined once so they follow whichever density is active. */
+  --mk-status-ok-bg: var(--mk-accent-soft);
+  --mk-status-ok-fg: var(--mk-accent-ink);
+  --mk-status-ok-edge: var(--mk-accent-edge);
+  --mk-status-warn-bg: var(--mk-warm-soft);
+  --mk-status-warn-fg: var(--mk-warm-ink);
+  --mk-status-warn-edge: var(--mk-warm-edge);
+  --mk-status-alert-bg: var(--mk-danger-soft);
+  --mk-status-alert-fg: var(--mk-danger-ink);
+  --mk-status-alert-edge: var(--mk-danger-edge);
+  --mk-status-info-bg: var(--mk-evidence-soft);
+  --mk-status-info-fg: var(--mk-evidence-ink);
+  --mk-status-info-edge: var(--mk-evidence-edge);
+}
+
+/* ═══════════════════════════════════════════ clinician density ═══
+ * The ONLY colour difference between the two surfaces, and it is not a hue: dense
+ * panes need one more stop of fill or they disappear into each other when stacked
+ * eight deep. Everything else about clinician mode — smaller targets, tighter
+ * spacing, a smaller type scale — is geometry, and lives in tokens.css.
+ *
+ * The hero's white-on-lavender is a landing-page treatment. Clinical text sits on
+ * these raised fills over a veiled ground precisely so it clears WCAG AA, which is
+ * measured rather than assumed — see tests/test_contrast_tokens.py.
+ */
+[data-surface='clinical'] {
+  --mk-glass-fill: rgba(255, 255, 255, 0.025);
+  --mk-glass-fill-raised: rgba(255, 255, 255, 0.05);
+}

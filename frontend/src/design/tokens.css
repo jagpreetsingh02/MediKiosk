@@ -1,95 +1,25 @@
 /**
- * MediKiosk design tokens — derived from the hero.
+ * tokens.css — everything about the design system that is NOT a colour.
  *
- * ONE THEME, TWO DENSITIES. The previous system inverted: a light kiosk and a dark clinical
- * workspace, deliberately unlike each other. That produced two products. The hero in `ui/`
- * establishes the actual visual identity of MediKiosk — a black ground under a moving image,
- * with everything above it built from *liquid glass*: near-transparent fills, a 4px backdrop
- * blur, a 1.4px gradient hairline that catches light at the top and bottom edge, and an inset
- * white highlight. Type is Inter, tight-tracked at display sizes, light-weight at reading
- * sizes, and coloured by opacity against white rather than by hue.
+ * Type, space, radius, motion, elevation names, z-index, and the two density modes. Colour
+ * lives in `theme.css`, which is the only file in the application permitted to contain a raw
+ * value; a repo check (`scripts/check_no_raw_colours.py`) fails the build otherwise. Splitting
+ * them is what makes "re-theme the product" a change to one file rather than a search.
  *
- * So the surfaces no longer differ in *theme*. They differ in *density*:
+ * ONE VISUAL LANGUAGE, TWO DENSITIES. The kiosk and the physician workspace no longer differ
+ * in theme — not one colour separates them. They differ in geometry:
  *
- *   PATIENT   Same ground, same glass, same type. Enormous targets (60/76px), reading sizes
- *             one full step up, one decision per screen. Guided, unhurried.
+ *   PATIENT   Enormous targets (60/76px), reading sizes a step up, generous gutters. The user
+ *             may be elderly, standing, and unfamiliar with the device.
  *
- *   CLINICAL  Same ground, same glass, same type. Compact targets (38/44px), reading sizes
- *             one step down, more per screen, keyboard-first. Dense, instrument-grade.
+ *   CLINICAL  Compact targets (38/44px), reading sizes a step down, tight gutters. A clinician
+ *             reads their fortieth history of the morning and wants the record on one screen.
  *
- * A patient who taps Start on the hero and a physician who opens the brief are looking at the
- * same material at two zoom levels. That is the whole point: nothing about the ground, the
- * glass, the type or the motion changes when you move between them.
- *
- * COLOUR. The hero is monochrome — white on black, everything else is opacity. A clinical
- * product cannot be: a red flag, a provenance tier and a confidence band must be
- * distinguishable at a glance. The resolution is that hue is *carried by the glass* rather
- * than painted on top of it. Semantic colours are luminous, low-alpha tints that sit in the
- * same material as everything else, with a saturated ink for the text on top. Nothing on any
- * screen is a flat opaque colour chip.
- *
- * NAMING. `--mk-` prefix throughout. Every name that existed before still exists and still
- * means the same thing, which is why re-skinning here re-skins every screen.
+ * Both are built from the hero's material. A patient who taps Start on the landing page and a
+ * physician who opens the brief are looking at the same product at two zoom levels.
  */
 
-/* ============================================================ primitives ===
- * Raw ramps. Never referenced by a component directly — components use the
- * semantic layer below, so a re-theme touches one block instead of forty files.
- */
 :root {
-  /* Ground — the hero's black, and the near-blacks that sit on it. Not neutral
-     grey: a trace of indigo keeps the glass from looking like dirty plastic. */
-  --mk-void: #000000;
-  --mk-void-900: #05060a;
-  --mk-void-800: #0a0c12;
-  --mk-void-700: #10131c;
-  --mk-void-600: #171b26;
-
-  /* Light — the hero writes exclusively in white at varying opacity. These are
-     the exact steps the hero uses (1.0 / 0.8 / 0.7 / 0.6), extended for the
-     denser screens that need two more stops below it. */
-  --mk-light-100: rgba(255, 255, 255, 1);
-  --mk-light-90: rgba(255, 255, 255, 0.9);
-  --mk-light-80: rgba(255, 255, 255, 0.8);
-  --mk-light-70: rgba(255, 255, 255, 0.7);
-  --mk-light-60: rgba(255, 255, 255, 0.6);
-  --mk-light-45: rgba(255, 255, 255, 0.45);
-  --mk-light-30: rgba(255, 255, 255, 0.3);
-  --mk-light-18: rgba(255, 255, 255, 0.18);
-  --mk-light-12: rgba(255, 255, 255, 0.12);
-  --mk-light-08: rgba(255, 255, 255, 0.08);
-  --mk-light-05: rgba(255, 255, 255, 0.05);
-  --mk-light-03: rgba(255, 255, 255, 0.03);
-  --mk-light-01: rgba(255, 255, 255, 0.01);
-
-  /* Jade — forward motion, vitality, "this is health". Lifted for a black
-     ground: the old 600 was tuned against porcelain and reads as sludge here. */
-  --mk-jade-400: #2bc196;
-  --mk-jade-300: #5ed7b4;
-  --mk-jade-200: #a3e9d4;
-  --mk-jade-glow: rgba(43, 193, 150, 0.16);
-  --mk-jade-edge: rgba(94, 215, 180, 0.45);
-
-  /* Saffron — AYUSH, attention, warmth. Never destructive. */
-  --mk-saffron-400: #f2ab3c;
-  --mk-saffron-300: #f8c877;
-  --mk-saffron-glow: rgba(242, 171, 60, 0.16);
-  --mk-saffron-edge: rgba(248, 200, 119, 0.42);
-
-  /* Coral — red flags only. Warm rather than fire-engine: a clinical alert must
-     read as urgent without making the whole product frightening. */
-  --mk-coral-400: #f07070;
-  --mk-coral-300: #f8a3a3;
-  --mk-coral-glow: rgba(240, 112, 112, 0.18);
-  --mk-coral-edge: rgba(248, 163, 163, 0.5);
-
-  /* Lilac — provenance and evidence. A third hue so "where did this come from"
-     is never confused with "this is good" or "this is wrong". */
-  --mk-lilac-400: #a189ea;
-  --mk-lilac-300: #c3b4f3;
-  --mk-lilac-glow: rgba(161, 137, 234, 0.18);
-  --mk-lilac-edge: rgba(195, 180, 243, 0.42);
-
   /* ======================================================== typography ===
    * The hero is Inter and nothing else — one family carrying display and UI,
    * separated by weight and tracking rather than by a second typeface. Self
@@ -102,6 +32,7 @@
   --mk-font-ui: var(--mk-font-display);
   --mk-font-indic: 'Noto Sans Devanagari', 'Noto Sans Tamil', var(--mk-font-ui);
   --mk-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  --mk-body-font: var(--mk-font-ui);
 
   --mk-text-2xs: 0.75rem;   /* 12 — metadata, never body */
   --mk-text-xs: 0.8125rem;  /* 13 */
@@ -164,19 +95,7 @@
   --mk-radius-2xl: 36px;
   --mk-radius-pill: 999px;
 
-  /* ======================================================== elevation ===
-   * On a black ground a drop shadow is invisible; depth has to come from the
-   * glass itself. `--mk-shadow-*` therefore mean "how much light does this
-   * catch", not "how far off the page is it". The inset highlight is the
-   * hero's, unchanged: inset 0 1px 1px rgba(255,255,255,0.1).
-   */
-  --mk-edge-light: inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  --mk-shadow-xs: var(--mk-edge-light);
-  --mk-shadow-sm: var(--mk-edge-light), 0 2px 10px rgba(0, 0, 0, 0.35);
-  --mk-shadow-md: var(--mk-edge-light), 0 10px 30px -8px rgba(0, 0, 0, 0.55);
-  --mk-shadow-lg: var(--mk-edge-light), 0 24px 60px -14px rgba(0, 0, 0, 0.68);
-  --mk-shadow-xl: var(--mk-edge-light), 0 40px 90px -20px rgba(0, 0, 0, 0.78);
-  --mk-shadow-focus: 0 0 0 3px var(--mk-focus-ring);
+  /* Elevation names live in theme.css, because a shadow is a colour. */
 
   /* =========================================================== motion ===
    * The hero animates in exactly two registers: 300ms for anything a finger
@@ -212,97 +131,6 @@
   --mk-z-toast: 60;
 }
 
-/* ================================================= THE SHARED GROUND ===
- * Everything below is theme, and it is the same theme on every route. Only the
- * `[data-surface]` blocks at the end change, and they change size and spacing,
- * never colour.
- */
-:root,
-[data-surface='kiosk'],
-[data-surface='clinical'] {
-  color-scheme: dark;
-
-  --mk-bg: var(--mk-void);
-  /* The still fallback for the ambient video: three soft pools that carry the
-     same hues the footage does. Visible for the first frame, on a kiosk with no
-     network, and behind the dimmed video on inner routes — so a screen never
-     appears as flat black even when the video never arrives. */
-  --mk-bg-ambient:
-    radial-gradient(1200px 720px at 12% -10%, rgba(43, 193, 150, 0.1), transparent 62%),
-    radial-gradient(1000px 620px at 92% 2%, rgba(161, 137, 234, 0.09), transparent 58%),
-    radial-gradient(900px 760px at 50% 112%, rgba(242, 171, 60, 0.06), transparent 60%);
-
-  /* ------------------------------------------------------------ glass ---
-   * The hero's material, as tokens. `--mk-glass-fill` is deliberately almost
-   * nothing (0.01) — the material reads as glass because of the blur and the
-   * gradient edge, not because of the fill. Raising the fill is what makes
-   * "glassmorphism" look like frosted plastic; these stay low on purpose.
-   */
-  --mk-glass-fill: rgba(255, 255, 255, 0.01);
-  --mk-glass-fill-raised: rgba(255, 255, 255, 0.035);
-  --mk-glass-fill-sunken: rgba(0, 0, 0, 0.28);
-  --mk-glass-fill-hover: rgba(255, 255, 255, 0.1);
-  --mk-glass-blur: blur(4px);
-  --mk-glass-blur-deep: saturate(140%) blur(18px);
-  --mk-glass-edge-top: rgba(255, 255, 255, 0.45);
-  --mk-glass-edge-mid: rgba(255, 255, 255, 0.15);
-  --mk-glass-edge-width: 1.4px;
-
-  --mk-surface: var(--mk-glass-fill);
-  --mk-surface-raised: var(--mk-glass-fill-raised);
-  --mk-surface-sunken: var(--mk-glass-fill-sunken);
-  --mk-surface-muted: var(--mk-light-05);
-  --mk-surface-glass: var(--mk-glass-fill);
-  --mk-surface-solid: var(--mk-void-800);
-
-  /* --------------------------------------------------------------- ink ---
-   * White at the hero's opacities. `ink` is body, `strong` is a heading,
-   * `muted` is supporting prose, `subtle` is metadata.
-   */
-  --mk-ink: var(--mk-light-90);
-  --mk-ink-strong: var(--mk-light-100);
-  --mk-ink-muted: var(--mk-light-70);
-  --mk-ink-subtle: var(--mk-light-45);
-  --mk-ink-faint: var(--mk-light-30);
-  --mk-ink-inverse: var(--mk-void);
-
-  --mk-line: var(--mk-light-12);
-  --mk-line-strong: var(--mk-light-18);
-  --mk-line-hairline: var(--mk-light-08);
-
-  /* ------------------------------------------------------------ accent ---
-   * Jade, as glass. `accent` is the edge and the glyph colour, `accent-ink` is
-   * text on the dark ground, `accent-soft` is the tinted fill. A primary button
-   * is a jade-tinted pane of the same glass — not a solid jade lozenge, which
-   * would be the one opaque object on an otherwise translucent screen.
-   */
-  --mk-accent: var(--mk-jade-400);
-  --mk-accent-hover: var(--mk-jade-300);
-  --mk-accent-soft: var(--mk-jade-glow);
-  --mk-accent-edge: var(--mk-jade-edge);
-  --mk-accent-ink: var(--mk-jade-300);
-  --mk-accent-contrast: var(--mk-void);
-
-  --mk-warm: var(--mk-saffron-400);
-  --mk-warm-soft: var(--mk-saffron-glow);
-  --mk-warm-edge: var(--mk-saffron-edge);
-  --mk-warm-ink: var(--mk-saffron-300);
-
-  --mk-danger: var(--mk-coral-400);
-  --mk-danger-soft: var(--mk-coral-glow);
-  --mk-danger-edge: var(--mk-coral-edge);
-  --mk-danger-ink: var(--mk-coral-300);
-
-  --mk-evidence: var(--mk-lilac-400);
-  --mk-evidence-soft: var(--mk-lilac-glow);
-  --mk-evidence-edge: var(--mk-lilac-edge);
-  --mk-evidence-ink: var(--mk-lilac-300);
-
-  --mk-focus-ring: rgba(94, 215, 180, 0.5);
-
-  --mk-body-font: var(--mk-font-ui);
-}
-
 /* ==================================================== PATIENT DENSITY ===
  * The default, because the kiosk is the front door. Targets are far above the
  * 44px guideline because the user may be elderly, standing, and unfamiliar with
@@ -327,27 +155,7 @@
   --mk-body-size: var(--mk-text-sm);
   --mk-gutter: var(--mk-space-5);
   --mk-pane-radius: var(--mk-radius-lg);
-  /* Denser panes need a slightly more present fill or they disappear into each
-     other when stacked eight deep. Still glass, just one stop up. */
-  --mk-glass-fill: rgba(255, 255, 255, 0.025);
-  --mk-glass-fill-raised: rgba(255, 255, 255, 0.05);
-}
-
-/* ============================================== semantic status colours ===
- * Used by badges, confidence bands and red flags on both surfaces. Defined once
- * against the semantic layer so they follow whichever surface is active.
- */
-:root {
-  --mk-status-ok-bg: var(--mk-accent-soft);
-  --mk-status-ok-fg: var(--mk-accent-ink);
-  --mk-status-ok-edge: var(--mk-accent-edge);
-  --mk-status-warn-bg: var(--mk-warm-soft);
-  --mk-status-warn-fg: var(--mk-warm-ink);
-  --mk-status-warn-edge: var(--mk-warm-edge);
-  --mk-status-alert-bg: var(--mk-danger-soft);
-  --mk-status-alert-fg: var(--mk-danger-ink);
-  --mk-status-alert-edge: var(--mk-danger-edge);
-  --mk-status-info-bg: var(--mk-evidence-soft);
-  --mk-status-info-fg: var(--mk-evidence-ink);
-  --mk-status-info-edge: var(--mk-evidence-edge);
+  /* The denser pane FILL is a colour, so it lives in theme.css alongside the rest
+     of the palette — it is the one and only colour difference between the two
+     surfaces, and keeping it there is what lets the contrast test see it. */
 }
