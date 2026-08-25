@@ -1043,6 +1043,25 @@ export const api = {
     `/api/v1/sessions/${sessionRef}/documents/${documentId}/file` +
     (page ? `?page=${page}` : ''),
 
+  /** Guest mode: a real synthetic record with the full seeded history. No account. */
+  startGuest: () =>
+    request<{
+      patientRef: string;
+      displayName: string;
+      isSynthetic: boolean;
+      encounters: number;
+      notice: string;
+    }>('/api/v1/demo/guest', { method: 'POST' }),
+  resetGuest: (patientRef: string) =>
+    request<{
+      patientRef: string;
+      displayName: string;
+      wasReset: boolean;
+      identical?: boolean;
+      countsBefore?: Record<string, number>;
+      countsAfter?: Record<string, number>;
+    }>(`/api/v1/demo/guest/${patientRef}/reset`, { method: 'POST' }),
+
   /** The deterministic brief. Two calls on unchanged data return identical bytes. */
   brief: (patientRef: string) => request<Brief>(`/api/v1/patients/${patientRef}/brief`),
   patientBrief: (patientRef: string) =>

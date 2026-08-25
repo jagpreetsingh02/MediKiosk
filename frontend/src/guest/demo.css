@@ -1,0 +1,149 @@
+/* The demo badge. Chrome that is ALLOWED to break the glass language, for the same reason
+ * `.mock-banner` and `.mk-dbbadge` are: a warning that blends into the design is a warning
+ * nobody reads, and this one has to survive being photographed.
+ *
+ * VIOLET, deliberately. Amber is already the mock-identity notice and rose is the
+ * local-database warning; a third bar in either colour would be read as the same thing. */
+:root {
+  --mk-demobadge-h: 34px;
+}
+
+.mk-demobadge {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--mk-z-toast);
+  min-height: var(--mk-demobadge-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--mk-space-2) var(--mk-space-3);
+  padding: var(--mk-space-2) var(--mk-space-4);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--mk-evidence-soft),
+    var(--mk-evidence-soft) 12px,
+    var(--mk-evidence-edge) 12px,
+    var(--mk-evidence-edge) 24px
+  );
+  border-bottom: 1px solid var(--mk-evidence);
+  color: var(--mk-evidence-ink);
+  font-size: var(--mk-text-2xs);
+  text-align: center;
+}
+
+.mk-demobadge strong {
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-wide);
+  text-transform: uppercase;
+}
+
+.mk-demobadge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mk-evidence);
+  flex: none;
+}
+
+.mk-demobadge__confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+}
+
+.mk-demobadge__btn {
+  padding: 3px 10px;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid var(--mk-evidence);
+  background: var(--mk-glass-fill);
+  color: var(--mk-evidence-ink);
+  font: inherit;
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-semibold);
+  cursor: pointer;
+}
+
+.mk-demobadge__btn:hover:not(:disabled) {
+  background: var(--mk-evidence-soft);
+}
+
+.mk-demobadge__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--mk-shadow-focus);
+}
+
+.mk-demobadge__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mk-demobadge__btn--quiet {
+  border-color: var(--mk-light-18);
+  color: var(--mk-ink-muted);
+}
+
+/* Make room, exactly as the local-database badge does. `.phys` and `.hx` are viewport-height
+   grids and need their height reduced rather than merely padded. */
+[data-demo-mode] .mk-route {
+  padding-top: var(--mk-demobadge-h);
+}
+
+[data-demo-mode] .phys,
+[data-demo-mode] .hx {
+  height: calc(100dvh - var(--mk-demobadge-h));
+}
+
+/* Both bars at once: the local-database warning AND demo mode. They stack rather than
+   overlap, because either one alone being hidden is exactly the failure both exist to
+   prevent. */
+[data-local-db][data-demo-mode] .mk-demobadge {
+  top: var(--mk-dbbadge-h);
+}
+
+[data-local-db][data-demo-mode] .mk-route {
+  padding-top: calc(var(--mk-dbbadge-h) + var(--mk-demobadge-h));
+}
+
+[data-local-db][data-demo-mode] .phys,
+[data-local-db][data-demo-mode] .hx {
+  height: calc(100dvh - var(--mk-dbbadge-h) - var(--mk-demobadge-h));
+}
+
+/* The hero's Try Demo button, beside Start. Quieter than the primary CTA — it is the second
+   choice on the page, and a demo button that outshouts Start sends real patients into it. */
+.hx-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-2);
+  margin-top: var(--mk-space-3);
+  padding: 10px 22px;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid var(--mk-light-18);
+  background: transparent;
+  color: var(--mk-ink-muted);
+  font: inherit;
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-medium);
+  cursor: pointer;
+  transition: color var(--mk-dur-fast) var(--mk-ease),
+    border-color var(--mk-dur-fast) var(--mk-ease);
+}
+
+.hx-cta-secondary:hover:not(:disabled) {
+  color: var(--mk-ink);
+  border-color: var(--mk-evidence);
+}
+
+.hx-cta-secondary:focus-visible {
+  outline: none;
+  box-shadow: var(--mk-shadow-focus);
+}
+
+.hx-cta-secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

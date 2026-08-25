@@ -27,7 +27,8 @@
  * the same element, on the same frame, still playing, when they reach the consent screen.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import * as guest from '../guest/session';
 
 import { AVATARS } from './avatars';
 import './hero.css';
@@ -40,6 +41,25 @@ const NAV_LINKS = [
 
 export function Hero(): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [startingDemo, setStartingDemo] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  async function startDemo(): Promise<void> {
+    setStartingDemo(true);
+    setDemoError(null);
+    try {
+      await guest.start();
+      // Straight into the intake, which is what "try it" means. The demo badge is mounted
+      // above the router, so it is already on screen when the next surface paints.
+      navigate('/intake');
+    } catch {
+      // Never a raw error on the front door. Building a guest record runs real OCR and real
+      // ASR, so on a cold backend it genuinely can take a while or time out.
+      setDemoError('The demo could not start just now. Please try again in a moment.');
+      setStartingDemo(false);
+    }
+  }
 
   return (
     <div className="hx">
@@ -149,6 +169,18 @@ export function Hero(): JSX.Element {
             Start
           </Link>
           <p className="hx-cta-note">Speak, tap or type — in your own language.</p>
+
+          {/* No account, no personal details, no ABHA. Creates a synthetic record with a
+              history already in it, so the brief has something to show immediately. */}
+          <button
+            type="button"
+            className="hx-cta-secondary"
+            onClick={startDemo}
+            disabled={startingDemo}
+          >
+            {startingDemo ? 'Setting up the demo…' : 'Try demo'}
+          </button>
+          {demoError && <p className="hx-cta-note">{demoError}</p>}
         </div>
 
         <div className="hx-stats">
