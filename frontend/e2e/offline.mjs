@@ -14,6 +14,19 @@
  * `node e2e/offline.mjs` with the frontend running. The backend may be up or down —
  * this suite blocks the API itself.
  */
+/**
+ * NAVIGATION WAITS ON THE DOM, NOT ON AN IDLE NETWORK.
+ *
+ * Every `goto` here used `waitUntil: 'networkidle'`. That stopped working the moment the
+ * product grew a shared ambient background: the hero's video is a looping stream mounted for
+ * the whole application, so there is always an open connection and the network is never idle.
+ * The suite hung on the first navigation rather than failing on an assertion.
+ *
+ * `domcontentloaded` is the correct condition now, and it costs nothing in coverage: every
+ * navigation below is already followed by an explicit `waitForSelector` for the thing being
+ * tested, which is a stronger guarantee than "no requests for 500ms" ever was. The console
+ * error and failed request listeners are untouched.
+ */
 import { chromium } from 'playwright';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
@@ -40,7 +53,7 @@ await ctx.route('**/api/v1/**', (r) => r.abort('connectionrefused'));
 await ctx.route('**/mock-idp/**', (r) => r.abort('connectionrefused'));
 
 console.log('KIOSK WITH NO BACKEND');
-await page.goto(`${BASE}/intake`, { waitUntil: 'networkidle' });
+await page.goto(`${BASE}/intake`, { waitUntil: 'domcontentloaded' });
 await page.getByRole('button', { name: /^English/ }).click();
 await page.waitForTimeout(1200);
 await page.locator('button', { hasText: /Demo Patient/ }).first().click();
@@ -58,7 +71,7 @@ await ctx.unroute('**/api/v1/**');
 await ctx.route('**/api/v1/**', (r) =>
   r.fulfill({ status: 500, contentType: 'text/html', body: '<html>502 Bad Gateway</html>' }),
 );
-await page.reload({ waitUntil: 'networkidle' });
+await page.reload({ waitUntil: 'domcontentloaded' });
 await page.getByRole('button', { name: /^English/ }).click();
 await page.waitForTimeout(1000);
 await page.locator('button', { hasText: /Demo Patient/ }).first().click();

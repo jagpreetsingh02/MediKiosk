@@ -1,26 +1,35 @@
 /**
- * MediKiosk design tokens — "Clinical Aurora".
+ * MediKiosk design tokens — derived from the hero.
  *
- * TWO SURFACES THAT DELIBERATELY INVERT. The patient kiosk is light and luminous; the
- * physician workspace is dark and instrument-grade. That is not decoration, it is the brief's
- * requirement that the two surfaces feel nothing alike — and each direction is chosen for its
- * own room:
+ * ONE THEME, TWO DENSITIES. The previous system inverted: a light kiosk and a dark clinical
+ * workspace, deliberately unlike each other. That produced two products. The hero in `ui/`
+ * establishes the actual visual identity of MediKiosk — a black ground under a moving image,
+ * with everything above it built from *liquid glass*: near-transparent fills, a 4px backdrop
+ * blur, a 1.4px gradient hairline that catches light at the top and bottom edge, and an inset
+ * white highlight. Type is Inter, tight-tracked at display sizes, light-weight at reading
+ * sizes, and coloured by opacity against white rather than by hue.
  *
- *   PATIENT   A kiosk stands under hospital fluorescents and is used by people in their
- *             sixties and seventies. Contrast sensitivity falls with age, and a dark UI in a
- *             bright room is the worst combination for it. Premium here means *luminous* —
- *             porcelain surfaces, deep indigo ink, generous type, soft depth.
+ * So the surfaces no longer differ in *theme*. They differ in *density*:
  *
- *   PHYSICIAN A clinician reads dense evidence for hours on a laptop. Dark reduces glare
- *             over a long session and lets red flags and confidence states carry real weight
- *             without shouting.
+ *   PATIENT   Same ground, same glass, same type. Enormous targets (60/76px), reading sizes
+ *             one full step up, one decision per screen. Guided, unhurried.
  *
- * The palette is rooted in Indian pigment tradition rather than generic health-tech blue:
- * indigo (the dye), jade (vitality), saffron (AYUSH, warmth, attention). Every colour pair
- * used for text is checked against WCAG AA at its intended size.
+ *   CLINICAL  Same ground, same glass, same type. Compact targets (38/44px), reading sizes
+ *             one step down, more per screen, keyboard-first. Dense, instrument-grade.
  *
- * NAMING. `--mk-` prefix throughout so these never collide with the legacy `kiosk.css` /
- * `physician.css` variables while both exist during the rebuild.
+ * A patient who taps Start on the hero and a physician who opens the brief are looking at the
+ * same material at two zoom levels. That is the whole point: nothing about the ground, the
+ * glass, the type or the motion changes when you move between them.
+ *
+ * COLOUR. The hero is monochrome — white on black, everything else is opacity. A clinical
+ * product cannot be: a red flag, a provenance tier and a confidence band must be
+ * distinguishable at a glance. The resolution is that hue is *carried by the glass* rather
+ * than painted on top of it. Semantic colours are luminous, low-alpha tints that sit in the
+ * same material as everything else, with a saturated ink for the text on top. Nothing on any
+ * screen is a flat opaque colour chip.
+ *
+ * NAMING. `--mk-` prefix throughout. Every name that existed before still exists and still
+ * means the same thing, which is why re-skinning here re-skins every screen.
  */
 
 /* ============================================================ primitives ===
@@ -28,74 +37,72 @@
  * semantic layer below, so a re-theme touches one block instead of forty files.
  */
 :root {
-  /* Indigo — the ink and the dark ground */
-  --mk-indigo-950: #070a16;
-  --mk-indigo-900: #0d1226;
-  --mk-indigo-850: #131a33;
-  --mk-indigo-800: #1a2342;
-  --mk-indigo-700: #253057;
-  --mk-indigo-600: #34406e;
-  --mk-indigo-500: #4a5789;
-  --mk-indigo-400: #6d7aa8;
-  --mk-indigo-300: #97a1c4;
-  --mk-indigo-200: #c2c9de;
-  --mk-indigo-100: #e0e4ef;
-  --mk-indigo-50: #eff1f8;
+  /* Ground — the hero's black, and the near-blacks that sit on it. Not neutral
+     grey: a trace of indigo keeps the glass from looking like dirty plastic. */
+  --mk-void: #000000;
+  --mk-void-900: #05060a;
+  --mk-void-800: #0a0c12;
+  --mk-void-700: #10131c;
+  --mk-void-600: #171b26;
 
-  /* Porcelain — the light ground. Warm, not clinical grey. */
-  --mk-porcelain-0: #ffffff;
-  --mk-porcelain-50: #fcfbfa;
-  --mk-porcelain-100: #f7f5f2;
-  --mk-porcelain-200: #efece7;
-  --mk-porcelain-300: #e2ded7;
+  /* Light — the hero writes exclusively in white at varying opacity. These are
+     the exact steps the hero uses (1.0 / 0.8 / 0.7 / 0.6), extended for the
+     denser screens that need two more stops below it. */
+  --mk-light-100: rgba(255, 255, 255, 1);
+  --mk-light-90: rgba(255, 255, 255, 0.9);
+  --mk-light-80: rgba(255, 255, 255, 0.8);
+  --mk-light-70: rgba(255, 255, 255, 0.7);
+  --mk-light-60: rgba(255, 255, 255, 0.6);
+  --mk-light-45: rgba(255, 255, 255, 0.45);
+  --mk-light-30: rgba(255, 255, 255, 0.3);
+  --mk-light-18: rgba(255, 255, 255, 0.18);
+  --mk-light-12: rgba(255, 255, 255, 0.12);
+  --mk-light-08: rgba(255, 255, 255, 0.08);
+  --mk-light-05: rgba(255, 255, 255, 0.05);
+  --mk-light-03: rgba(255, 255, 255, 0.03);
+  --mk-light-01: rgba(255, 255, 255, 0.01);
 
-  /* Jade — primary action, vitality, "this is health" */
-  --mk-jade-700: #0b6b52;
-  --mk-jade-600: #0f8a68;
-  --mk-jade-500: #14a67e;
+  /* Jade — forward motion, vitality, "this is health". Lifted for a black
+     ground: the old 600 was tuned against porcelain and reads as sludge here. */
   --mk-jade-400: #2bc196;
   --mk-jade-300: #5ed7b4;
   --mk-jade-200: #a3e9d4;
-  --mk-jade-100: #d6f6ec;
+  --mk-jade-glow: rgba(43, 193, 150, 0.16);
+  --mk-jade-edge: rgba(94, 215, 180, 0.45);
 
-  /* Saffron — AYUSH, attention, warmth. Never used for destructive. */
-  --mk-saffron-700: #a35d05;
-  --mk-saffron-600: #c67608;
-  --mk-saffron-500: #e2900f;
+  /* Saffron — AYUSH, attention, warmth. Never destructive. */
   --mk-saffron-400: #f2ab3c;
   --mk-saffron-300: #f8c877;
-  --mk-saffron-200: #fce3b4;
-  --mk-saffron-100: #fef4e2;
+  --mk-saffron-glow: rgba(242, 171, 60, 0.16);
+  --mk-saffron-edge: rgba(248, 200, 119, 0.42);
 
-  /* Coral — red flags only. Deliberately warm rather than fire-engine red: a
-     clinical alert must read as urgent without making the whole app frightening. */
-  --mk-coral-700: #a32020;
-  --mk-coral-600: #c73434;
-  --mk-coral-500: #e04b4b;
+  /* Coral — red flags only. Warm rather than fire-engine: a clinical alert must
+     read as urgent without making the whole product frightening. */
   --mk-coral-400: #f07070;
   --mk-coral-300: #f8a3a3;
-  --mk-coral-200: #fcd0d0;
-  --mk-coral-100: #fdeaea;
+  --mk-coral-glow: rgba(240, 112, 112, 0.18);
+  --mk-coral-edge: rgba(248, 163, 163, 0.5);
 
   /* Lilac — provenance and evidence. A third hue so "where did this come from"
      is never confused with "this is good" or "this is wrong". */
-  --mk-lilac-600: #6b4ec7;
-  --mk-lilac-500: #8367dd;
   --mk-lilac-400: #a189ea;
   --mk-lilac-300: #c3b4f3;
-  --mk-lilac-100: #ece6fc;
+  --mk-lilac-glow: rgba(161, 137, 234, 0.18);
+  --mk-lilac-edge: rgba(195, 180, 243, 0.42);
 
-  /* ======================================================== typography === */
-  --mk-font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque',
-    ui-sans-serif, system-ui, sans-serif;
-  --mk-font-ui: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui,
-    -apple-system, 'Segoe UI', sans-serif;
+  /* ======================================================== typography ===
+   * The hero is Inter and nothing else — one family carrying display and UI,
+   * separated by weight and tracking rather than by a second typeface. Self
+   * hosted through @fontsource rather than linked from Google, because the
+   * kiosk is expected to run with no network and a webfont that silently
+   * fails takes the whole typographic hierarchy down with it. Same face, same
+   * rendering, no CDN.
+   */
+  --mk-font-display: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mk-font-ui: var(--mk-font-display);
   --mk-font-indic: 'Noto Sans Devanagari', 'Noto Sans Tamil', var(--mk-font-ui);
   --mk-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 
-  /* A major-third-ish ramp, tuned so the kiosk's reading sizes are genuinely
-     large. `--mk-text-*` are the patient scale; the physician scale steps down
-     one notch and is applied by `[data-surface='clinical']`. */
   --mk-text-2xs: 0.75rem;   /* 12 — metadata, never body */
   --mk-text-xs: 0.8125rem;  /* 13 */
   --mk-text-sm: 0.9375rem;  /* 15 */
@@ -107,16 +114,24 @@
   --mk-text-4xl: 3rem;      /* 48 */
   --mk-text-5xl: 3.75rem;   /* 60 */
 
-  --mk-leading-tight: 1.1;
+  --mk-leading-tight: 1.05;   /* the hero's h1 leading, exactly */
   --mk-leading-snug: 1.25;
   --mk-leading-normal: 1.5;
   --mk-leading-relaxed: 1.65;
 
-  --mk-tracking-tight: -0.025em;
+  /* -0.05em is the hero heading's tracking. It is extreme on purpose and only
+     correct at display sizes; `snug` is the working value for everything else. */
+  --mk-tracking-display: -0.05em;
+  --mk-tracking-tight: -0.035em;
   --mk-tracking-snug: -0.015em;
   --mk-tracking-normal: 0;
   --mk-tracking-wide: 0.06em;
+  --mk-tracking-caps: 0.1em;
 
+  /* The hero writes headings at 400 and body at 300. Weight carries far less of
+     the hierarchy here than size and opacity do — that restraint is most of why
+     it reads as expensive rather than loud. */
+  --mk-weight-light: 300;
   --mk-weight-normal: 400;
   --mk-weight-medium: 500;
   --mk-weight-semibold: 600;
@@ -124,7 +139,6 @@
   --mk-weight-black: 800;
 
   /* ============================================================ space === */
-  /* 4px base. Named by step, not by use, so nothing is mis-sized by analogy. */
   --mk-space-1: 0.25rem;
   --mk-space-2: 0.5rem;
   --mk-space-3: 0.75rem;
@@ -138,40 +152,50 @@
   --mk-space-20: 5rem;
   --mk-space-24: 6rem;
 
-  /* =========================================================== radius === */
-  --mk-radius-xs: 6px;
-  --mk-radius-sm: 10px;
-  --mk-radius-md: 14px;
-  --mk-radius-lg: 20px;
+  /* =========================================================== radius ===
+   * The hero rounds everything interactive to a pill and everything containing
+   * to a large radius. There are no sharp corners anywhere in it.
+   */
+  --mk-radius-xs: 8px;
+  --mk-radius-sm: 12px;
+  --mk-radius-md: 16px;
+  --mk-radius-lg: 22px;
   --mk-radius-xl: 28px;
   --mk-radius-2xl: 36px;
   --mk-radius-pill: 999px;
 
-  /* ======================================================== elevation === */
-  /* Shadows carry a hint of the indigo ground rather than neutral black, which
-     is what stops layered light surfaces looking dusty. */
-  --mk-shadow-xs: 0 1px 2px rgba(13, 18, 38, 0.06);
-  --mk-shadow-sm: 0 2px 8px rgba(13, 18, 38, 0.07), 0 1px 2px rgba(13, 18, 38, 0.05);
-  --mk-shadow-md: 0 8px 24px -6px rgba(13, 18, 38, 0.12), 0 2px 6px rgba(13, 18, 38, 0.06);
-  --mk-shadow-lg: 0 20px 48px -12px rgba(13, 18, 38, 0.18), 0 4px 12px rgba(13, 18, 38, 0.07);
-  --mk-shadow-xl: 0 32px 72px -16px rgba(13, 18, 38, 0.24), 0 8px 20px rgba(13, 18, 38, 0.09);
-  --mk-shadow-focus: 0 0 0 4px var(--mk-focus-ring);
+  /* ======================================================== elevation ===
+   * On a black ground a drop shadow is invisible; depth has to come from the
+   * glass itself. `--mk-shadow-*` therefore mean "how much light does this
+   * catch", not "how far off the page is it". The inset highlight is the
+   * hero's, unchanged: inset 0 1px 1px rgba(255,255,255,0.1).
+   */
+  --mk-edge-light: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  --mk-shadow-xs: var(--mk-edge-light);
+  --mk-shadow-sm: var(--mk-edge-light), 0 2px 10px rgba(0, 0, 0, 0.35);
+  --mk-shadow-md: var(--mk-edge-light), 0 10px 30px -8px rgba(0, 0, 0, 0.55);
+  --mk-shadow-lg: var(--mk-edge-light), 0 24px 60px -14px rgba(0, 0, 0, 0.68);
+  --mk-shadow-xl: var(--mk-edge-light), 0 40px 90px -20px rgba(0, 0, 0, 0.78);
+  --mk-shadow-focus: 0 0 0 3px var(--mk-focus-ring);
 
-  /* =========================================================== motion === */
-  /* Durations are perceptual. Anything a finger triggers is under 200ms or it
-     feels laggy; anything that moves a whole screen gets longer or it feels
-     jumpy. `--mk-ease-out` is the workhorse for entrances. */
+  /* =========================================================== motion ===
+   * The hero animates in exactly two registers: 300ms for anything a finger
+   * or a pointer triggers, 500ms for anything that moves a whole layer. It
+   * uses the browser default ease for both. Those two numbers are the entire
+   * motion vocabulary and everything below is built to land on them.
+   */
   --mk-dur-instant: 90ms;
   --mk-dur-fast: 160ms;
-  --mk-dur-normal: 240ms;
-  --mk-dur-slow: 380ms;
-  --mk-dur-slower: 560ms;
+  --mk-dur-normal: 300ms;
+  --mk-dur-slow: 500ms;
+  --mk-dur-slower: 700ms;
 
   --mk-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --mk-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --mk-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  /* Generated by Motion's easing tool: a spring with a small overshoot, for
-     things that should feel physically arrived-at rather than faded-in. */
+  /* The hero's own `transition duration-300` is plain `ease`; this is the
+     matched curve for the places we drive motion from JS. */
+  --mk-ease-hero: cubic-bezier(0.25, 0.1, 0.25, 1);
   --mk-ease-spring: linear(
     0, 0.0033 0.8%, 0.0263 2.39%, 0.0896 4.77%, 0.4165 12.12%, 0.5314, 0.6316,
     0.7181, 0.7929 21.06%, 0.8593, 0.9142, 0.9584 27.61%, 0.9933 31.19%,
@@ -179,6 +203,7 @@
     1.0322 49.98%, 1.0044 62.5%, 0.9971 67.28%, 0.9946 72.06%, 0.9987 85.18%, 1
   );
 
+  --mk-z-ambient: -1;
   --mk-z-base: 0;
   --mk-z-sticky: 10;
   --mk-z-header: 20;
@@ -187,139 +212,142 @@
   --mk-z-toast: 60;
 }
 
-/* ==================================================== PATIENT SURFACE ===
- * Light, luminous, touch-first. This is the default because the kiosk is the
- * front door of the product.
+/* ================================================= THE SHARED GROUND ===
+ * Everything below is theme, and it is the same theme on every route. Only the
+ * `[data-surface]` blocks at the end change, and they change size and spacing,
+ * never colour.
  */
 :root,
-[data-surface='kiosk'] {
-  color-scheme: light;
-
-  --mk-bg: var(--mk-porcelain-100);
-  /* The ambient wash. Two very soft radial pools of jade and saffron over
-     porcelain — enough to stop a full-bleed screen reading as flat paper,
-     nowhere near enough to compete with content. */
-  --mk-bg-ambient:
-    radial-gradient(1100px 620px at 12% -8%, rgba(20, 166, 126, 0.09), transparent 62%),
-    radial-gradient(900px 560px at 92% 4%, rgba(226, 144, 15, 0.08), transparent 58%),
-    radial-gradient(700px 700px at 50% 108%, rgba(107, 78, 199, 0.05), transparent 60%);
-
-  --mk-surface: var(--mk-porcelain-0);
-  --mk-surface-raised: var(--mk-porcelain-0);
-  --mk-surface-sunken: var(--mk-porcelain-200);
-  --mk-surface-muted: var(--mk-porcelain-50);
-  /* Glass, used sparingly: the sticky header and the option-sheet backdrop. */
-  --mk-surface-glass: rgba(255, 255, 255, 0.78);
-  --mk-glass-blur: saturate(180%) blur(20px);
-
-  --mk-ink: var(--mk-indigo-900);
-  --mk-ink-strong: var(--mk-indigo-950);
-  --mk-ink-muted: var(--mk-indigo-600);
-  --mk-ink-subtle: var(--mk-indigo-500);
-  --mk-ink-inverse: var(--mk-porcelain-0);
-
-  --mk-line: var(--mk-porcelain-300);
-  --mk-line-strong: var(--mk-indigo-200);
-  --mk-line-hairline: rgba(13, 18, 38, 0.07);
-
-  --mk-accent: var(--mk-jade-600);
-  --mk-accent-hover: var(--mk-jade-700);
-  --mk-accent-soft: var(--mk-jade-100);
-  --mk-accent-ink: var(--mk-jade-700);
-  --mk-accent-contrast: #ffffff;
-
-  --mk-warm: var(--mk-saffron-600);
-  --mk-warm-soft: var(--mk-saffron-100);
-  --mk-warm-ink: var(--mk-saffron-700);
-
-  --mk-danger: var(--mk-coral-600);
-  --mk-danger-soft: var(--mk-coral-100);
-  --mk-danger-ink: var(--mk-coral-700);
-
-  --mk-evidence: var(--mk-lilac-600);
-  --mk-evidence-soft: var(--mk-lilac-100);
-
-  --mk-focus-ring: rgba(20, 166, 126, 0.35);
-
-  /* Touch targets. The kiosk minimum is 60px, well above the 44px guideline,
-     because the user may be elderly, standing, and unfamiliar with the device. */
-  --mk-touch-min: 60px;
-  --mk-touch-lg: 76px;
-
-  --mk-body-font: var(--mk-font-ui);
-  --mk-body-size: var(--mk-text-base);
-}
-
-/* ================================================== PHYSICIAN SURFACE ===
- * Dark, dense, keyboard-first. Applied with `data-surface='clinical'` on the
- * physician root, so the two can coexist during the rebuild and in screenshots.
- */
+[data-surface='kiosk'],
 [data-surface='clinical'] {
   color-scheme: dark;
 
-  --mk-bg: var(--mk-indigo-950);
+  --mk-bg: var(--mk-void);
+  /* The still fallback for the ambient video: three soft pools that carry the
+     same hues the footage does. Visible for the first frame, on a kiosk with no
+     network, and behind the dimmed video on inner routes — so a screen never
+     appears as flat black even when the video never arrives. */
   --mk-bg-ambient:
-    radial-gradient(1200px 700px at 8% -10%, rgba(20, 166, 126, 0.1), transparent 60%),
-    radial-gradient(1000px 600px at 96% 0%, rgba(107, 78, 199, 0.1), transparent 58%);
+    radial-gradient(1200px 720px at 12% -10%, rgba(43, 193, 150, 0.1), transparent 62%),
+    radial-gradient(1000px 620px at 92% 2%, rgba(161, 137, 234, 0.09), transparent 58%),
+    radial-gradient(900px 760px at 50% 112%, rgba(242, 171, 60, 0.06), transparent 60%);
 
-  --mk-surface: var(--mk-indigo-900);
-  --mk-surface-raised: var(--mk-indigo-850);
-  --mk-surface-sunken: var(--mk-indigo-950);
-  --mk-surface-muted: var(--mk-indigo-850);
-  --mk-surface-glass: rgba(13, 18, 38, 0.72);
-  --mk-glass-blur: saturate(160%) blur(18px);
+  /* ------------------------------------------------------------ glass ---
+   * The hero's material, as tokens. `--mk-glass-fill` is deliberately almost
+   * nothing (0.01) — the material reads as glass because of the blur and the
+   * gradient edge, not because of the fill. Raising the fill is what makes
+   * "glassmorphism" look like frosted plastic; these stay low on purpose.
+   */
+  --mk-glass-fill: rgba(255, 255, 255, 0.01);
+  --mk-glass-fill-raised: rgba(255, 255, 255, 0.035);
+  --mk-glass-fill-sunken: rgba(0, 0, 0, 0.28);
+  --mk-glass-fill-hover: rgba(255, 255, 255, 0.1);
+  --mk-glass-blur: blur(4px);
+  --mk-glass-blur-deep: saturate(140%) blur(18px);
+  --mk-glass-edge-top: rgba(255, 255, 255, 0.45);
+  --mk-glass-edge-mid: rgba(255, 255, 255, 0.15);
+  --mk-glass-edge-width: 1.4px;
 
-  --mk-ink: #e7ebf6;
-  --mk-ink-strong: #f7f9fd;
-  --mk-ink-muted: var(--mk-indigo-300);
-  --mk-ink-subtle: var(--mk-indigo-400);
-  --mk-ink-inverse: var(--mk-indigo-950);
+  --mk-surface: var(--mk-glass-fill);
+  --mk-surface-raised: var(--mk-glass-fill-raised);
+  --mk-surface-sunken: var(--mk-glass-fill-sunken);
+  --mk-surface-muted: var(--mk-light-05);
+  --mk-surface-glass: var(--mk-glass-fill);
+  --mk-surface-solid: var(--mk-void-800);
 
-  --mk-line: var(--mk-indigo-800);
-  --mk-line-strong: var(--mk-indigo-700);
-  --mk-line-hairline: rgba(255, 255, 255, 0.07);
+  /* --------------------------------------------------------------- ink ---
+   * White at the hero's opacities. `ink` is body, `strong` is a heading,
+   * `muted` is supporting prose, `subtle` is metadata.
+   */
+  --mk-ink: var(--mk-light-90);
+  --mk-ink-strong: var(--mk-light-100);
+  --mk-ink-muted: var(--mk-light-70);
+  --mk-ink-subtle: var(--mk-light-45);
+  --mk-ink-faint: var(--mk-light-30);
+  --mk-ink-inverse: var(--mk-void);
 
+  --mk-line: var(--mk-light-12);
+  --mk-line-strong: var(--mk-light-18);
+  --mk-line-hairline: var(--mk-light-08);
+
+  /* ------------------------------------------------------------ accent ---
+   * Jade, as glass. `accent` is the edge and the glyph colour, `accent-ink` is
+   * text on the dark ground, `accent-soft` is the tinted fill. A primary button
+   * is a jade-tinted pane of the same glass — not a solid jade lozenge, which
+   * would be the one opaque object on an otherwise translucent screen.
+   */
   --mk-accent: var(--mk-jade-400);
   --mk-accent-hover: var(--mk-jade-300);
-  --mk-accent-soft: rgba(20, 166, 126, 0.16);
+  --mk-accent-soft: var(--mk-jade-glow);
+  --mk-accent-edge: var(--mk-jade-edge);
   --mk-accent-ink: var(--mk-jade-300);
-  --mk-accent-contrast: var(--mk-indigo-950);
+  --mk-accent-contrast: var(--mk-void);
 
   --mk-warm: var(--mk-saffron-400);
-  --mk-warm-soft: rgba(226, 144, 15, 0.16);
+  --mk-warm-soft: var(--mk-saffron-glow);
+  --mk-warm-edge: var(--mk-saffron-edge);
   --mk-warm-ink: var(--mk-saffron-300);
 
   --mk-danger: var(--mk-coral-400);
-  --mk-danger-soft: rgba(224, 75, 75, 0.16);
+  --mk-danger-soft: var(--mk-coral-glow);
+  --mk-danger-edge: var(--mk-coral-edge);
   --mk-danger-ink: var(--mk-coral-300);
 
   --mk-evidence: var(--mk-lilac-400);
-  --mk-evidence-soft: rgba(131, 103, 221, 0.18);
+  --mk-evidence-soft: var(--mk-lilac-glow);
+  --mk-evidence-edge: var(--mk-lilac-edge);
+  --mk-evidence-ink: var(--mk-lilac-300);
 
-  --mk-focus-ring: rgba(43, 193, 150, 0.45);
+  --mk-focus-ring: rgba(94, 215, 180, 0.5);
 
-  --mk-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --mk-shadow-md: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
-  --mk-shadow-lg: 0 24px 56px -14px rgba(0, 0, 0, 0.62);
-  --mk-shadow-xl: 0 36px 80px -18px rgba(0, 0, 0, 0.7);
+  --mk-body-font: var(--mk-font-ui);
+}
 
-  /* A clinician uses a mouse and a keyboard, and wants more on screen. */
+/* ==================================================== PATIENT DENSITY ===
+ * The default, because the kiosk is the front door. Targets are far above the
+ * 44px guideline because the user may be elderly, standing, and unfamiliar with
+ * the device; reading sizes sit a step up for the same reason.
+ */
+:root,
+[data-surface='kiosk'] {
+  --mk-touch-min: 60px;
+  --mk-touch-lg: 76px;
+  --mk-body-size: var(--mk-text-base);
+  --mk-gutter: var(--mk-space-8);
+  --mk-pane-radius: var(--mk-radius-xl);
+}
+
+/* ================================================== CLINICAL DENSITY ===
+ * Same material, more of it on screen. A clinician reads their fortieth history
+ * of the morning with a keyboard, and wants the whole record visible at once.
+ */
+[data-surface='clinical'] {
   --mk-touch-min: 38px;
   --mk-touch-lg: 44px;
   --mk-body-size: var(--mk-text-sm);
+  --mk-gutter: var(--mk-space-5);
+  --mk-pane-radius: var(--mk-radius-lg);
+  /* Denser panes need a slightly more present fill or they disappear into each
+     other when stacked eight deep. Still glass, just one stop up. */
+  --mk-glass-fill: rgba(255, 255, 255, 0.025);
+  --mk-glass-fill-raised: rgba(255, 255, 255, 0.05);
 }
 
 /* ============================================== semantic status colours ===
- * Used by badges, confidence bands and red flags on both surfaces. Defined
- * once against the semantic layer so they follow whichever surface is active.
+ * Used by badges, confidence bands and red flags on both surfaces. Defined once
+ * against the semantic layer so they follow whichever surface is active.
  */
 :root {
   --mk-status-ok-bg: var(--mk-accent-soft);
   --mk-status-ok-fg: var(--mk-accent-ink);
+  --mk-status-ok-edge: var(--mk-accent-edge);
   --mk-status-warn-bg: var(--mk-warm-soft);
   --mk-status-warn-fg: var(--mk-warm-ink);
+  --mk-status-warn-edge: var(--mk-warm-edge);
   --mk-status-alert-bg: var(--mk-danger-soft);
   --mk-status-alert-fg: var(--mk-danger-ink);
+  --mk-status-alert-edge: var(--mk-danger-edge);
   --mk-status-info-bg: var(--mk-evidence-soft);
-  --mk-status-info-fg: var(--mk-evidence);
+  --mk-status-info-fg: var(--mk-evidence-ink);
+  --mk-status-info-edge: var(--mk-evidence-edge);
 }

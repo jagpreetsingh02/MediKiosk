@@ -1,0 +1,117 @@
+/**
+ * The ambient ground and its depth states. See `Ambient.tsx` for why this is one
+ * element for the whole application rather than one per route.
+ */
+
+.mk-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--mk-void);
+  background-image: var(--mk-bg-ambient);
+  background-attachment: fixed;
+}
+
+.mk-ambient__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Every property that changes with depth transitions on the same slow curve,
+     so the ground recedes as one movement rather than three. */
+  transition:
+    opacity var(--mk-dur-slower) var(--mk-ease-hero),
+    filter var(--mk-dur-slower) var(--mk-ease-hero),
+    transform var(--mk-dur-slower) var(--mk-ease-hero);
+  will-change: opacity, filter, transform;
+}
+
+/* The veil sits between the footage and the content. On the hero it is barely
+   there; deeper in it carries most of the contrast, which is what lets clinical
+   text sit over moving video and still pass a contrast check. */
+.mk-ambient__veil {
+  position: absolute;
+  inset: 0;
+  transition: background var(--mk-dur-slower) var(--mk-ease-hero);
+}
+
+/* ------------------------------------------------------------- depths --- */
+
+/* Hero — the footage as the hero shows it: full strength, untouched. */
+.mk-ambient[data-depth='hero'] .mk-ambient__video {
+  opacity: 1;
+  filter: none;
+  transform: scale(1);
+}
+
+.mk-ambient[data-depth='hero'] .mk-ambient__veil {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(0, 0, 0, 0.12) 35%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+}
+
+/* Surface — patient screens. The room is still recognisably the same room; the
+   footage has simply moved out of focus behind the glass.
+
+   The balance here is the whole design. Too present and clinical text sits on
+   moving colour and becomes unreadable; too absent and the patient has been
+   quietly moved to a black page, which is the seam this exists to close. Blurred
+   hard, held at half strength, and darkened by a veil that is heaviest exactly
+   where the content column sits. */
+.mk-ambient[data-depth='surface'] .mk-ambient__video {
+  opacity: 0.55;
+  filter: blur(30px) saturate(120%);
+  /* Scaled up so the blur's soft edges never expose the black behind it. */
+  transform: scale(1.12);
+}
+
+.mk-ambient[data-depth='surface'] .mk-ambient__veil {
+  background:
+    radial-gradient(1200px 900px at 50% 45%, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.34) 70%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Deep — the physician workspace. Dense evidence wins over atmosphere, so the
+   ground is barely a presence. It is still the same footage, still playing, and
+   the eye reads it as the same place. */
+.mk-ambient[data-depth='deep'] .mk-ambient__video {
+  opacity: 0.34;
+  filter: blur(46px) saturate(115%);
+  transform: scale(1.18);
+}
+
+.mk-ambient[data-depth='deep'] .mk-ambient__veil {
+  background:
+    radial-gradient(1400px 1000px at 50% 40%, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.5) 75%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.68) 100%);
+}
+
+/* --------------------------------------------------------- reduced motion ---
+ * Someone who has asked for less motion should not get a looping video behind
+ * every screen. The footage is frozen to its poster frame by pausing playback
+ * through a very heavy blur, and the still gradient ground carries the mood.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .mk-ambient__video {
+    display: none;
+  }
+
+  .mk-ambient[data-depth='hero'] .mk-ambient__veil,
+  .mk-ambient[data-depth='surface'] .mk-ambient__veil,
+  .mk-ambient[data-depth='deep'] .mk-ambient__veil {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.55));
+  }
+}
+
+/* Print gets paper, never a video ground. */
+@media print {
+  .mk-ambient {
+    display: none;
+  }
+}

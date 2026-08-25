@@ -166,25 +166,29 @@
   min-height: 96px;
   padding: 0 34px;
   border-radius: 999px;
-  border: 3px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
+  border: 2px solid var(--mk-accent-edge);
+  background: var(--mk-accent-soft);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  color: var(--mk-ink-strong);
   font-size: 25px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .voice-button.listening {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: var(--mk-danger-soft);
+  border-color: var(--mk-danger-edge);
+  color: var(--mk-ink-strong);
   animation: pulse 1.15s ease-in-out infinite;
 }
 
-.voice-button.unavailable { background: var(--paper-3); border-color: var(--line); color: var(--ink-3); }
+.voice-button.unavailable { background: var(--mk-light-05); border-color: var(--mk-line); color: var(--ink-3); }
 .voice-button svg { width: 34px; height: 34px; }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(179, 38, 30, 0.42); }
-  50% { box-shadow: 0 0 0 20px rgba(179, 38, 30, 0); }
+  0%, 100% { box-shadow: var(--mk-edge-light), 0 0 0 0 rgba(240, 112, 112, 0.45); }
+  50% { box-shadow: var(--mk-edge-light), 0 0 0 20px rgba(240, 112, 112, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,10 +253,31 @@
   flex: 0 0 auto;
 }
 
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
-.btn-secondary { background: var(--paper); color: var(--accent); border-color: var(--accent); }
-.btn-quiet { background: transparent; color: var(--ink-3); border-color: var(--line); font-weight: 600; }
+.btn-primary {
+  background: var(--mk-accent-soft);
+  border-color: var(--mk-accent-edge);
+  color: var(--mk-ink-strong);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+}
+.btn-primary:hover:not(:disabled) { background: rgba(43, 193, 150, 0.28); }
+.btn-secondary {
+  background: var(--mk-glass-fill);
+  color: var(--mk-accent-ink);
+  border-color: var(--mk-accent-edge);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+}
+.btn-quiet {
+  background: var(--mk-glass-fill);
+  color: var(--ink-2);
+  border-color: var(--mk-line);
+  font-weight: 500;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+}
+.btn-quiet:hover:not(:disabled) { background: var(--mk-glass-fill-hover); color: var(--mk-ink-strong); }
 
 /* --- progress rail -------------------------------------------------------- */
 
@@ -399,14 +424,16 @@
   width: 72px;
   height: 42px;
   border-radius: 999px;
-  border: 3px solid var(--line);
-  background: var(--paper-2, #e9e9e9);
+  border: 2px solid var(--mk-light-12);
+  background: var(--mk-glass-fill-sunken);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
   padding: 0;
   position: relative;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--mk-dur-normal) var(--mk-ease-hero),
+    border-color var(--mk-dur-normal) var(--mk-ease-hero);
 }
 
-.consent-switch.on { background: var(--ok); border-color: var(--ok); }
+.consent-switch.on { background: var(--mk-accent-soft); border-color: var(--mk-accent-edge); }
 
 .consent-knob {
   position: absolute;
@@ -415,9 +442,9 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
-  transition: transform 0.15s;
+  background: var(--mk-light-90);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform var(--mk-dur-normal) var(--mk-ease-spring);
 }
 
 .consent-switch.on .consent-knob { transform: translateX(30px); }
@@ -700,8 +727,8 @@
 /* Speaking is a state the patient can see, so a silent engine is distinguishable from a
    working one — the whole "the button does nothing" complaint in one style rule. */
 .audio-button.speaking {
-  background: var(--accent);
-  color: #fff;
+  background: var(--mk-accent-soft);
+  color: var(--mk-ink-strong);
   animation: audio-pulse 1.4s ease-in-out infinite;
 }
 
@@ -809,7 +836,7 @@
   margin: 18px 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #101010;
+  background: var(--mk-void);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -828,12 +855,12 @@
 .camera-guide {
   position: absolute;
   inset: 7%;
-  border: 3px dashed rgb(255 255 255 / 0.75);
+  border: 3px dashed rgba(255, 255, 255, 0.75);
   border-radius: 10px;
   pointer-events: none;
 }
 
-.camera-status { color: #fff; font-size: 20px; }
+.camera-status { color: var(--mk-light-100); font-size: 20px; }
 
 /* --- reading a document back to the patient -------------------------------- */
 
@@ -849,7 +876,7 @@
   border-radius: var(--radius-lg);
 }
 
-.extract-item.needs-check { border-color: var(--warn); background: var(--warn-soft, #fff6e5); }
+.extract-item.needs-check { border-color: var(--mk-warm-edge); background: var(--mk-warm-soft); }
 .extract-item.decided.dispute { border-color: var(--line); background: var(--paper); opacity: 0.75; }
 
 .extract-mark svg { width: 30px; height: 30px; }
@@ -880,3 +907,292 @@
 .extract-outcome { font-size: 17px; font-weight: 700; }
 .extract-outcome.confirm { color: var(--ok); }
 .extract-outcome.dispute { color: var(--ink-3); }
+
+/* ==========================================================================
+   GLASS PASS — the legacy kiosk surfaces, rebuilt in the shared material.
+   ==========================================================================
+
+   Everything above this line was written for a white kiosk: opaque panels,
+   3px solid borders, colour-swap hover states. The variables it reads from now
+   resolve to the shared dark-glass system, which gets the *colours* right on
+   their own — but a translucent fill with no backdrop blur and a flat border is
+   not the hero's material, it is only the hero's palette. This block supplies
+   the missing three quarters: the blur, the inset lip highlight, and the
+   gradient edge that brightens at the top and bottom and vanishes through the
+   middle.
+
+   It is one block rather than twenty-three edits on purpose. These screens are
+   being rebuilt one at a time into `kiosk-v2.css`, and every rule here is meant
+   to be deleted along with the legacy rule it corrects. Keeping the correction
+   in a single place is what makes that deletion safe: when the last legacy
+   class is gone, this whole block goes with it, and nothing else has to be
+   untangled first.
+
+   The selector list is explicit rather than a wildcard. A blanket rule would
+   also catch the camera viewfinder and the document preview, both of which must
+   stay genuinely opaque — a prescription photographed behind frosted glass is
+   not a readable prescription.
+*/
+
+.tap-option,
+.face-option,
+.language-option,
+.consent-row,
+.upload-drop,
+.upload-item,
+.review-row,
+.memory-count,
+.memory-row,
+.records-chip,
+.doc-chip,
+.doc-action,
+.extract-row,
+.extract-item,
+.audio-button,
+.btn-small,
+.btn-back,
+.typed-answer textarea,
+.extract-correct input {
+  position: relative;
+  background: var(--mk-glass-fill-raised);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  box-shadow: var(--mk-edge-light);
+  /* 3px solid borders were carrying the shape on a white ground. Here the
+     gradient edge carries it, so the border drops to a hairline that only has
+     to keep the pane's silhouette when the blur is unavailable. */
+  border-width: 1px;
+  border-color: var(--mk-line);
+  color: var(--mk-ink);
+  /* NOT `overflow: hidden`, even though the .liquid-glass recipe carries it.
+     The gradient edge is an inset-0 pseudo-element with `border-radius: inherit`
+     and a mask — it cannot paint outside its own box, so clipping buys nothing.
+     What it *costs* is real: these legacy rows lay their actions out at the very
+     edge of the box, and hiding the overflow clipped the Yes/No buttons on an
+     OCR readback item and the "Change this" button on a review row out of the
+     hit area entirely. The controls were visible and un-clickable, which the
+     browser suite caught and no unit test could. Clipping belongs only on
+     elements that genuinely need their corners to cut their content. */
+}
+
+/* The signature edge. `::before` is free on all of these — none of the legacy
+   rules use it. */
+.tap-option::before,
+.face-option::before,
+.language-option::before,
+.consent-row::before,
+.upload-item::before,
+.review-row::before,
+.memory-count::before,
+.memory-row::before,
+.records-chip::before,
+.doc-chip::before,
+.doc-action::before,
+.extract-row::before,
+.extract-item::before,
+.audio-button::before,
+.btn-small::before,
+.btn-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Content above the edge, or the hairline draws across the top of the label. */
+.tap-option > *,
+.face-option > *,
+.consent-row > *,
+.upload-item > *,
+.review-row > *,
+.memory-count > *,
+.memory-row > *,
+.records-chip > *,
+.doc-chip > *,
+.doc-action > *,
+.extract-row > *,
+.extract-item > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* One hover, the hero's: the glass brightens by white/10 over 300ms. The legacy
+   rules swapped border colour and background to accent-soft, which on this
+   ground reads as a selection rather than a hover — and made hovering feel like
+   a different gesture on every screen. */
+.tap-option:hover,
+.face-option:hover,
+.language-option:hover,
+.doc-action:hover:not(:disabled),
+.records-chip:hover,
+.upload-item:hover,
+.memory-row:hover,
+.btn-small:hover:not(:disabled),
+.btn-back:hover:not(:disabled) {
+  background-color: var(--mk-glass-fill-hover);
+  border-color: var(--mk-line-strong);
+  color: var(--mk-ink-strong);
+}
+
+/* Selection is jade light in the pane and jade in the edge — the same state the
+   rebuilt `.kx-option` and `.mk-chip` use, so a chosen answer looks chosen the
+   same way on every screen regardless of which generation built it. */
+.tap-option[aria-pressed='true'],
+.face-option[aria-pressed='true'],
+.consent-row.granted,
+.doc-action.primary {
+  background-color: var(--mk-accent-soft);
+  border-color: var(--mk-accent-edge);
+  color: var(--mk-ink-strong);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: rgba(94, 215, 180, 0.2);
+}
+
+/* States that were "tinted paper" become tinted glass, tone by tone. */
+.upload-item.needs-check,
+.extract-row.unsure,
+.extract-item.needs-check {
+  background-color: var(--mk-warm-soft);
+  border-color: var(--mk-warm-edge);
+  --mk-glass-edge-top: var(--mk-warm-edge);
+  --mk-glass-edge-mid: rgba(248, 200, 119, 0.2);
+}
+
+.extract-row.done-confirm {
+  background-color: var(--mk-accent-soft);
+  border-color: var(--mk-accent-edge);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+}
+
+.extract-row.done-correct {
+  background-color: var(--mk-evidence-soft);
+  border-color: var(--mk-evidence-edge);
+  --mk-glass-edge-top: var(--mk-evidence-edge);
+}
+
+.extract-row.done-dispute,
+.extract-item.decided.dispute {
+  background-color: var(--mk-light-03);
+  border-color: var(--mk-line);
+  opacity: 0.7;
+}
+
+/* Typing surfaces are recessed, matching `.mk-field__input` — you put something
+   into them, so the light catches the bottom lip rather than the top. */
+.typed-answer textarea,
+.extract-correct input {
+  background: var(--mk-glass-fill-sunken);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  color: var(--mk-ink-strong);
+}
+
+.typed-answer textarea::placeholder,
+.extract-correct input::placeholder {
+  color: var(--mk-ink-faint);
+}
+
+.typed-answer textarea:focus,
+.extract-correct input:focus {
+  border-color: var(--mk-accent-edge);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), var(--mk-shadow-focus);
+}
+
+/* The shell itself is not a pane — it sits *on* the ambient ground, so it must
+   be transparent or it hides the video the whole product is standing on. */
+.kiosk {
+  background: transparent;
+}
+
+.kiosk-top {
+  border-bottom-color: var(--mk-line-hairline);
+}
+
+/* Progress furniture: a recessed track with a jade fill, which is the one place
+   a saturated colour is allowed to sit solid — a progress bar that is itself
+   translucent cannot be read at a glance from arm's length. */
+.progress-rail,
+.progress-bar {
+  background: var(--mk-glass-fill-sunken);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  border-color: var(--mk-line);
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, var(--mk-jade-400), var(--mk-jade-200));
+  box-shadow: 0 0 14px -2px rgba(43, 193, 150, 0.6);
+}
+
+.progress-chip {
+  background: var(--mk-light-05);
+  border-color: var(--mk-line);
+  color: var(--mk-ink-muted);
+}
+
+.progress-chip.complete {
+  background: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+}
+
+.progress-chip.current {
+  background: var(--mk-light-12);
+  color: var(--mk-ink-strong);
+}
+
+/* Errors and notices — tinted glass, never a flat alarm block. */
+.kiosk-error {
+  background: var(--mk-danger-soft);
+  border-color: var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+}
+
+.reopened-note {
+  background: var(--mk-evidence-soft);
+  border-color: var(--mk-evidence-edge);
+  color: var(--mk-ink);
+}
+
+/* Headings follow the hero: normal weight, tight tracking, pure white. The
+   legacy 800s were tuned for black ink on paper and bloom badly on a dark
+   ground. */
+.kiosk-title,
+.memory-name,
+.extract-name,
+.review-a {
+  font-weight: var(--mk-weight-normal);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+}
+
+.kiosk-brand,
+.memory-count strong {
+  font-weight: var(--mk-weight-medium);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+}
+
+.kiosk-lead,
+.consent-lead,
+.memory-meta {
+  color: var(--mk-ink-muted);
+  font-weight: var(--mk-weight-light);
+}

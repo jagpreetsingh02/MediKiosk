@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppNav } from '../design/AppNav';
 import { ApiError, api, setToken, type DemoCase, type DemoLoadResult } from './api';
 
 const ALL_SCOPES = ['history', 'voice', 'documents', 'abdm_share', 'ayush'];
@@ -49,19 +50,28 @@ export function DemoLauncher(): JSX.Element {
   }
 
   return (
-    <div className="demo">
+    <>
+      {/* The same bar as the hero and the workspace. A judge moving between the
+          three is never handed to a different application. */}
+      <AppNav
+        context="Demo & jury mode"
+        actions={
+          <>
+            <Link to="/physician" className="mk-btn mk-btn--quiet mk-btn--sm">
+              Physician review
+            </Link>
+            <a href="/about" target="_blank" rel="noreferrer" className="mk-btn mk-btn--ghost mk-btn--sm">
+              What is mocked
+            </a>
+          </>
+        }
+      />
+      <div className="demo">
       <header className="demo-head">
         <div>
           <h1>Demo &amp; jury mode</h1>
           <p>{notice || 'Loading…'}</p>
         </div>
-        <nav className="demo-nav">
-          <Link to="/">Home</Link>
-          <Link to="/physician">Physician review</Link>
-          <a href="/about" target="_blank" rel="noreferrer">
-            /about
-          </a>
-        </nav>
       </header>
 
       {error && <div className="phys-error">{error}</div>}
@@ -140,6 +150,7 @@ export function DemoLauncher(): JSX.Element {
           );
         })}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

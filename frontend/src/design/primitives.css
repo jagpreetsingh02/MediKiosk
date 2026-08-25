@@ -6,7 +6,15 @@
  * consistent. Feature components keep their own styles next to themselves.
  *
  * Every rule here reads from the semantic tokens, never the primitive ramps, so
- * the same markup renders correctly on both the kiosk and the clinical surface.
+ * the same markup renders correctly on both densities.
+ *
+ * EVERY CONTROL IS GLASS. Buttons, cards, chips, fields, sheets and drawers all
+ * carry the hero's material — the near-nothing fill, the 4px blur, the inset lip
+ * highlight and the 1.4px gradient edge that brightens at top and bottom. They
+ * differ in tint, size and radius, never in substance. The one rule to hold on to
+ * when adding anything here: no opaque fills. A solid lozenge on a translucent
+ * screen is the thing that makes a component look bolted on, and it is exactly
+ * what the old primary button was.
  */
 
 /* ============================================================== button === */
@@ -19,21 +27,58 @@
   gap: var(--mk-space-2);
   min-height: var(--mk-touch-min);
   padding: 0 var(--mk-space-6);
+  /* The hero's CTA is a pill, and so is every button in the product. */
   border-radius: var(--mk-radius-pill);
   font-family: var(--mk-font-ui);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-semibold);
+  /* 500, the hero's button weight — not 600. Semibold on a dark ground blooms. */
+  font-weight: var(--mk-weight-medium);
   letter-spacing: var(--mk-tracking-snug);
   white-space: nowrap;
-  border: 1.5px solid transparent;
+  border: none;
+  color: var(--mk-ink-strong);
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  /* 300ms, the hero's only interaction duration. */
   transition:
-    background-color var(--mk-dur-fast) var(--mk-ease-out),
-    border-color var(--mk-dur-fast) var(--mk-ease-out),
-    color var(--mk-dur-fast) var(--mk-ease-out),
-    box-shadow var(--mk-dur-fast) var(--mk-ease-out),
-    transform var(--mk-dur-instant) var(--mk-ease-out);
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    color var(--mk-dur-normal) var(--mk-ease-hero),
+    box-shadow var(--mk-dur-normal) var(--mk-ease-hero),
+    opacity var(--mk-dur-normal) var(--mk-ease-hero);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+}
+
+/* The gradient edge, drawn exactly as the hero draws it. Every variant below
+   changes only which colour the gradient is made of. */
+.mk-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mk-btn > * {
+  position: relative;
+  z-index: 2;
 }
 
 .mk-btn:disabled {
@@ -51,63 +96,85 @@
   height: 1.25em;
 }
 
-/* Primary — jade, the single "go forward" action on any screen. There is never
-   more than one of these visible at a time. */
+/* Primary — the single "go forward" action on any screen. There is never more
+   than one visible at a time.
+
+   It is the hero's CTA with jade light behind it: same pill, same glass, same
+   300ms brighten on hover. It is *not* a solid jade lozenge — that was the old
+   primary, and on this ground it was the one opaque object on an otherwise
+   translucent screen, which is precisely how a button announces that it came
+   from a different design. The jade lives in the edge and the fill's tint. */
 .mk-btn--primary {
-  background: var(--mk-accent);
-  color: var(--mk-accent-contrast);
-  box-shadow: var(--mk-shadow-sm);
+  background: var(--mk-accent-soft);
+  color: var(--mk-ink-strong);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: rgba(94, 215, 180, 0.22);
 }
 
 .mk-btn--primary:hover:not(:disabled) {
-  background: var(--mk-accent-hover);
-  box-shadow: var(--mk-shadow-md);
+  background: rgba(43, 193, 150, 0.28);
 }
 
-/* Secondary — an outline that carries the accent without claiming primacy. */
+/* Secondary — a real alternative. The same glass with an accent-coloured label
+   and no tint, so it reads as available rather than as chosen. */
 .mk-btn--secondary {
-  background: var(--mk-surface);
   color: var(--mk-accent-ink);
-  border-color: var(--mk-accent);
 }
 
 .mk-btn--secondary:hover:not(:disabled) {
   background: var(--mk-accent-soft);
+  color: var(--mk-ink-strong);
 }
 
-/* Quiet — the "not now" / "skip" register. Present, never competing. */
+/* Quiet — the "not now" / "skip" register. Present, never competing: the edge
+   drops to a hairline and the label sits at the muted opacity step. */
 .mk-btn--quiet {
-  background: transparent;
   color: var(--mk-ink-muted);
-  border-color: var(--mk-line);
+  --mk-glass-edge-top: var(--mk-light-18);
+  --mk-glass-edge-mid: var(--mk-light-08);
 }
 
 .mk-btn--quiet:hover:not(:disabled) {
-  background: var(--mk-surface-muted);
-  color: var(--mk-ink);
-  border-color: var(--mk-line-strong);
+  background: var(--mk-glass-fill-hover);
+  color: var(--mk-ink-strong);
 }
 
-/* Ghost — icon buttons and toolbar actions. */
+/* Ghost — icon buttons and toolbar actions. No pane at all until hovered; the
+   only place in the system where the glass is allowed to be absent, because a
+   toolbar of eight panes is a wall. */
 .mk-btn--ghost {
   background: transparent;
   color: var(--mk-ink-muted);
-  border-color: transparent;
   padding: 0 var(--mk-space-3);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.mk-btn--ghost::before {
+  opacity: 0;
+  transition: opacity var(--mk-dur-normal) var(--mk-ease-hero);
 }
 
 .mk-btn--ghost:hover:not(:disabled) {
-  background: var(--mk-surface-muted);
-  color: var(--mk-ink);
+  background: var(--mk-glass-fill-hover);
+  color: var(--mk-ink-strong);
+}
+
+.mk-btn--ghost:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .mk-btn--danger {
-  background: var(--mk-danger);
-  color: #fff;
+  background: var(--mk-danger-soft);
+  color: var(--mk-danger-ink);
+  --mk-glass-edge-top: var(--mk-danger-edge);
+  --mk-glass-edge-mid: rgba(248, 163, 163, 0.22);
 }
 
 .mk-btn--danger:hover:not(:disabled) {
-  background: var(--mk-danger-ink);
+  background: rgba(240, 112, 112, 0.3);
+  color: var(--mk-ink-strong);
 }
 
 .mk-btn--sm {
@@ -165,24 +232,58 @@
 
 .mk-card {
   position: relative;
-  background: var(--mk-surface);
-  border: 1px solid var(--mk-line);
-  border-radius: var(--mk-radius-lg);
+  /* A pane that holds content: more body than a control so stacked cards separate
+     from each other, and a deeper blur so text stays readable over moving video. */
+  background: var(--mk-glass-fill-raised);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  box-shadow: var(--mk-edge-light);
+  border: none;
+  border-radius: var(--mk-pane-radius);
   padding: var(--mk-space-6);
 }
 
+.mk-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mk-card > * {
+  position: relative;
+  z-index: 2;
+}
+
 .mk-card--raised {
-  box-shadow: var(--mk-shadow-md);
-  border-color: var(--mk-line-hairline);
+  box-shadow: var(--mk-shadow-lg);
 }
 
+/* `glass` is now what every card already is. The modifier stays so existing
+   markup keeps working, and drops the fill back to the control weight for the
+   places that wanted the lighter pane. */
 .mk-card--glass {
-  background: var(--mk-surface-glass);
-  backdrop-filter: var(--mk-glass-blur);
-  -webkit-backdrop-filter: var(--mk-glass-blur);
-  border-color: var(--mk-line-hairline);
+  background: var(--mk-glass-fill);
 }
 
+/* The one variant that genuinely needs clipping: a flush card holds its own
+   media or header and must cut it to the card's corners. */
 .mk-card--flush {
   padding: 0;
   overflow: hidden;
@@ -192,15 +293,15 @@
   cursor: pointer;
   text-align: left;
   width: 100%;
+  color: inherit;
   transition:
-    border-color var(--mk-dur-fast) var(--mk-ease-out),
-    box-shadow var(--mk-dur-fast) var(--mk-ease-out),
-    background-color var(--mk-dur-fast) var(--mk-ease-out);
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    box-shadow var(--mk-dur-normal) var(--mk-ease-hero);
 }
 
+/* The hero's one hover: the glass brightens. Nothing lifts, nothing outlines. */
 .mk-card--interactive:hover {
-  border-color: var(--mk-accent);
-  box-shadow: var(--mk-shadow-md);
+  background-color: var(--mk-glass-fill-hover);
 }
 
 /* ============================================================== badge === */
@@ -218,24 +319,33 @@
   white-space: nowrap;
 }
 
+.mk-badge {
+  border: 1px solid transparent;
+}
+
 .mk-badge--neutral {
-  background: var(--mk-surface-sunken);
+  background: var(--mk-light-08);
+  border-color: var(--mk-light-12);
   color: var(--mk-ink-muted);
 }
 .mk-badge--ok {
   background: var(--mk-status-ok-bg);
+  border-color: var(--mk-status-ok-edge);
   color: var(--mk-status-ok-fg);
 }
 .mk-badge--warn {
   background: var(--mk-status-warn-bg);
+  border-color: var(--mk-status-warn-edge);
   color: var(--mk-status-warn-fg);
 }
 .mk-badge--alert {
   background: var(--mk-status-alert-bg);
+  border-color: var(--mk-status-alert-edge);
   color: var(--mk-status-alert-fg);
 }
 .mk-badge--info {
   background: var(--mk-status-info-bg);
+  border-color: var(--mk-status-info-edge);
   color: var(--mk-status-info-fg);
 }
 
@@ -249,34 +359,69 @@
 
 /* =============================================================== chip === */
 
+/* The chip is the hero's nav pill at a smaller size — same material, same
+   radius, same 300ms brighten. It is used for asides: "add a record", a filter,
+   a tag. */
 .mk-chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--mk-space-2);
   min-height: 44px;
   padding: 0 var(--mk-space-4);
   border-radius: var(--mk-radius-pill);
-  background: var(--mk-surface);
-  border: 1.5px solid var(--mk-line);
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  border: none;
   color: var(--mk-ink-muted);
   font-size: var(--mk-text-sm);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   transition:
-    background-color var(--mk-dur-fast) var(--mk-ease-out),
-    border-color var(--mk-dur-fast) var(--mk-ease-out),
-    color var(--mk-dur-fast) var(--mk-ease-out);
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    color var(--mk-dur-normal) var(--mk-ease-hero);
+}
+
+.mk-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mk-chip > * {
+  position: relative;
+  z-index: 2;
 }
 
 .mk-chip:hover {
-  border-color: var(--mk-line-strong);
-  color: var(--mk-ink);
+  background-color: var(--mk-glass-fill-hover);
+  color: var(--mk-ink-strong);
 }
 
 .mk-chip[aria-pressed='true'],
 .mk-chip[data-active='true'] {
   background: var(--mk-accent-soft);
-  border-color: var(--mk-accent);
-  color: var(--mk-accent-ink);
+  color: var(--mk-ink-strong);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: rgba(94, 215, 180, 0.2);
 }
 
 .mk-chip svg {
@@ -298,22 +443,34 @@
 }
 
 .mk-toggle:hover {
-  background: var(--mk-surface-muted);
+  background: var(--mk-light-05);
 }
 
+/* The track is a recessed well and the thumb is the one genuinely solid object
+   in the system — a physical switch needs something to actually move, and a
+   translucent thumb over a translucent track reads as nothing moving at all. */
 .mk-toggle__track {
   position: relative;
   flex: none;
   width: 52px;
   height: 32px;
   border-radius: var(--mk-radius-pill);
-  background: var(--mk-line-strong);
-  transition: background-color var(--mk-dur-normal) var(--mk-ease-out);
+  background: var(--mk-glass-fill-sunken);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px var(--mk-light-12);
+  transition:
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    box-shadow var(--mk-dur-normal) var(--mk-ease-hero);
   margin-top: 2px;
 }
 
 .mk-toggle[aria-checked='true'] .mk-toggle__track {
-  background: var(--mk-accent);
+  background: var(--mk-accent-soft);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px var(--mk-accent-edge),
+    0 0 16px -2px rgba(43, 193, 150, 0.4);
 }
 
 .mk-toggle__thumb {
@@ -323,9 +480,15 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: var(--mk-shadow-sm);
-  transition: transform var(--mk-dur-normal) var(--mk-ease-spring);
+  background: var(--mk-light-90);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition:
+    transform var(--mk-dur-normal) var(--mk-ease-spring),
+    background-color var(--mk-dur-normal) var(--mk-ease-hero);
+}
+
+.mk-toggle[aria-checked='true'] .mk-toggle__thumb {
+  background: var(--mk-light-100);
 }
 
 .mk-toggle[aria-checked='true'] .mk-toggle__thumb {
@@ -343,8 +506,8 @@
 .mk-toggle__title {
   display: block;
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-semibold);
-  color: var(--mk-ink);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-ink-strong);
   line-height: var(--mk-leading-snug);
 }
 
@@ -366,48 +529,67 @@
 .mk-field__label {
   display: block;
   font-size: var(--mk-text-sm);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-muted);
   margin-bottom: var(--mk-space-2);
 }
 
+/* An input is somewhere you put something *into*, so it is the sunken glass
+   rather than the raised kind — recessed, darker than its surroundings, with the
+   light catching its bottom lip instead of its top. That inversion is the only
+   thing distinguishing a field from a button at a glance, and it has to be
+   legible without reading the label. */
 .mk-field__input {
   width: 100%;
   min-height: var(--mk-touch-min);
   padding: var(--mk-space-3) var(--mk-space-4);
   border-radius: var(--mk-radius-md);
-  border: 1.5px solid var(--mk-line);
-  background: var(--mk-surface);
-  color: var(--mk-ink);
+  border: 1px solid var(--mk-light-12);
+  background: var(--mk-glass-fill-sunken);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  color: var(--mk-ink-strong);
   font-size: var(--mk-text-base);
+  font-weight: var(--mk-weight-normal);
   transition:
-    border-color var(--mk-dur-fast) var(--mk-ease-out),
-    box-shadow var(--mk-dur-fast) var(--mk-ease-out);
+    border-color var(--mk-dur-normal) var(--mk-ease-hero),
+    box-shadow var(--mk-dur-normal) var(--mk-ease-hero),
+    background-color var(--mk-dur-normal) var(--mk-ease-hero);
 }
 
 .mk-field__input::placeholder {
-  color: var(--mk-ink-subtle);
+  color: var(--mk-ink-faint);
+}
+
+.mk-field__input:hover {
+  border-color: var(--mk-light-18);
 }
 
 .mk-field__input:focus {
-  border-color: var(--mk-accent);
-  box-shadow: var(--mk-shadow-focus);
+  border-color: var(--mk-accent-edge);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    var(--mk-shadow-focus);
   outline: none;
 }
 
 .mk-field__input[aria-invalid='true'] {
-  border-color: var(--mk-danger);
+  border-color: var(--mk-danger-edge);
 }
 
 /* =========================================================== skeleton === */
 
+/* A skeleton is light travelling across glass, which is exactly what the rest of
+   the system is made of — so a loading state is visibly the same material as the
+   thing that will replace it. */
 .mk-skeleton {
   border-radius: var(--mk-radius-sm);
   background: linear-gradient(
     90deg,
-    var(--mk-surface-sunken) 25%,
-    var(--mk-surface-muted) 37%,
-    var(--mk-surface-sunken) 63%
+    var(--mk-light-05) 25%,
+    var(--mk-light-12) 37%,
+    var(--mk-light-05) 63%
   );
   background-size: 400% 100%;
   animation: mk-shimmer 1.4s ease-in-out infinite;
@@ -425,7 +607,7 @@
 @media (prefers-reduced-motion: reduce) {
   .mk-skeleton {
     animation: none;
-    background: var(--mk-surface-sunken);
+    background: var(--mk-light-08);
   }
 }
 
@@ -447,7 +629,8 @@
   width: 64px;
   height: 64px;
   border-radius: var(--mk-radius-lg);
-  background: var(--mk-surface-sunken);
+  background: var(--mk-light-05);
+  box-shadow: var(--mk-edge-light), inset 0 0 0 1px var(--mk-light-08);
   color: var(--mk-ink-subtle);
   margin-bottom: var(--mk-space-1);
 }
@@ -460,8 +643,9 @@
 .mk-empty__title {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-bold);
-  color: var(--mk-ink);
+  font-weight: var(--mk-weight-normal);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
 }
 
 .mk-empty__body {
@@ -472,25 +656,60 @@
 
 /* ========================================================== segmented === */
 
+/* The segmented control *is* the hero's nav pill: a glass lozenge holding a row
+   of labels with a travelling highlight behind the active one. It is used as the
+   centre of the nav bar on both surfaces for exactly that reason — a physician
+   switching views and a visitor switching sections are operating the same
+   object. */
 .mk-segmented {
+  position: relative;
   display: inline-flex;
   padding: 4px;
   gap: 2px;
   border-radius: var(--mk-radius-pill);
-  background: var(--mk-surface-sunken);
-  border: 1px solid var(--mk-line-hairline);
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  border: none;
+  max-width: 100%;
 }
 
+.mk-segmented::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* The hero's nav links: 14px, weight 500, white/70 rising to white. */
 .mk-segmented__item {
   position: relative;
   padding: 0 var(--mk-space-4);
   min-height: 36px;
   border-radius: var(--mk-radius-pill);
   font-size: var(--mk-text-sm);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-muted);
-  transition: color var(--mk-dur-fast) var(--mk-ease-out);
+  transition: color var(--mk-dur-normal) var(--mk-ease-hero);
   white-space: nowrap;
+  flex: none;
 }
 
 .mk-segmented__item[aria-selected='true'] {
@@ -498,7 +717,7 @@
 }
 
 .mk-segmented__item:hover {
-  color: var(--mk-ink);
+  color: var(--mk-ink-strong);
 }
 
 /* The travelling pill behind the active item, driven by a Motion layoutId. */
@@ -506,8 +725,8 @@
   position: absolute;
   inset: 0;
   border-radius: var(--mk-radius-pill);
-  background: var(--mk-surface);
-  box-shadow: var(--mk-shadow-sm);
+  background: var(--mk-light-12);
+  box-shadow: var(--mk-edge-light);
   z-index: 0;
 }
 
@@ -518,22 +737,30 @@
 
 /* ============================================================ overlay === */
 
+/* The hero's mobile menu backdrop, exactly: black at 80% behind a 24px blur.
+   Every overlay in the product uses it, so opening a drawer in the physician
+   workspace dims the room the same way opening the nav on the landing page does. */
 .mk-overlay {
   position: fixed;
   inset: 0;
   z-index: var(--mk-z-modal);
-  background: rgba(7, 10, 22, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
+/* Sheets and drawers sit over content rather than over the ambient ground, so
+   they need enough body to actually occlude — but they keep the gradient edge,
+   which is what stops them reading as a panel from a different application. */
 .mk-sheet {
   position: relative;
   width: min(560px, 100%);
   max-height: 88vh;
   overflow-y: auto;
-  background: var(--mk-surface);
-  border: 1px solid var(--mk-line);
+  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  border: 1px solid var(--mk-light-12);
   border-radius: var(--mk-radius-xl);
   box-shadow: var(--mk-shadow-xl);
   padding: var(--mk-space-8);
@@ -547,8 +774,10 @@
   z-index: var(--mk-z-drawer);
   width: min(560px, 100vw);
   overflow-y: auto;
-  background: var(--mk-surface);
-  border-left: 1px solid var(--mk-line);
+  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  border-left: 1px solid var(--mk-light-12);
   box-shadow: var(--mk-shadow-xl);
 }
 
@@ -572,22 +801,23 @@
   align-items: flex-start;
   gap: var(--mk-space-3);
   padding: var(--mk-space-4) var(--mk-space-5);
-  border-radius: var(--mk-radius-md);
-  background: var(--mk-surface);
-  border: 1px solid var(--mk-line);
+  border-radius: var(--mk-radius-pill);
+  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.92), rgba(5, 6, 10, 0.94));
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  border: 1px solid var(--mk-light-12);
   box-shadow: var(--mk-shadow-lg);
+  color: var(--mk-ink);
   pointer-events: auto;
   font-size: var(--mk-text-sm);
 }
 
 .mk-toast--alert {
-  border-color: var(--mk-danger);
-  background: var(--mk-danger-soft);
+  border-color: var(--mk-danger-edge);
   color: var(--mk-danger-ink);
 }
 
 .mk-toast--ok {
-  border-color: var(--mk-accent);
-  background: var(--mk-accent-soft);
+  border-color: var(--mk-accent-edge);
   color: var(--mk-accent-ink);
 }

@@ -37,13 +37,13 @@
   --accent-dark: var(--mk-accent-hover);
   --accent-soft: var(--mk-accent-soft);
 
-  --ok: var(--mk-jade-600);
-  --ok-soft: var(--mk-jade-100);
-  --warn: var(--mk-saffron-700);
-  --warn-soft: var(--mk-saffron-100);
-  --danger: var(--mk-coral-600);
-  --danger-soft: var(--mk-coral-100);
-  --immediate: var(--mk-coral-700);
+  --ok: var(--mk-accent-ink);
+  --ok-soft: var(--mk-accent-soft);
+  --warn: var(--mk-warm-ink);
+  --warn-soft: var(--mk-warm-soft);
+  --danger: var(--mk-danger-ink);
+  --danger-soft: var(--mk-danger-soft);
+  --immediate: var(--mk-coral-300);
 
   --font: var(--mk-font-ui);
   --mono: var(--mk-font-mono);
@@ -68,10 +68,13 @@
   justify-content: center;
   gap: var(--mk-space-3);
   padding: var(--mk-space-2) var(--mk-space-4);
-  background: var(--mk-indigo-900);
+  background: var(--mk-warm-soft);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  border-bottom: 1px solid var(--mk-warm-edge);
   color: var(--mk-saffron-300);
   font-size: var(--mk-text-2xs);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-semibold);
   letter-spacing: var(--mk-tracking-wide);
   text-transform: uppercase;
   text-align: center;
@@ -108,63 +111,26 @@
   }
 }
 
-/* ---------------------------------------------------------------- header --- */
+/* ---------------------------------------------------------------- header ---
+ * The kiosk no longer has a header of its own. `AppNav` — the hero's bar,
+ * generalised — is the header on every surface, so the brand, the context line
+ * and the action slot are styled once in `design/nav.css` and are identical from
+ * the landing page through to the physician workspace.
+ *
+ * The `.kx-header` / `.kx-brand` / `.kx-header__*` rules that used to live here
+ * are deleted rather than left as dead weight: a second, differently-styled
+ * header sitting in the stylesheet is how two headers end up on screen again.
+ *
+ * What remains is the one thing the kiosk contributes to the shared bar — the
+ * progress rail sits in its centre slot and has to behave as a pill that shrinks
+ * rather than a block that pushes the brand off the edge.
+ */
 
-.kx-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--mk-z-header);
-  display: flex;
-  align-items: center;
-  gap: var(--mk-space-6);
-  padding: var(--mk-space-4) var(--mk-space-8);
-  background: var(--mk-surface-glass);
-  backdrop-filter: var(--mk-glass-blur);
-  -webkit-backdrop-filter: var(--mk-glass-blur);
-  border-bottom: 1px solid var(--mk-line-hairline);
+.mk-nav__center .kx-rail {
+  max-width: 100%;
+  margin: 0;
 }
 
-.kx-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--mk-space-3);
-  flex: none;
-}
-
-.kx-brand__text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.kx-brand__name {
-  font-family: var(--mk-font-display);
-  font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-bold);
-  letter-spacing: var(--mk-tracking-tight);
-  color: var(--mk-ink-strong);
-}
-
-.kx-brand__context {
-  font-size: var(--mk-text-xs);
-  color: var(--mk-ink-muted);
-  font-weight: var(--mk-weight-medium);
-}
-
-.kx-header__progress {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-}
-
-.kx-header__actions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--mk-space-2);
-  margin-left: auto;
-}
 
 /* ----------------------------------------------------------------- stage --- */
 
@@ -220,7 +186,7 @@
 .kx-question {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-4xl);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   line-height: var(--mk-leading-tight);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
@@ -262,7 +228,7 @@
   border: 2px solid var(--mk-line);
   border-radius: var(--mk-radius-lg);
   font-size: var(--mk-text-xl);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink);
   transition:
     border-color var(--mk-dur-fast) var(--mk-ease-out),
@@ -374,7 +340,7 @@
   padding: var(--mk-space-1) var(--mk-space-3);
   border-radius: var(--mk-radius-pill);
   font-size: var(--mk-text-xs);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-subtle);
   white-space: nowrap;
   transition: color var(--mk-dur-normal) var(--mk-ease-out);
@@ -436,13 +402,12 @@
   gap: var(--mk-space-5);
   padding: var(--mk-space-6);
   border-radius: var(--mk-radius-xl);
-  background: linear-gradient(
-    135deg,
-    var(--mk-indigo-900) 0%,
-    var(--mk-indigo-800) 60%,
-    var(--mk-jade-700) 190%
-  );
-  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(43, 193, 150, 0.16) 0%, rgba(161, 137, 234, 0.1) 60%, transparent 100%),
+    var(--mk-glass-fill-raised);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  color: var(--mk-ink-strong);
   box-shadow: var(--mk-shadow-lg);
   overflow: hidden;
   position: relative;
@@ -473,14 +438,14 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-xl);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   letter-spacing: var(--mk-tracking-tight);
 }
 
 .kx-identity__name {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-2xl);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-tight);
   line-height: 1.1;
 }
@@ -508,7 +473,7 @@
 .kx-count__value {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-3xl);
-  font-weight: var(--mk-weight-black);
+  font-weight: var(--mk-weight-normal);
   line-height: 1;
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
@@ -585,7 +550,7 @@
 
 .kx-history__label {
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink);
 }
 
@@ -647,16 +612,6 @@
 /* ------------------------------------------------------------ responsive --- */
 
 @media (max-width: 720px) {
-  .kx-header {
-    padding: var(--mk-space-3) var(--mk-space-4);
-    flex-wrap: wrap;
-  }
-
-  .kx-header__progress {
-    order: 3;
-    flex-basis: 100%;
-    justify-content: flex-start;
-  }
 
   .kx-stage {
     padding: var(--mk-space-8) var(--mk-space-4) var(--mk-space-16);
@@ -714,16 +669,11 @@
 
 .lx-title {
   font-size: clamp(3rem, 9vw, 4.5rem);
-  font-weight: var(--mk-weight-black);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  /* A restrained ink-to-jade wash. The gradient runs across the wordmark only —
-     gradient body text is a legibility problem, and this is the one place the
-     type is large enough for it to be safe. */
-  background: linear-gradient(120deg, var(--mk-indigo-950) 28%, var(--mk-jade-600) 96%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* The hero's headline weight and tracking. */
+  font-weight: var(--mk-weight-normal);
+  letter-spacing: var(--mk-tracking-display);
+  line-height: var(--mk-leading-tight);
+  color: var(--mk-ink-strong);
   margin-bottom: var(--mk-space-4);
 }
 
@@ -739,7 +689,7 @@
 .lx-tagline em {
   font-style: normal;
   color: var(--mk-ink-strong);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
 }
 
 .lx-disclaimer {
@@ -830,7 +780,7 @@
 
 .lx-spine__label {
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink);
 }
 
@@ -911,14 +861,14 @@
   right: var(--mk-space-5);
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-2xl);
-  font-weight: var(--mk-weight-black);
+  font-weight: var(--mk-weight-medium);
   line-height: 1;
   color: var(--mk-line-strong);
 }
 
 .lx-step__title {
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   line-height: var(--mk-leading-snug);
   margin-bottom: var(--mk-space-2);
 }
@@ -973,7 +923,7 @@
 
 .kx-linkish {
   font-size: var(--mk-text-sm);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-accent-ink);
   text-decoration: underline;
   text-underline-offset: 0.2em;
@@ -1004,7 +954,7 @@
   background: var(--mk-warm-soft);
   color: var(--mk-warm-ink);
   font-size: var(--mk-text-sm);
-  border: 1px solid var(--mk-saffron-200);
+  border: 1px solid var(--mk-warm-edge);
 }
 
 .kx-footnote {
@@ -1054,7 +1004,7 @@
   border: 2px solid var(--mk-line);
   background: var(--mk-surface);
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink);
   transition:
     border-color var(--mk-dur-fast) var(--mk-ease-out),
@@ -1105,3 +1055,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================== typographic weight pass ===
+ * The hero sets display type at 400 and body at 300, and gets its authority from
+ * size, tracking and opacity rather than from weight. Everything below was
+ * written for a light surface where 700 and 800 were needed to hold their own
+ * against white; on a dark ground the same weights bloom, and — more to the
+ * point — they are visibly not the front door's typography.
+ *
+ * The rule applied here: anything display-sized drops to 400 with tight
+ * tracking, anything label-sized drops to 500, and only genuinely small
+ * all-caps metadata keeps a heavier weight, because at 12px letter-spaced caps
+ * a light weight stops being legible.
+ */

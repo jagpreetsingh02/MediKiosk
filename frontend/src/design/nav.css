@@ -1,0 +1,130 @@
+/**
+ * The shared nav bar. Geometry transcribed from the hero's `<nav>` so the header keeps its
+ * exact position and proportions when the hero hands over to the rest of the product.
+ */
+
+.mk-nav {
+  position: relative;
+  z-index: var(--mk-z-header);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-4);
+  width: 100%;
+  /* The hero's px-5 pt-6 → sm:px-8 sm:pt-8 → md:px-16 → lg:px-20. */
+  padding: 1.5rem 1.25rem 0;
+  flex: none;
+}
+
+.mk-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--mk-light-100);
+  text-decoration: none;
+  flex: none;
+}
+
+.mk-nav__brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mk-nav__name {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.mk-nav__context {
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-light);
+  color: var(--mk-light-60);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mk-nav__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mk-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  flex: none;
+}
+
+/* The dense bar: same anatomy, less air. */
+.mk-nav--dense {
+  padding: var(--mk-space-4) var(--mk-space-5) 0;
+  gap: var(--mk-space-3);
+}
+
+.mk-nav--dense .mk-nav__name {
+  font-size: var(--mk-text-sm);
+}
+
+.mk-nav--dense .mk-nav__brand {
+  gap: 0.5rem;
+}
+
+/* The mark inherits the bar's colour, like the hero's white logo does. */
+.mk-mark {
+  flex: none;
+  color: var(--mk-light-100);
+}
+
+@media (min-width: 640px) {
+  .mk-nav {
+    padding: 2rem 2rem 0;
+  }
+
+  .mk-nav--dense {
+    padding: var(--mk-space-4) var(--mk-space-6) 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .mk-nav {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+
+  .mk-nav--dense {
+    padding-left: var(--mk-space-8);
+    padding-right: var(--mk-space-8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .mk-nav {
+    padding-left: 5rem;
+    padding-right: 5rem;
+  }
+}
+
+/* Below the centre pill's breathing room the three slots stop fitting on one
+   line. The middle one drops beneath, full width, rather than crushing the
+   brand — the same thing the hero does with its own nav at mobile widths. */
+@media (max-width: 860px) {
+  .mk-nav {
+    flex-wrap: wrap;
+  }
+
+  .mk-nav__center {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-top: var(--mk-space-4);
+  }
+}

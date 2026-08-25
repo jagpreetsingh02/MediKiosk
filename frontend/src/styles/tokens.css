@@ -1,54 +1,64 @@
-/* Design tokens shared by both surfaces.
+/* Legacy tokens — now aliases onto the shared design system.
  *
- * The two surfaces are deliberately NOT the same design. The kiosk is built for a first-time,
- * possibly non-literate elderly patient standing at a machine: enormous targets, very high
- * contrast, few things on screen. The physician screen is built for someone reading their
- * fortieth history of the morning in ninety seconds: dense, keyboard-driven, monospaced
- * numbers. Sharing a component library between those two would make both worse.
+ * These names (`--ink`, `--paper`, `--accent`, …) predate the `--mk-` system and are still
+ * referenced by `kiosk.css` and `physician.css`, which style the screens that have not been
+ * rebuilt yet. They used to hold their own light palette, which is what made those screens
+ * render as white cards on the dark ground — a leftover from a different product sitting in
+ * the middle of this one.
+ *
+ * Every one of them now points at the semantic layer in `design/tokens.css`. Nothing here
+ * defines a colour of its own. A screen still written against `--paper` gets glass, a screen
+ * still written against `--ink` gets the white-on-black ink ramp, and the two stylesheets can
+ * be deleted screen by screen without a visual step at any point along the way.
+ *
+ * `--paper` is the one that needs explaining: it named an opaque white surface, and there are
+ * no opaque surfaces any more, so it resolves to the glass fill. Legacy rules that set a
+ * background to `var(--paper)` therefore produce a translucent pane rather than a white box —
+ * which is the intent, just arrived at from the other direction.
  */
 
 :root {
-  /* --- palette ------------------------------------------------------------ */
-  --ink: #10171f;
-  --ink-2: #3c4a5a;
-  --ink-3: #6b7b8c;
-  --paper: #ffffff;
-  --paper-2: #f4f7fa;
-  --paper-3: #e6edf3;
-  --line: #cdd9e3;
+  /* --- palette (aliases) --------------------------------------------------- */
+  --ink: var(--mk-ink);
+  --ink-2: var(--mk-ink-muted);
+  --ink-3: var(--mk-ink-subtle);
+  --paper: var(--mk-glass-fill-raised);
+  --paper-2: var(--mk-light-05);
+  --paper-3: var(--mk-light-08);
+  --line: var(--mk-line);
 
-  --accent: #0b5fa5;
-  --accent-dark: #084a80;
-  --accent-soft: #e3f0fb;
+  --accent: var(--mk-accent);
+  --accent-dark: var(--mk-accent-hover);
+  --accent-soft: var(--mk-accent-soft);
 
-  --ok: #1a7f4b;
-  --ok-soft: #e2f5ea;
-  --warn: #a86a00;
-  --warn-soft: #fdf1dc;
-  --danger: #b3261e;
-  --danger-soft: #fde8e6;
-  --immediate: #8f1a13;
+  --ok: var(--mk-accent-ink);
+  --ok-soft: var(--mk-accent-soft);
+  --warn: var(--mk-warm-ink);
+  --warn-soft: var(--mk-warm-soft);
+  --danger: var(--mk-danger-ink);
+  --danger-soft: var(--mk-danger-soft);
+  --immediate: var(--mk-coral-300);
 
-  /* --- type --------------------------------------------------------------- */
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
-    "Noto Sans Tamil", sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* --- type (aliases) ------------------------------------------------------ */
+  --font: var(--mk-font-ui);
+  --mono: var(--mk-font-mono);
 
-  /* --- geometry ------------------------------------------------------------ */
-  --radius: 10px;
-  --radius-lg: 18px;
-  --shadow: 0 1px 2px rgba(16, 23, 31, 0.06), 0 4px 14px rgba(16, 23, 31, 0.07);
-  --shadow-lg: 0 8px 40px rgba(16, 23, 31, 0.16);
+  /* --- geometry (aliases) -------------------------------------------------- */
+  --radius: var(--mk-radius-sm);
+  --radius-lg: var(--mk-radius-lg);
+  --shadow: var(--mk-shadow-sm);
+  --shadow-lg: var(--mk-shadow-lg);
 }
 
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; margin: 0; }
 
+/* Deliberately no `body` background or colour here. `design/base.css` owns the
+   document, and this file loading first used to mean the legacy light background
+   won — which is the bug that made the whole surface render flat. */
 body {
   font-family: var(--font);
-  color: var(--ink);
-  background: var(--paper-2);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -56,7 +66,7 @@ button { font-family: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 :focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--mk-accent);
   outline-offset: 2px;
 }
 
@@ -66,12 +76,23 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 
 /* A permanent, unmissable reminder that the identity layer is a mock. A judge should never
- * have to ask whether the ABHA integration is real. */
+ * have to ask whether the ABHA integration is real.
+ *
+ * It is the one piece of chrome allowed to break the glass language — a disclaimer that
+ * blends into the design is a disclaimer that is not doing its job. The hazard stripe stays;
+ * it is simply re-cut for a dark ground, in saffron rather than the old mud brown, since
+ * saffron is already this product's colour for "pay attention to this".
+ */
 .mock-banner {
   background: repeating-linear-gradient(
-    45deg, #4a3000, #4a3000 12px, #5c3c00 12px, #5c3c00 24px
+    45deg,
+    rgba(226, 144, 15, 0.18),
+    rgba(226, 144, 15, 0.18) 12px,
+    rgba(226, 144, 15, 0.32) 12px,
+    rgba(226, 144, 15, 0.32) 24px
   );
-  color: #ffd88a;
+  border-bottom: 1px solid var(--mk-warm-edge);
+  color: var(--mk-saffron-300);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;

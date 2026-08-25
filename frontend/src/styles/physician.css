@@ -20,8 +20,11 @@
   align-items: center;
   gap: 16px;
   padding: 10px 18px;
-  background: var(--ink);
-  color: #fff;
+  /* `--ink` is a foreground token; it aliases to near-white now, so using it as
+     a background here would paint a white bar. The real styling lives in
+     physician-v2.css — this is left transparent rather than inverted. */
+  background: transparent;
+  color: var(--mk-ink);
   font-size: 13px;
 }
 

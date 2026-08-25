@@ -25,15 +25,30 @@ body {
   min-height: 100dvh;
   font-family: var(--mk-body-font, var(--mk-font-ui));
   font-size: var(--mk-body-size, var(--mk-text-base));
+  /* The hero writes body copy at 300. Light weight over a dark, moving ground is
+     what makes the type read as set rather than typed. */
+  font-weight: var(--mk-weight-light);
   line-height: var(--mk-leading-normal);
   color: var(--mk-ink);
+  /* Black underneath so nothing ever flashes white, but no ambient gradient here:
+     the ground is a real element now (`.mk-ambient`), because it carries a video
+     and has to survive route changes without remounting. */
   background-color: var(--mk-bg);
-  background-image: var(--mk-bg-ambient);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-synthesis-weight: none;
   text-rendering: optimizeLegibility;
+}
+
+/* Every route sits above the ambient ground, and fills the window so a surface can
+   lay itself out against the viewport rather than against its content. */
+.mk-route {
+  position: relative;
+  z-index: var(--mk-z-base);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Indic scripts need their own face; Manrope has no Devanagari or Tamil
@@ -88,23 +103,31 @@ h6 {
   overflow-wrap: break-word;
 }
 
+/* The hero sets its headline at weight 400 with -0.05em tracking and 1.05
+   leading, and gets its authority from size and tightness rather than from
+   weight. Headings across the product follow it: normal weight, tight tracking,
+   pure white. A 700-weight heading here would be the loudest thing on any screen
+   and would not match the front door. */
 h1,
 h2,
 h3,
 h4 {
   font-family: var(--mk-font-display);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   line-height: var(--mk-leading-tight);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
-  /* Bricolage has real optical sizing; using it is most of why headings read
-     as designed rather than merely large. */
   font-optical-sizing: auto;
+}
+
+h1 {
+  letter-spacing: var(--mk-tracking-display);
 }
 
 a {
   color: var(--mk-accent-ink);
   text-underline-offset: 0.2em;
+  transition: color var(--mk-dur-normal) var(--mk-ease-hero);
 }
 
 ul,
@@ -144,14 +167,14 @@ ol {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--mk-line-strong);
+  background: var(--mk-light-18);
   border-radius: var(--mk-radius-pill);
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--mk-ink-subtle);
+  background: var(--mk-light-30);
   background-clip: content-box;
 }
 
@@ -220,6 +243,24 @@ ol {
   body {
     background: #fff;
     color: #000;
+  }
+
+  /* Glass is a screen material. On paper it is an invisible box with an invisible
+     border, so panes flatten to plain bordered blocks and the ink inverts. */
+  .mk-glass,
+  .liquid-glass,
+  .mk-card {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+
+  .mk-glass::before,
+  .liquid-glass::before {
+    display: none !important;
   }
 
   .mk-no-print {

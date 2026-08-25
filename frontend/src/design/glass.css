@@ -1,0 +1,189 @@
+/**
+ * Liquid glass — the material the whole product is made of.
+ *
+ * This is the hero's `.liquid-glass` recipe, unchanged, promoted from one landing page to the
+ * foundation of every surface. Four things make it, and all four matter:
+ *
+ *   1. A fill of almost nothing (0.01 white) blended in luminosity mode. The pane is not
+ *      tinted — it is *lit* by whatever is behind it.
+ *   2. A 4px backdrop blur. Small on purpose: at 4px the moving ground stays legible through
+ *      the pane, which is what makes it read as glass rather than as frosted plastic.
+ *   3. An inset 1px white highlight along the top edge — the lip of the glass catching light.
+ *   4. A 1.4px gradient border, drawn as a ::before with the mask-composite exclude trick so
+ *      it can be a *gradient* rather than a flat colour. It is bright at the top and bottom
+ *      edges and vanishes through the middle, which is exactly how a real bevelled edge
+ *      catches a light source above it.
+ *
+ * Point 4 is the signature. A flat 1px border reads as a UI box; a border that fades through
+ * its own middle reads as a physical object. It is the single detail that makes the hero look
+ * the way it does, so it is the single detail that must survive onto every other screen.
+ *
+ * `.liquid-glass` keeps its original name — the hero markup is ported verbatim and must go on
+ * matching it exactly. `.mk-glass*` are the variants the rest of the product uses.
+ */
+
+.liquid-glass,
+.mk-glass {
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before,
+.mk-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Content must sit above the edge, or the ::before hairline draws over the top
+   of text in any pane that fills its own box. */
+.mk-glass > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* -------------------------------------------------------------- variants --- */
+
+/* A pane that holds content rather than a control: more fill so stacked panes
+   separate from each other, a deeper blur so dense text stays readable over the
+   moving ground. The edge gradient is unchanged — that is the through-line. */
+.mk-glass--panel {
+  background: var(--mk-glass-fill-raised);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+}
+
+/* Recessed: wells, tracks, code blocks, anything the eye should read as *below*
+   the surface. Darkens instead of lightening, and inverts the edge highlight to
+   the bottom so the light source stays consistent. */
+.mk-glass--sunken {
+  background: var(--mk-glass-fill-sunken);
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.06);
+}
+
+.mk-glass--sunken::before {
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-mid) 0%,
+    transparent 35%,
+    transparent 65%,
+    var(--mk-glass-edge-mid) 100%
+  );
+}
+
+/* Overlays — drawers, sheets, the evidence viewer. These sit over content rather
+   than over the ambient ground, so they need enough body to actually occlude. */
+.mk-glass--solid {
+  background: linear-gradient(
+    to bottom,
+    rgba(16, 19, 28, 0.92),
+    rgba(5, 6, 10, 0.94)
+  );
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+}
+
+/* ------------------------------------------------------------- tinting ---
+ * Semantic states tint the *glass*, they do not replace it. A red-flag banner is
+ * the same pane as everything else with coral light behind it and a coral edge —
+ * which is why an alert reads as urgent without reading as a different app.
+ *
+ * Applied via `data-tone` so any glass element can take a tone without needing a
+ * variant class per component.
+ */
+[data-tone='ok'] {
+  background: var(--mk-accent-soft);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+}
+
+[data-tone='warn'] {
+  background: var(--mk-warm-soft);
+  --mk-glass-edge-top: var(--mk-warm-edge);
+  --mk-glass-edge-mid: var(--mk-warm-soft);
+  color: var(--mk-warm-ink);
+}
+
+[data-tone='alert'] {
+  background: var(--mk-danger-soft);
+  --mk-glass-edge-top: var(--mk-danger-edge);
+  --mk-glass-edge-mid: var(--mk-danger-soft);
+  color: var(--mk-danger-ink);
+}
+
+[data-tone='info'] {
+  background: var(--mk-evidence-soft);
+  --mk-glass-edge-top: var(--mk-evidence-edge);
+  --mk-glass-edge-mid: var(--mk-evidence-soft);
+  color: var(--mk-evidence-ink);
+}
+
+/* --------------------------------------------------------- interaction ---
+ * The hero has exactly one hover behaviour: `transition duration-300` into
+ * `hover:bg-white/10`. The glass brightens; it does not lift, scale, glow or
+ * change colour. Every interactive element in the product inherits that, which
+ * is why hovering anything anywhere feels like the same gesture.
+ */
+.mk-glass--interactive {
+  transition:
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    box-shadow var(--mk-dur-normal) var(--mk-ease-hero),
+    color var(--mk-dur-normal) var(--mk-ease-hero);
+  cursor: pointer;
+}
+
+.mk-glass--interactive:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--mk-glass-fill-hover);
+}
+
+/* Selection is a brighter edge, not a fill swap — the pane stays glass and the
+   light source stays where it was. */
+.mk-glass--interactive[aria-pressed='true'],
+.mk-glass--interactive[aria-selected='true'],
+.mk-glass--interactive[aria-checked='true'],
+.mk-glass--interactive[data-active='true'] {
+  background-color: var(--mk-accent-soft);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: rgba(94, 215, 180, 0.2);
+  color: var(--mk-ink-strong);
+}
+
+/* -------------------------------------------------------------- fallback ---
+ * Firefox on some platforms, and any browser with backdrop-filter disabled, get
+ * a flat translucent fill instead. The gradient edge still draws, so the shape
+ * language survives even where the material does not.
+ */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .liquid-glass,
+  .mk-glass {
+    background-color: rgba(16, 19, 28, 0.72);
+  }
+
+  .mk-glass--panel {
+    background-color: rgba(16, 19, 28, 0.82);
+  }
+}

@@ -29,26 +29,30 @@
  * the thing that lets the remaining legacy CSS be deleted incrementally rather
  * than in one risky sweep.
  */
+/* The base aliases in `styles/tokens.css` already point at the shared system, so
+   this block no longer has to undo a light palette — the two surfaces run the
+   same colours now. What survives is the density remap: nothing here is a hue,
+   everything is a size. */
 [data-surface='clinical'] {
-  --ink: #e7ebf6;
-  --ink-2: var(--mk-indigo-300);
-  --ink-3: var(--mk-indigo-400);
+  --ink: var(--mk-ink);
+  --ink-2: var(--mk-ink-muted);
+  --ink-3: var(--mk-ink-subtle);
 
-  --paper: var(--mk-surface);
-  --paper-2: var(--mk-surface-raised);
-  --paper-3: var(--mk-surface-sunken);
+  --paper: var(--mk-glass-fill-raised);
+  --paper-2: var(--mk-light-05);
+  --paper-3: var(--mk-glass-fill-sunken);
   --line: var(--mk-line);
 
   --accent: var(--mk-accent);
   --accent-dark: var(--mk-accent-hover);
   --accent-soft: var(--mk-accent-soft);
 
-  --ok: var(--mk-jade-400);
-  --ok-soft: rgba(20, 166, 126, 0.16);
-  --warn: var(--mk-saffron-300);
-  --warn-soft: rgba(226, 144, 15, 0.16);
-  --danger: var(--mk-coral-400);
-  --danger-soft: rgba(224, 75, 75, 0.16);
+  --ok: var(--mk-accent-ink);
+  --ok-soft: var(--mk-accent-soft);
+  --warn: var(--mk-warm-ink);
+  --warn-soft: var(--mk-warm-soft);
+  --danger: var(--mk-danger-ink);
+  --danger-soft: var(--mk-danger-soft);
   --immediate: var(--mk-coral-300);
 
   --font: var(--mk-font-ui);
@@ -68,33 +72,73 @@
   grid-template-areas:
     'top top top'
     'queue main side';
-  background: var(--mk-bg);
-  background-image: var(--mk-bg-ambient);
+  /* Transparent, not black: the shared ambient ground is behind this, dimmed to
+     `deep`, and painting over it would sever the one element that carries
+     continuity from the hero all the way into the workspace. */
+  background: transparent;
   color: var(--mk-ink);
   font-size: var(--mk-text-sm);
 }
 
 /* ---------------------------------------------------------------- header --- */
 
+/* The workspace header is `AppNav` now — the hero's bar at clinical density —
+   so it takes the grid's top row. `.phys-top` is kept for the login screen,
+   which renders before the workspace grid exists. */
+.phys > .mk-nav,
 .phys-top {
   grid-area: top;
-  display: flex;
-  align-items: center;
-  gap: var(--mk-space-4);
-  padding: var(--mk-space-3) var(--mk-space-5);
-  background: var(--mk-surface-glass);
-  backdrop-filter: var(--mk-glass-blur);
-  -webkit-backdrop-filter: var(--mk-glass-blur);
-  border-bottom: 1px solid var(--mk-line);
   position: sticky;
   top: 0;
   z-index: var(--mk-z-header);
+  background: rgba(5, 6, 10, 0.72);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  border-bottom: 1px solid var(--mk-line);
+  /* The nav's own top padding is landing-page air. In a three-column workspace
+     that air is a wasted row of pixels. */
+  padding-top: var(--mk-space-3);
+  padding-bottom: var(--mk-space-3);
+}
+
+.phys-top {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+  padding-left: var(--mk-space-5);
+  padding-right: var(--mk-space-5);
+}
+
+/* The keyboard legend and the signed-in actor, in the nav's right slot. The
+   legend is the first thing to go when the bar runs out of room — a physician
+   learns the shortcuts once; the queue and the record are needed every time. */
+.phys-keys {
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-subtle);
+  white-space: nowrap;
+}
+
+.phys-actor {
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-ink-muted);
+  padding: var(--mk-space-1) var(--mk-space-3);
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-light-05);
+  box-shadow: var(--mk-edge-light);
+  white-space: nowrap;
+}
+
+@media (max-width: 1400px) {
+  .phys-keys {
+    display: none;
+  }
 }
 
 .phys-brand {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
   display: flex;
@@ -124,7 +168,11 @@
   grid-area: queue;
   overflow-y: auto;
   border-right: 1px solid var(--mk-line);
-  background: var(--mk-surface-sunken);
+  /* Recessed relative to the record in the middle: the rails hold navigation and
+     evidence, the centre holds the thing being read. */
+  background: var(--mk-glass-fill-sunken);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
   padding: var(--mk-space-3);
 }
 
@@ -199,7 +247,9 @@
   grid-area: side;
   overflow-y: auto;
   border-left: 1px solid var(--mk-line);
-  background: var(--mk-surface-sunken);
+  background: var(--mk-glass-fill-sunken);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
   padding: var(--mk-space-4);
 }
 
@@ -213,9 +263,11 @@
   border-radius: var(--mk-radius-lg);
   background: linear-gradient(
     120deg,
-    var(--mk-surface-raised) 0%,
-    var(--mk-indigo-800) 120%
+    rgba(43, 193, 150, 0.12) 0%,
+    var(--mk-glass-fill-raised) 70%
   );
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
   border: 1px solid var(--mk-line-strong);
   margin-bottom: var(--mk-space-5);
 }
@@ -223,7 +275,7 @@
 .phys-patient-id {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-xl);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
 }
@@ -239,15 +291,46 @@
 
 /* ------------------------------------------------------------------ nav --- */
 
+/* This is the hero's centre nav pill, holding the physician's views instead of
+   the landing page's links. Same glass, same radius, same 300ms label brighten —
+   a clinician switching from the brief to the timeline is operating the same
+   control a visitor uses to move around the front door. */
 .phys-views {
+  position: relative;
   display: flex;
   gap: var(--mk-space-1);
   padding: 4px;
   border-radius: var(--mk-radius-pill);
-  background: var(--mk-surface-sunken);
-  border: 1px solid var(--mk-line);
-  overflow-x: auto;
-  scrollbar-width: none;
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  border: none;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.phys-views::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .phys-views::-webkit-scrollbar {
@@ -258,7 +341,7 @@
   padding: var(--mk-space-2) var(--mk-space-4);
   border-radius: var(--mk-radius-pill);
   font-size: var(--mk-text-xs);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-muted);
   white-space: nowrap;
   transition:
@@ -284,7 +367,7 @@
 .summary-head {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-xs);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-wide);
   text-transform: uppercase;
   color: var(--mk-ink-subtle);
@@ -360,7 +443,7 @@
 .flag-title {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-danger-ink);
   display: flex;
   align-items: center;
@@ -381,7 +464,7 @@
 }
 
 .flag-label {
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
 }
 
@@ -407,7 +490,7 @@
 .lt-year-label {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-2xl);
-  font-weight: var(--mk-weight-black);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-line-strong);
   line-height: 1;
@@ -482,7 +565,7 @@
 }
 
 .lt-label {
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
   line-height: var(--mk-leading-snug);
 }
@@ -521,7 +604,7 @@
 .med-head {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
   display: flex;
   align-items: center;
@@ -587,7 +670,7 @@
 .sim-headline {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
 }
 
@@ -653,7 +736,7 @@
 .evi-title {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   color: var(--mk-ink-strong);
   margin-top: var(--mk-space-1);
 }
@@ -672,6 +755,10 @@
   font-style: italic;
 }
 
+/* The one white surface in the product, and it stays white on purpose: this is
+   the frame holding a scanned prescription. A page photographed on paper is
+   white, and tinting it — or showing it through glass — would change what the
+   physician is looking at. Evidence is displayed, never styled. */
 .evi-frame {
   position: relative;
   border-radius: var(--mk-radius-md);
@@ -690,9 +777,9 @@
 .evi-box,
 .source-bbox-rect {
   position: absolute;
-  border: 3px solid var(--mk-saffron-500);
+  border: 3px solid var(--mk-saffron-400);
   border-radius: 3px;
-  box-shadow: 0 0 0 9999px rgba(7, 10, 22, 0.42);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
 
@@ -934,9 +1021,9 @@
   align-items: center;
   gap: var(--mk-space-4);
   padding: var(--mk-space-3) var(--mk-space-5);
-  background: var(--mk-surface-glass);
-  backdrop-filter: var(--mk-glass-blur);
-  -webkit-backdrop-filter: var(--mk-glass-blur);
+  background: rgba(5, 6, 10, 0.82);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
   border-top: 1px solid var(--mk-line-strong);
   font-size: var(--mk-text-xs);
   color: var(--mk-ink-muted);
@@ -1001,7 +1088,7 @@
 .rep-title {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-2xl);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-normal);
   letter-spacing: var(--mk-tracking-tight);
   color: var(--mk-ink-strong);
   margin-top: 2px;
@@ -1029,7 +1116,7 @@
 .rep-stat__value {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-2xl);
-  font-weight: var(--mk-weight-black);
+  font-weight: var(--mk-weight-normal);
   line-height: 1;
   color: var(--mk-ink-strong);
   font-variant-numeric: tabular-nums;
@@ -1053,7 +1140,7 @@
 .rep-section__title {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
 }
 
@@ -1181,7 +1268,7 @@
 
 .lab__name {
   font-size: var(--mk-text-xs);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-muted);
 }
 
@@ -1194,7 +1281,7 @@
 .lab__value {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
   font-variant-numeric: tabular-nums;
 }
@@ -1291,7 +1378,9 @@
   gap: 2px;
   padding: var(--mk-space-3);
   border-radius: var(--mk-radius-md);
-  background: var(--mk-indigo-950);
+  background: rgba(5, 6, 10, 0.94);
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
   border: 1px solid var(--mk-line-strong);
   box-shadow: var(--mk-shadow-lg);
   font-size: var(--mk-text-2xs);
@@ -1342,7 +1431,7 @@
 .rep-med__name {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-base);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-ink-strong);
 }
 
@@ -1376,14 +1465,14 @@
 }
 
 .rep-med__mention[data-status='documented'] .rep-med__pip {
-  background: #8367dd;
+  background: var(--mk-evidence);
 }
 .rep-med__mention[data-status='patient-reported-current'] .rep-med__pip {
-  background: #14a67e;
+  background: var(--mk-accent);
 }
 .rep-med__mention[data-status='uncertain'] .rep-med__pip,
 .rep-med__mention[data-status='stopped-reported'] .rep-med__pip {
-  background: #c67608;
+  background: var(--mk-warm);
 }
 
 .rep-med__when {
@@ -1414,14 +1503,14 @@
 .rep-recur__count {
   font-family: var(--mk-font-display);
   font-size: var(--mk-text-lg);
-  font-weight: var(--mk-weight-bold);
+  font-weight: var(--mk-weight-medium);
   color: var(--mk-accent);
   font-variant-numeric: tabular-nums;
 }
 
 .rep-recur__what {
   color: var(--mk-ink-strong);
-  font-weight: var(--mk-weight-semibold);
+  font-weight: var(--mk-weight-medium);
 }
 
 .rep-recur__when {
@@ -1439,4 +1528,360 @@
   background: var(--mk-surface-sunken);
   border: 1px solid var(--mk-line);
   max-width: 90ch;
+}
+
+/* ============================================== typographic weight pass ===
+ * The hero sets display type at 400 and body at 300, and gets its authority from
+ * size, tracking and opacity rather than from weight. Everything below was
+ * written for a light surface where 700 and 800 were needed to hold their own
+ * against white; on a dark ground the same weights bloom, and — more to the
+ * point — they are visibly not the front door's typography.
+ *
+ * The rule applied here: anything display-sized drops to 400 with tight
+ * tracking, anything label-sized drops to 500, and only genuinely small
+ * all-caps metadata keeps a heavier weight, because at 12px letter-spaced caps
+ * a light weight stops being legible.
+ */
+
+/* ==========================================================================
+   GLASS PASS — the legacy physician controls, rebuilt in the shared material.
+   ==========================================================================
+
+   Same reasoning as the block at the foot of `kiosk.css`: the variables these
+   rules read now resolve to the shared system, which fixes their colours, but a
+   translucent fill with a flat 1px border and no blur is the hero's palette
+   without the hero's material. This supplies the rest, and is meant to be
+   deleted rule by rule as each component moves into the `-v2` vocabulary.
+
+   These are NOT scoped to `[data-surface='clinical']`. The demo surface carries
+   the same legacy `.btn` vocabulary and no surface attribute at all, and scoping
+   them left every "Run this case" button as a solid jade slab — the seam this
+   whole pass exists to remove, reappearing on the one screen a judge sees first.
+
+   The one that mattered most is `.btn.primary`. It painted a solid jade lozenge
+   with dark text — the single most opaque object on a translucent screen, and
+   the panel switcher a physician looks at all day. It is now the same jade-lit
+   glass as `.mk-btn--primary`, so the control that says "you are on the source
+   panel" and the control that says "start your intake" are visibly the same
+   button at two densities.
+*/
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mk-space-2);
+  /* min-height, not height: these labels carry an inline <kbd> keycap, and a
+     fixed height clipped it the moment the text wrapped. */
+  min-height: 30px;
+  white-space: nowrap;
+  padding: var(--mk-space-1) var(--mk-space-3);
+  border-radius: var(--mk-radius-pill);
+  border: none;
+  background: var(--mk-glass-fill);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur);
+  backdrop-filter: var(--mk-glass-blur);
+  box-shadow: var(--mk-edge-light);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-medium);
+  color: var(--mk-ink-muted);
+  transition:
+    background-color var(--mk-dur-normal) var(--mk-ease-hero),
+    color var(--mk-dur-normal) var(--mk-ease-hero);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn > * {
+  position: relative;
+  z-index: 2;
+}
+
+.btn:hover:not(:disabled) {
+  background-color: var(--mk-glass-fill-hover);
+  color: var(--mk-ink-strong);
+}
+
+.btn.primary {
+  background-color: var(--mk-accent-soft);
+  color: var(--mk-ink-strong);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+  --mk-glass-edge-mid: rgba(94, 215, 180, 0.22);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background-color: rgba(43, 193, 150, 0.28);
+}
+
+.btn.ok {
+  background-color: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+  --mk-glass-edge-top: var(--mk-accent-edge);
+}
+
+.btn.danger {
+  background-color: var(--mk-danger-soft);
+  color: var(--mk-danger-ink);
+  --mk-glass-edge-top: var(--mk-danger-edge);
+}
+
+.btn.sm {
+  min-height: 26px;
+  padding: var(--mk-space-1) var(--mk-space-3);
+}
+
+/* Keycaps read as physical objects, so they are the recessed glass — pressed
+   into the surface rather than sitting on it. */
+kbd {
+  font-family: var(--mk-font-mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: var(--mk-radius-xs);
+  background: var(--mk-glass-fill-sunken);
+  border: 1px solid var(--mk-light-12);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  color: var(--mk-ink-muted);
+}
+
+/* Priority badges: tinted glass with a matching edge, never a saturated block
+   with white text on it. */
+.badge {
+  border: 1px solid transparent;
+  border-radius: var(--mk-radius-pill);
+  font-weight: var(--mk-weight-semibold);
+}
+
+.badge.immediate {
+  background: var(--mk-danger-soft);
+  border-color: var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+}
+
+.badge.urgent {
+  background: var(--mk-warm-soft);
+  border-color: var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+}
+
+.badge.routine {
+  background: var(--mk-light-08);
+  border-color: var(--mk-line);
+  color: var(--mk-ink-muted);
+}
+
+.badge.ok {
+  background: var(--mk-accent-soft);
+  border-color: var(--mk-accent-edge);
+  color: var(--mk-accent-ink);
+}
+
+.badge.draft {
+  background: var(--mk-warm-soft);
+  border-color: var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+}
+
+/* The provenance tier dots. Three hues that must stay distinguishable — this is
+   Invariant 2 rendered as colour, and a physician reads it at a glance. */
+.tier-stated { background: var(--mk-accent); }
+.tier-confirmed { background: var(--mk-jade-200); }
+.tier-document { background: var(--mk-evidence); }
+.tier-mixed { background: var(--mk-ink-subtle); }
+
+/* The jury drawer was hard-coded slate — a panel from an older design sitting
+   inside this one. */
+[data-surface='clinical'] .jury,
+.jury {
+  background: linear-gradient(to bottom, rgba(16, 19, 28, 0.94), rgba(5, 6, 10, 0.96));
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  border-left: 1px solid var(--mk-line);
+  color: var(--mk-ink);
+}
+
+.jury-head .btn,
+.jury-tab kbd,
+.jury-head kbd {
+  background: var(--mk-light-08);
+  border-color: var(--mk-line);
+  color: var(--mk-ink-muted);
+}
+
+.jury-row > span:first-child { color: var(--mk-ink-subtle); }
+.jury-row code { color: var(--mk-accent-ink); }
+
+/* ------------------------------------------------------------------ demo ---
+ * The jury surface. Same material as everything else — it is the screen a judge
+ * looks at first, so it cannot be the one screen that looks like a different
+ * application.
+ */
+
+.demo {
+  padding: var(--mk-space-6) var(--mk-space-8) var(--mk-space-16);
+  max-width: 1320px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.demo-head h1 {
+  font-size: var(--mk-text-2xl);
+  font-weight: var(--mk-weight-normal);
+  letter-spacing: var(--mk-tracking-tight);
+  color: var(--mk-ink-strong);
+}
+
+.demo-head p {
+  color: var(--mk-ink-muted);
+  font-weight: var(--mk-weight-light);
+}
+
+.demo-card {
+  position: relative;
+  background: var(--mk-glass-fill-raised);
+  background-blend-mode: luminosity;
+  -webkit-backdrop-filter: var(--mk-glass-blur-deep);
+  backdrop-filter: var(--mk-glass-blur-deep);
+  box-shadow: var(--mk-edge-light);
+  border: none;
+  border-radius: var(--mk-pane-radius);
+}
+
+.demo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--mk-glass-edge-width);
+  background: linear-gradient(
+    to bottom,
+    var(--mk-glass-edge-top) 0%,
+    var(--mk-glass-edge-mid) 20%,
+    transparent 40%,
+    transparent 60%,
+    var(--mk-glass-edge-mid) 80%,
+    var(--mk-glass-edge-top) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.demo-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.demo-card h2 {
+  font-weight: var(--mk-weight-normal);
+  letter-spacing: var(--mk-tracking-snug);
+  color: var(--mk-ink-strong);
+}
+
+.demo-shows {
+  color: var(--mk-accent-ink);
+  font-weight: var(--mk-weight-medium);
+}
+
+.demo-watch {
+  color: var(--mk-ink-muted);
+}
+
+.demo-result dl {
+  background: var(--mk-glass-fill-sunken);
+  border-radius: var(--mk-radius-md);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.demo-result dt { color: var(--mk-ink-subtle); }
+.demo-result dd { color: var(--mk-ink-strong); }
+
+.demo-nav a,
+.demo-card .demo-shows a {
+  color: var(--mk-accent-ink);
+}
+
+/* The card's action is the one primary on it, so it takes the full-width
+   register the kiosk uses for the same job. */
+.demo-card .btn {
+  margin-top: auto;
+  height: 40px;
+  width: 100%;
+}
+
+/* The side rail's panel switcher. Four controls and their counts do not fit one
+   line in a 400px rail at every zoom level, so they wrap instead of clipping. */
+.phys-side > div:first-child {
+  flex-wrap: wrap;
+}
+
+/* The commit bar sits over a scrolling column. Glass everywhere else is the
+   point; here it is a legibility failure — summary text slid underneath and read
+   straight through the words "Confirm and commit". This one bar is opaque, and
+   the column reserves room so nothing is permanently hidden behind it. */
+.phys-bottom {
+  grid-column: main / span 2;
+  background: var(--mk-void-900);
+  border-top: 1px solid var(--mk-line-strong);
+  flex-wrap: wrap;
+  row-gap: var(--mk-space-2);
+}
+
+.phys-main {
+  padding-bottom: var(--mk-space-24);
+}
+
+/* Timeline kind chips were light lozenges built for white; on the ground they
+   read as stickers. Same tinted-glass treatment as every other status. */
+.tl-kind.diagnosis {
+  background: var(--mk-evidence-soft);
+  color: var(--mk-evidence-ink);
+}
+.tl-kind.medication {
+  background: var(--mk-accent-soft);
+  color: var(--mk-accent-ink);
+}
+.tl-kind.investigation {
+  background: var(--mk-light-08);
+  color: var(--mk-ink-muted);
+}
+.tl-kind.procedure {
+  background: var(--mk-warm-soft);
+  color: var(--mk-warm-ink);
+}
+
+/* Current-vs-history tags. `today` carries the accent, `past` is neutral — both
+   as tint, neither as a solid block with white text on it. */
+.cvh-tag.today {
+  background: var(--mk-accent-soft);
+  border: 1px solid var(--mk-accent-edge);
+  color: var(--mk-accent-ink);
+}
+.cvh-tag.past {
+  background: var(--mk-light-08);
+  border: 1px solid var(--mk-line);
+  color: var(--mk-ink-muted);
 }

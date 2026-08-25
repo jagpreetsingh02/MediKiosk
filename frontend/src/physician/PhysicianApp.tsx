@@ -16,6 +16,7 @@ import {
   type Summary,
   type TimelinePeriod,
 } from '../shared/api';
+import { AppNav } from '../design/AppNav';
 import { JuryDrawer } from '../shared/JuryDrawer';
 import { CommitBar } from './CommitBar';
 import { ContradictionPanel } from './ContradictionPanel';
@@ -285,22 +286,49 @@ export function PhysicianApp(): JSX.Element {
   }
 
   return (
-    // `data-surface="clinical"` flips every semantic token to the dark, dense
-    // scale defined in design/tokens.css. The kiosk keeps the light default, and
-    // the two never share a ground — which is the point.
+    // `data-surface="clinical"` selects the dense scale in design/tokens.css —
+    // smaller targets, smaller reading sizes, tighter gutters. It no longer
+    // changes a single colour: this surface and the kiosk share one ground and
+    // one material, and differ only in how much of the record fits on screen.
     <div className="phys" data-surface="clinical">
-      <header className="phys-top">
-        <span className="phys-brand">MediKiosk</span>
-        <span style={{ opacity: 0.7 }}>physician review</span>
-        <span className="phys-top-spacer" />
-        <span style={{ opacity: 0.75 }}>
-          <kbd>1-9</kbd> patient · <kbd>j</kbd>/<kbd>k</kbd> line · <kbd>s</kbd>/<kbd>t</kbd>/
-          <kbd>v</kbd> panel · <kbd>⌘↵</kbd> commit
-        </span>
-        <span style={{ opacity: 0.9 }}>
-          {actor} · {role}
-        </span>
-      </header>
+      {/* The same bar the hero wears, at clinical density. A physician arriving
+          from the landing page keeps the mark, the material and the centre pill;
+          only what the pill contains is theirs rather than the patient's. */}
+      <AppNav
+        dense
+        context="Physician review"
+        center={
+          summary && context?.known ? (
+            <nav className="phys-views" aria-label="Record views">
+              {MAIN_VIEWS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={view === entry.id ? 'active' : undefined}
+                  aria-selected={view === entry.id}
+                  onClick={() => setView(entry.id)}
+                >
+                  {entry.label}
+                  {entry.id === 'similar' && context.similar.length
+                    ? ` (${context.similar.length})`
+                    : ''}
+                </button>
+              ))}
+            </nav>
+          ) : undefined
+        }
+        actions={
+          <>
+            <span className="phys-keys" aria-hidden="true">
+              <kbd>1-9</kbd> patient · <kbd>j</kbd>/<kbd>k</kbd> line ·{' '}
+              <kbd>s</kbd>/<kbd>t</kbd>/<kbd>v</kbd> panel · <kbd>⌘↵</kbd> commit
+            </span>
+            <span className="phys-actor">
+              {actor} · {role}
+            </span>
+          </>
+        }
+      />
 
       <aside className="phys-queue">
         <QueueList entries={queue} activeRef={activeRef} onSelect={(ref) => void open(ref)} />
@@ -374,24 +402,6 @@ export function PhysicianApp(): JSX.Element {
               }
             }}
           />
-        )}
-
-        {summary && context?.known && (
-          <nav className="phys-views">
-            {MAIN_VIEWS.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={`btn sm${view === entry.id ? ' primary' : ''}`}
-                onClick={() => setView(entry.id)}
-              >
-                {entry.label}
-                {entry.id === 'similar' && context.similar.length
-                  ? ` (${context.similar.length})`
-                  : ''}
-              </button>
-            ))}
-          </nav>
         )}
 
         {view === 'brief' && context?.patientRef && (

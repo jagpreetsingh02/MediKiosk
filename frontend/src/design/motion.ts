@@ -24,23 +24,30 @@
  */
 import type { Transition, Variants } from 'motion/react';
 
-/** Perceptual durations in seconds, mirroring `--mk-dur-*` in tokens.css. */
+/** Perceptual durations in seconds, mirroring `--mk-dur-*` in tokens.css.
+ *
+ *  `normal` and `slow` are the hero's two numbers — 300ms for anything a pointer
+ *  triggers, 500ms for anything that moves a whole layer. Matching them exactly is
+ *  what makes a hover on the landing page and a hover in the physician workspace
+ *  feel like the same gesture rather than two teams' idea of "quick". */
 export const duration = {
   instant: 0.09,
   fast: 0.16,
-  normal: 0.24,
-  slow: 0.38,
-  slower: 0.56,
+  normal: 0.3,
+  slow: 0.5,
+  slower: 0.7,
 } as const;
 
 /** Cubic-bezier control points. Typed as fixed-length tuples because that is what
  *  Motion's `Easing` union accepts — a bare `number[]` is rejected. */
 type Bezier = [number, number, number, number];
 
-export const ease: Record<'out' | 'inOut' | 'in', Bezier> = {
+export const ease: Record<'out' | 'inOut' | 'in' | 'hero', Bezier> = {
   out: [0.22, 1, 0.36, 1],
   inOut: [0.65, 0, 0.35, 1],
   in: [0.7, 0, 0.84, 0],
+  /** The curve behind the hero's plain `transition duration-300`. */
+  hero: [0.25, 0.1, 0.25, 1],
 };
 
 /** A spring that settles without a visible wobble. For anything a finger moves. */
@@ -145,6 +152,37 @@ export const fade: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: tween(duration.normal) },
   exit: { opacity: 0, transition: tween(duration.fast) },
+};
+
+/**
+ * Moving between whole surfaces — hero to intake, intake to the workspace.
+ *
+ * Deliberately not the same as `screen`. A question replacing a question slides
+ * sideways, because the two are peers in a sequence. A *surface* replacing a
+ * surface does not slide: it settles forward out of a slight blur, which reads as
+ * moving deeper into the same place rather than sideways to a different one. The
+ * ambient ground is doing its own 700ms recede underneath at the same moment, and
+ * the two together are the whole trick — the room dims, the content settles, and
+ * nothing ever cuts.
+ *
+ * The exit is short and the enter is long on purpose: the outgoing surface should
+ * be gone before the incoming one commits, so they never cross-fade through each
+ * other into mud.
+ */
+export const route: Variants = {
+  hidden: { opacity: 0, y: 12, filter: 'blur(6px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: duration.slow, ease: ease.out },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    filter: 'blur(6px)',
+    transition: { duration: duration.fast, ease: ease.in },
+  },
 };
 
 /** Accordions and timeline events expanding. Height animation is deliberate here:

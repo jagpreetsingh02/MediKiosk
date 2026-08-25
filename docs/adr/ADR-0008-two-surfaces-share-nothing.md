@@ -1,5 +1,10 @@
 # ADR-0008 — The kiosk and the physician screen share no components
 
+> **Partly superseded by [ADR-0013](ADR-0013-one-visual-language-two-densities.md).** The
+> decision below — that the two surfaces share no *components* — still stands. The inference
+> that they should therefore look unrelated does not: they now share one visual language and
+> differ only in density. Read this together with ADR-0013.
+
 **Context.** Both surfaces are React, in one bundle, hitting one API. The instinct is a shared
 component library.
 

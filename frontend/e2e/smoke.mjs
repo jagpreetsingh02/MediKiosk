@@ -16,6 +16,19 @@
  * below are generous on purpose: this suite has to pass against the database the
  * product actually ships on.
  */
+/**
+ * NAVIGATION WAITS ON THE DOM, NOT ON AN IDLE NETWORK.
+ *
+ * Every `goto` here used `waitUntil: 'networkidle'`. That stopped working the moment the
+ * product grew a shared ambient background: the hero's video is a looping stream mounted for
+ * the whole application, so there is always an open connection and the network is never idle.
+ * The suite hung on the first navigation rather than failing on an assertion.
+ *
+ * `domcontentloaded` is the correct condition now, and it costs nothing in coverage: every
+ * navigation below is already followed by an explicit `waitForSelector` for the thing being
+ * tested, which is a stronger guarantee than "no requests for 500ms" ever was. The console
+ * error and failed request listeners are untouched.
+ */
 import { chromium } from 'playwright';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
@@ -89,7 +102,7 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 console.log('KIOSK');
 const page = await ctx.newPage();
 track(page, 'kiosk');
-await page.goto(BASE, { waitUntil: 'networkidle' });
+await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 check('landing renders', await page.locator('.lx-title').count() > 0);
 await page.getByRole('link', { name: /^Start$/ }).click();
 await page.waitForSelector('.language-option', { timeout: 24000 });
@@ -191,8 +204,13 @@ check('interview completes', asked > 20 && asked < 240, `${asked} questions`);
 // language picker with their answers apparently gone.
 {
   const beforeReload = await page.locator('.doc-actions').count();
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(1500);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  // Wait for the resumed screen, not for a fixed interval. Resuming means booting
+  // the app, re-validating the stored session against the server and rendering
+  // whatever step it was on — a round-trip that a sleep cannot be sized against.
+  await page
+    .waitForSelector('.doc-actions, .kx-question, .review-row', { timeout: 30000 })
+    .catch(() => {});
   const stillHere =
     (await page.locator('.doc-actions').count()) > 0 ||
     (await page.locator('.kx-question').count()) > 0 ||
@@ -293,7 +311,7 @@ check('done screen reached', true);
 console.log('\nPHYSICIAN');
 const doc = await ctx.newPage();
 track(doc, 'physician');
-await doc.goto(`${BASE}/physician`, { waitUntil: 'networkidle' });
+await doc.goto(`${BASE}/physician`, { waitUntil: 'domcontentloaded' });
 await doc.getByRole('button', { name: /^Sign in$/ }).click();
 await doc.waitForSelector('.queue-item', { timeout: 30000 });
 check('queue loads', await doc.locator('.queue-item').count() > 0);
@@ -386,7 +404,7 @@ check('recurrence demo case loads', loaded.ok());
 
 const mem = await ctx.newPage();
 track(mem, 'memory');
-await mem.goto(`${BASE}/physician?session=${made.sessionRef}`, { waitUntil: 'networkidle' });
+await mem.goto(`${BASE}/physician?session=${made.sessionRef}`, { waitUntil: 'domcontentloaded' });
 await mem.getByRole('button', { name: /^Sign in$/ }).click();
 await mem.waitForSelector('.summary-line', { timeout: 45000 });
 
