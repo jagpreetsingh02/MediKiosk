@@ -1,0 +1,96 @@
+/* The account stub. Same material and palette as the rest of the product — a screen that
+ * looks unfinished undermines the ones that are not — while saying plainly that it is a stub. */
+.acct {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+  max-width: 420px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* Stated BEFORE the form, not as a surprise after a failed attempt. Amber, matching the
+   mock-identity notice: this is a "heads up", not a failure. */
+.acct-stub {
+  margin: 0;
+  padding: var(--mk-space-3) var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-warm-soft);
+  border: 1px solid var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+  font-size: var(--mk-text-sm);
+  line-height: 1.5;
+}
+
+.acct-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-3);
+}
+
+.acct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acct-field span {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+}
+
+.acct-field input {
+  padding: 12px 14px;
+  min-height: var(--mk-touch-min);
+  border-radius: var(--mk-radius-sm);
+  border: 1px solid var(--mk-light-18);
+  background: var(--mk-glass-fill);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-base);
+}
+
+.acct-field input:focus-visible {
+  outline: none;
+  border-color: var(--mk-accent-edge);
+  box-shadow: var(--mk-shadow-focus);
+}
+
+/* One message element for every outcome. The server's wording is identical for a missing
+   account and a wrong password, and this must not add anything that distinguishes them. */
+.acct-message {
+  margin: 0;
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  background: var(--mk-light-05);
+  border: 1px solid var(--mk-light-12);
+  color: var(--mk-ink);
+  font-size: var(--mk-text-sm);
+  line-height: 1.5;
+}
+
+.acct-alt {
+  display: flex;
+  justify-content: center;
+}
+
+.acct-rule {
+  width: 100%;
+  height: 1px;
+  border: 0;
+  background: var(--mk-light-12);
+  margin: var(--mk-space-2) 0;
+}
+
+.acct-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+  align-items: flex-start;
+}
+
+.acct-demo h2 {
+  margin: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+}

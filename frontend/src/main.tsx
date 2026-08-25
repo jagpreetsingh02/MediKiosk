@@ -35,6 +35,7 @@ import { KioskApp } from './kiosk/KioskApp';
 import { PhysicianApp } from './physician/PhysicianApp';
 import { DemoLauncher } from './shared/DemoLauncher';
 import { BriefRoute } from './brief/BriefRoute';
+import { SignIn } from './account/SignIn';
 import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
@@ -75,6 +76,7 @@ import './design/nav.css';
 import './design/wakebanner.css';
 import './brief/brief.css';
 import './guest/demo.css';
+import './account/account.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
@@ -90,6 +92,7 @@ const DEPTH: Record<string, AmbientDepth> = {
   '/demo': 'surface',
   '/physician': 'deep',
   '/brief': 'deep',
+  '/sign-in': 'surface',
 };
 
 function Shell(): JSX.Element {
@@ -135,6 +138,8 @@ function Shell(): JSX.Element {
             {/* The Clinical Intelligence Brief. Same payload, two audiences — the
                 `?patient` flag picks the grouping, not a different assembly. */}
             <Route path="/brief" element={<BriefRoute />} />
+            {/* A stub, labelled as one on the screen itself. See account/SignIn.tsx. */}
+            <Route path="/sign-in" element={<SignIn />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.div>

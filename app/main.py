@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.api import (
+    routes_account,
     routes_demo,
     routes_dialogue,
     routes_documents,
@@ -146,6 +147,7 @@ async def domain_error_handler(request: Request, exc: MediKioskError) -> JSONRes
     )
 
 
+app.include_router(routes_account.router)
 app.include_router(routes_system.router)
 app.include_router(routes_system.stub_router)
 app.include_router(routes_session.router)

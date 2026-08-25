@@ -1043,6 +1043,18 @@ export const api = {
     `/api/v1/sessions/${sessionRef}/documents/${documentId}/file` +
     (page ? `?page=${page}` : ''),
 
+  /** Account STUB. Always refuses, in the same words for every cause — see routes_account. */
+  signIn: (identifier: string, password: string) =>
+    request<{ ok: boolean }>('/api/v1/account/sign-in', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, password }),
+    }),
+  register: (identifier: string, password: string) =>
+    request<{ created: boolean; stub: boolean; message: string; reference: string }>(
+      '/api/v1/account/register',
+      { method: 'POST', body: JSON.stringify({ identifier, password }) },
+    ),
+
   /** Guest mode: a real synthetic record with the full seeded history. No account. */
   startGuest: () =>
     request<{
