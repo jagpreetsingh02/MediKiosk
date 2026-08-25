@@ -534,6 +534,208 @@ export function getToken(): string | null {
  * failed (500)" and "TypeError: Failed to fetch" are exactly the console-like text
  * the product rules forbid on a clinical screen.
  */
+
+// ──────────────────────────────────────── the Clinical Intelligence Brief
+//
+// Mirrors `app/modules/report/brief.py`. Deliberately structural rather than loose: every
+// clinical line carries the refs click-to-source needs, and typing them means a section that
+// forgets to pass them through fails at compile time rather than as a dead click.
+
+export interface BriefLine {
+  label: string;
+  path: string;
+  value: unknown;
+  displayValue: string | null;
+  state: string;
+  tier: string;
+  confidence: number | null;
+  confidenceStatus: string;
+  confirmedByPhysician: boolean;
+  /** The handle that opens the original. No evidence -> the backend never sent the line. */
+  factRef: string;
+  evidenceIds: number[];
+  evidenceKinds: string[];
+  /** `document` | `voice` | `touch` | `typed` — what the drawer actually renders on. */
+  evidenceModalities: string[];
+}
+
+export interface BriefEvidence {
+  sourceType: string;
+  verbatim: string;
+  language: string;
+  modality: string | null;
+  questionId: string | null;
+  asrConfidence: number | null;
+  documentRef: string | null;
+  page: number | null;
+  bbox: { x: number; y: number; width: number; height: number } | null;
+  ocrConfidence: number | null;
+  handwritten: boolean;
+  humanReading: string | null;
+  readBy: string | null;
+}
+
+export interface FactEvidence {
+  factRef: string;
+  path: string;
+  value: unknown;
+  displayValue: string | null;
+  tier: string;
+  confidence: number | null;
+  confidenceStatus: string;
+  confirmedByPhysician: boolean;
+  evidence: BriefEvidence[];
+}
+
+export interface ChangedItem {
+  path: string;
+  value: string;
+  factRef?: string | null;
+}
+
+export interface LabPoint {
+  observedOn: string | null;
+  value: number | null;
+  unit: string | null;
+  rangeFlag: string;
+  referenceLow: number | null;
+  referenceHigh: number | null;
+  rangeSource: string;
+  documentRef: string | null;
+}
+
+export interface LabSeries {
+  analyteKey: string;
+  display: string;
+  unit: string | null;
+  points: LabPoint[];
+  chartable: boolean;
+  delta?: number | null;
+  notChartableBecause?: string;
+}
+
+export interface Brief {
+  reportVersion: string;
+  audience: string;
+  header: {
+    patientRef: string;
+    displayName: string | null;
+    ageYears: number | null;
+    gender: string | null;
+    preferredLanguage: string;
+    encounter: {
+      encounterRef: string;
+      occurredOn: string;
+      headline: string | null;
+      priority: string;
+      language: string;
+      ayushMode: boolean;
+      consentRef: string | null;
+    } | null;
+    encounterCount: number;
+  };
+  snapshot: {
+    items: BriefLine[];
+    allergies: BriefLine[];
+    reportedMedications: {
+      name: string | null;
+      dose: string | null;
+      frequency: string | null;
+      duration: string | null;
+      lines: BriefLine[];
+    }[];
+    emptyReason: string | null;
+  };
+  redFlags: {
+    items: { ruleId: string; level: string | null; rationale: string | null; evidence: unknown[] }[];
+    note: string;
+    emptyReason: string | null;
+  };
+  whatChanged: {
+    comparedWith: { encounterRef: string; occurredOn: string; headline: string | null } | null;
+    new: ChangedItem[];
+    resolved: ChangedItem[];
+    persisting: ChangedItem[];
+    note?: string;
+    emptyReason: string | null;
+  };
+  timeline: {
+    items: {
+      encounterRef: string;
+      occurredOn: string;
+      headline: string | null;
+      priority: string;
+      confirmedBy: string;
+      isCurrent: boolean;
+    }[];
+    emptyReason: string | null;
+  };
+  medications: {
+    items: {
+      name: string;
+      normalizedName: string | null;
+      dose: string | null;
+      frequency: string | null;
+      duration: string | null;
+      route: string | null;
+      status: string;
+      observedOn: string | null;
+      documentRef: string | null;
+      factRef: string | null;
+      origin: string;
+    }[];
+    note: string;
+    emptyReason: string | null;
+  };
+  observations: { series: LabSeries[]; singles: LabSeries[]; note: string; emptyReason: string | null };
+  similarEncounters: {
+    items: {
+      encounterRef: string;
+      occurredOn: string;
+      headline: string | null;
+      sharedFeatures: { path: string; value: string }[];
+      why: string;
+    }[];
+    note: string;
+    emptyReason: string | null;
+  };
+  contradictions: {
+    items: {
+      contradictionRef: string;
+      ruleId: string;
+      label: string;
+      sideA: Record<string, unknown> | null;
+      sideB: Record<string, unknown> | null;
+    }[];
+    note: string;
+    emptyReason: string | null;
+  };
+  unresolved: {
+    declinedOrUnknown: { path: string; label: string; state: string; factRef: string }[];
+    superseded: { path: string; wasValue: unknown; factRef: string; recordedAt: string }[];
+    invalidated: { path: string; wasValue: unknown; reason: string | null; factRef: string }[];
+    note: string;
+    emptyReason: string | null;
+  };
+  completeness: { collected: string[]; declined: string[]; missing: string[]; note: string };
+  confirmation: {
+    confirmed: boolean;
+    confirmedBy: string | null;
+    confirmedAt: string | null;
+    decisions: { decision: string; actor: string; decidedAt: string }[];
+    note: string;
+  };
+  notice: string;
+}
+
+export interface PatientBrief {
+  reportVersion: string;
+  audience: string;
+  forWhom: string | null;
+  groups: { title: string; items: { label: string; value: unknown }[]; emptyReason: string | null }[];
+  notice: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -840,6 +1042,16 @@ export const api = {
   sessionDocumentFileUrl: (sessionRef: string, documentId: string, page?: number) =>
     `/api/v1/sessions/${sessionRef}/documents/${documentId}/file` +
     (page ? `?page=${page}` : ''),
+
+  /** The deterministic brief. Two calls on unchanged data return identical bytes. */
+  brief: (patientRef: string) => request<Brief>(`/api/v1/patients/${patientRef}/brief`),
+  patientBrief: (patientRef: string) =>
+    request<PatientBrief>(`/api/v1/patients/${patientRef}/brief/patient`),
+  /** Click-to-source: opens the original statement, voice segment or document region. */
+  briefEvidence: (patientRef: string, encounterRef: string, factRef: string) =>
+    request<FactEvidence>(
+      `/api/v1/patients/${patientRef}/encounters/${encounterRef}/facts/${factRef}`,
+    ),
 
   demoCases: () => request<{ cases: DemoCase[]; notice: string }>('/api/v1/demo/cases'),
   loadDemoCase: (caseId: string, sessionRef: string) =>

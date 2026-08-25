@@ -1,0 +1,858 @@
+/* The Clinical Intelligence Brief — both audiences, one visual system.
+ *
+ * Inherits the hero's material and palette wholesale: glass surfaces on the ambient ground,
+ * periwinkle accent, violet for evidence, amber for caution, rose for critical. NO GREEN, per
+ * the design system — `ok` states use the accent, not a second hue.
+ *
+ * The two audiences differ ONLY by `[data-density]`, which scales the shared tokens rather
+ * than defining a second scale. Clinician: tight, tabular, scannable in ninety seconds.
+ * Patient: one column, large type, generous air. Same components, same colours, same
+ * material — a patient and a physician looking at the same record should recognise it as the
+ * same product.
+ */
+
+/* The clinician brief is a WORKSPACE, not a reading card.
+ *
+ * `.kx-stage` caps at 760px, which is the right measure for one column of kiosk prose and
+ * badly wrong here: with the 420px evidence panel beside it the value column was squeezed to
+ * about 200px and every answer wrapped one word per line. Widened with the same `:has()`
+ * idiom `.kx-stage:has(.extract-list)` already uses, rather than by threading a prop through
+ * the shell — the stage should react to what it is holding.
+ *
+ * The PATIENT view deliberately keeps the narrow measure: one calm column is the point there,
+ * and 1700px of line length is unreadable for the person the screen is for.
+ */
+.kx-stage:has(.bx[data-density='clinical']) {
+  max-width: min(1720px, 100%);
+}
+
+.bx {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--mk-space-5);
+  min-height: 100%;
+  padding: var(--mk-space-6) var(--mk-space-6) var(--mk-space-8);
+  color: var(--mk-ink);
+}
+
+.bx-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-5);
+  min-width: 0;
+  max-width: 1100px;
+}
+
+.bx--patient .bx-main {
+  max-width: 720px;
+  margin-inline: auto;
+  gap: var(--mk-space-6);
+}
+
+/* ── density ───────────────────────────────────────────────────────────── */
+
+.bx[data-density='clinical'] {
+  --bx-row-y: var(--mk-space-2);
+  --bx-text: var(--mk-text-sm);
+  --bx-head: var(--mk-text-lg);
+}
+
+.bx[data-density='patient'] {
+  --bx-row-y: var(--mk-space-4);
+  --bx-text: var(--mk-text-lg);
+  --bx-head: var(--mk-text-2xl);
+}
+
+/* ── header ────────────────────────────────────────────────────────────── */
+
+.bx-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mk-space-4);
+}
+
+.bx-header h1 {
+  margin: 0;
+  font-size: var(--mk-text-3xl);
+  font-weight: var(--mk-weight-bold);
+  letter-spacing: var(--mk-tracking-tight);
+}
+
+.bx-header__sub {
+  margin: var(--mk-space-1) 0 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+}
+
+/* ── sections ──────────────────────────────────────────────────────────── */
+
+.bx-section {
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-glass-fill);
+  border: 1px solid var(--mk-glass-edge-top);
+  backdrop-filter: blur(var(--mk-glass-blur));
+}
+
+.bx-section__head {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  margin-bottom: var(--mk-space-4);
+}
+
+.bx-section__head h2 {
+  margin: 0;
+  font-size: var(--bx-head);
+  font-weight: var(--mk-weight-semibold);
+}
+
+.bx-subhead {
+  margin: var(--mk-space-5) 0 var(--mk-space-2);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+.bx-count {
+  padding: 1px 8px;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-light-08);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An empty section states its reason. Styled as prose, NOT as an error — "nothing was
+   declined during this visit" is good news, and a warning colour would misread it. */
+.bx-empty {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--bx-text);
+  font-style: italic;
+}
+
+.bx-empty--error {
+  color: var(--mk-danger-ink);
+  font-style: normal;
+}
+
+.bx-note {
+  margin: var(--mk-space-3) 0 0;
+  color: var(--mk-ink-subtle);
+  font-size: var(--mk-text-2xs);
+  line-height: 1.5;
+}
+
+.bx-notice {
+  margin: 0;
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-light-03);
+  border: 1px solid var(--mk-light-08);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+  line-height: 1.6;
+}
+
+.bx-version {
+  margin: 0;
+  color: var(--mk-ink-faint);
+  font-size: var(--mk-text-2xs);
+  text-align: center;
+}
+
+
+/* ── icon sizing ───────────────────────────────────────────────────────────
+ *
+ * `Icon` renders an <svg> with a viewBox and NO width/height, so it inherits whatever the
+ * surrounding CSS gives it — and with nothing, it collapses to 0x0. The evidence panel's
+ * close button did exactly that: present in the DOM, correctly labelled, and impossible to
+ * click for a physician or a test. Every icon in this file is therefore sized explicitly.
+ */
+
+.bx-line__origin svg,
+.bx-source__head svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+/* The close control. `--mk-touch-min` is the density-aware minimum the rest of the product
+ * uses, so this stays a real target on the kiosk as well as on a desktop. */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--mk-touch-min);
+  height: var(--mk-touch-min);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--mk-radius-sm);
+  background: transparent;
+  color: var(--mk-ink-muted);
+  cursor: pointer;
+  transition: background var(--mk-dur-fast) var(--mk-ease), color var(--mk-dur-fast) var(--mk-ease);
+}
+
+.btn-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.btn-icon:hover,
+.btn-icon:focus-visible {
+  background: var(--mk-glass-fill-hover);
+  color: var(--mk-ink);
+}
+
+.btn-icon:focus-visible {
+  outline: none;
+  box-shadow: var(--mk-shadow-focus);
+}
+
+/* ── clinical lines (clickable → evidence) ─────────────────────────────── */
+
+.bx-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bx-line {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr auto auto;
+  align-items: center;
+  gap: var(--mk-space-3);
+  width: 100%;
+  padding: var(--bx-row-y) var(--mk-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--mk-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--bx-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--mk-dur-fast) var(--mk-ease), border-color var(--mk-dur-fast) var(--mk-ease);
+}
+
+.bx-line:hover,
+.bx-line:focus-visible {
+  background: var(--mk-glass-fill-hover);
+  border-color: var(--mk-accent-edge);
+}
+
+.bx-line:focus-visible {
+  outline: none;
+  box-shadow: var(--mk-shadow-focus);
+}
+
+.bx-line__label {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-xs);
+}
+
+.bx-line__value {
+  font-weight: var(--mk-weight-medium);
+}
+
+/* The source icon is tinted by WHERE the value came from — violet is the evidence hue
+   throughout the product, so a document-sourced line reads the same here as in the kiosk. */
+.bx-line__origin {
+  display: inline-flex;
+  color: var(--mk-ink-faint);
+}
+
+.bx-line[data-modality='document'] .bx-line__origin {
+  color: var(--mk-evidence);
+}
+
+.bx-line__unverified {
+  padding: 1px 7px;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-warm-soft);
+  border: 1px solid var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+  font-size: var(--mk-text-2xs);
+}
+
+.bx-medgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--mk-space-2) var(--mk-space-3);
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  background: var(--mk-light-03);
+  font-size: var(--bx-text);
+}
+
+.bx-medgroup__lines {
+  flex: 1 1 100%;
+}
+
+/* ── what changed ──────────────────────────────────────────────────────── */
+
+.bx-comparedwith {
+  margin: 0 0 var(--mk-space-4);
+  font-size: var(--bx-text);
+  color: var(--mk-ink-muted);
+}
+
+.bx-changed {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mk-space-4);
+}
+
+.bx-changed__col h3 {
+  margin: 0 0 var(--mk-space-2);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-semibold);
+  color: var(--mk-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+.bx-changed__col ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-chip {
+  padding: 3px 10px;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid var(--mk-light-12);
+  background: var(--mk-light-05);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-2xs);
+  cursor: pointer;
+}
+
+.bx-chip:hover,
+.bx-chip:focus-visible {
+  border-color: var(--mk-accent-edge);
+  background: var(--mk-accent-soft);
+}
+
+.bx-chip--static {
+  cursor: default;
+  opacity: 0.75;
+}
+
+/* New / gone / unchanged are told apart by BORDER as well as tint, so the distinction
+   survives a colour-vision deficiency and a photograph of the screen. */
+.bx-changed__col[data-kind='new'] .bx-chip {
+  border-color: var(--mk-accent-edge);
+  border-left-width: 3px;
+}
+
+.bx-changed__col[data-kind='resolved'] .bx-chip {
+  border-style: dashed;
+}
+
+/* ── labs ──────────────────────────────────────────────────────────────── */
+
+.bx-series {
+  padding: var(--mk-space-3) 0;
+  border-bottom: 1px solid var(--mk-light-05);
+}
+
+.bx-series:last-of-type {
+  border-bottom: none;
+}
+
+.bx-series__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--mk-space-3);
+  font-size: var(--bx-text);
+}
+
+.bx-unit,
+.bx-delta {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.bx-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-2);
+  margin: var(--mk-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Discrete points, never joined. Nothing is interpolated between two readings. */
+.bx-points li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--mk-radius-sm);
+  background: var(--mk-light-05);
+  border: 1px solid var(--mk-light-08);
+  font-size: var(--mk-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.bx-points li[data-flag='high'],
+.bx-points li[data-flag='low'] {
+  border-color: var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+}
+
+.bx-points li[data-flag='critical'] {
+  border-color: var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+}
+
+.bx-points__date {
+  color: var(--mk-ink-faint);
+}
+
+.bx-points__value {
+  font-weight: var(--mk-weight-semibold);
+}
+
+.bx-points__flag {
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+/* ── table ─────────────────────────────────────────────────────────────── */
+
+.bx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--bx-text);
+}
+
+.bx-table th {
+  padding: var(--mk-space-2) var(--mk-space-3);
+  border-bottom: 1px solid var(--mk-light-12);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-semibold);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+.bx-table td {
+  padding: var(--bx-row-y) var(--mk-space-3);
+  border-bottom: 1px solid var(--mk-light-05);
+}
+
+.bx-origin {
+  margin-left: 6px;
+  color: var(--mk-ink-faint);
+  font-size: var(--mk-text-2xs);
+}
+
+/* ── timeline / similar / contradictions ───────────────────────────────── */
+
+.bx-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-timeline li {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: var(--mk-space-3);
+  padding: var(--bx-row-y) var(--mk-space-3);
+  border-left: 2px solid var(--mk-light-12);
+  font-size: var(--bx-text);
+}
+
+.bx-timeline li[data-current] {
+  border-left-color: var(--mk-accent);
+  background: var(--mk-accent-soft);
+}
+
+.bx-timeline__date,
+.bx-timeline__by {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+}
+
+.bx-similar {
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  background: var(--mk-light-03);
+  margin-bottom: var(--mk-space-2);
+}
+
+.bx-similar__head {
+  display: flex;
+  gap: var(--mk-space-3);
+  align-items: baseline;
+  font-size: var(--bx-text);
+}
+
+.bx-shared {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: var(--mk-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-shared li {
+  padding: 2px 8px;
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-evidence-soft);
+  border: 1px solid var(--mk-evidence-edge);
+  color: var(--mk-evidence-ink);
+  font-size: var(--mk-text-2xs);
+}
+
+.bx-contradiction {
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  border: 1px solid var(--mk-warm-edge);
+  background: var(--mk-warm-soft);
+  margin-bottom: var(--mk-space-2);
+  font-size: var(--bx-text);
+}
+
+/* Both sides, equally weighted. Neither column is styled as the winner. */
+.bx-contradiction__sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mk-space-3);
+  margin-top: var(--mk-space-2);
+}
+
+.bx-contradiction__sides h4 {
+  margin: 0 0 4px;
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-ink-muted);
+  text-transform: uppercase;
+}
+
+.bx-contradiction__sides pre {
+  margin: 0;
+  padding: var(--mk-space-2);
+  border-radius: var(--mk-radius-xs);
+  background: var(--mk-light-05);
+  font-size: var(--mk-text-2xs);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── unresolved / completeness ─────────────────────────────────────────── */
+
+.bx-plain {
+  margin: 0;
+  padding-left: var(--mk-space-5);
+  font-size: var(--bx-text);
+  color: var(--mk-ink-muted);
+}
+
+.bx-plain li {
+  padding: 2px 0;
+}
+
+.bx-completeness {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--mk-space-4);
+}
+
+.bx-completeness h3 {
+  margin: 0 0 var(--mk-space-2);
+  font-size: var(--mk-text-xs);
+  font-weight: var(--mk-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+  color: var(--mk-ink-muted);
+}
+
+/* Declined and missing are DIFFERENT, and are tinted differently so they cannot be read as
+   one bucket. Neither is an error: a patient is entitled to decline. */
+.bx-completeness [data-kind='declined'] h3 {
+  color: var(--mk-warm-ink);
+}
+
+.bx-completeness [data-kind='missing'] h3 {
+  color: var(--mk-ink-faint);
+}
+
+.bx-confirm {
+  margin: 0;
+  font-size: var(--bx-text);
+  color: var(--mk-ink-muted);
+}
+
+.bx-confirm[data-confirmed] {
+  color: var(--mk-accent-ink);
+}
+
+.bx-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-flag {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  font-size: var(--bx-text);
+}
+
+.bx-flag[data-level='immediate'] {
+  background: var(--mk-danger-soft);
+  border: 1px solid var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+}
+
+.bx-flag[data-level='urgent'] {
+  background: var(--mk-warm-soft);
+  border: 1px solid var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+}
+
+/* ── patient list ──────────────────────────────────────────────────────── */
+
+.bx-patientlist {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-3);
+}
+
+.bx-patientlist__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--mk-space-3);
+  border-bottom: 1px solid var(--mk-light-05);
+}
+
+.bx-patientlist__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.bx-patientlist dt {
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+}
+
+.bx-patientlist dd {
+  margin: 0;
+  font-size: var(--bx-text);
+  font-weight: var(--mk-weight-medium);
+  line-height: 1.45;
+}
+
+/* ── evidence panel ────────────────────────────────────────────────────── */
+
+.bx-evidence {
+  position: sticky;
+  top: var(--mk-space-6);
+  align-self: start;
+  width: min(420px, 38vw);
+  max-height: calc(100dvh - var(--mk-space-8));
+  overflow-y: auto;
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+}
+
+.bx-evidence__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mk-space-3);
+}
+
+.bx-evidence__head h3 {
+  margin: 0;
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+}
+
+.bx-evidence__value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bx-evidence__path {
+  color: var(--mk-ink-faint);
+  font-size: var(--mk-text-2xs);
+  font-family: var(--mk-font-mono, monospace);
+}
+
+.bx-evidence__value strong {
+  font-size: var(--mk-text-lg);
+}
+
+.bx-evidence__tier {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-2);
+}
+
+.bx-evidence__error {
+  margin: 0;
+  color: var(--mk-danger-ink);
+  font-size: var(--mk-text-sm);
+}
+
+.bx-evidence__loading,
+.bx-loading {
+  min-height: 120px;
+  border-radius: var(--mk-radius-md);
+  background: linear-gradient(90deg, var(--mk-light-03), var(--mk-light-08), var(--mk-light-03));
+  background-size: 200% 100%;
+  animation: bx-shimmer 1.4s linear infinite;
+}
+
+@keyframes bx-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bx-evidence__loading,
+  .bx-loading {
+    animation: none;
+  }
+}
+
+/* One source. The left border names the origin at a glance — and it is a BORDER as well as a
+   tint, so the four kinds stay distinguishable without relying on hue alone. */
+.bx-source {
+  padding: var(--mk-space-3);
+  border-radius: var(--mk-radius-sm);
+  border: 1px solid var(--mk-light-08);
+  border-left-width: 3px;
+  background: var(--mk-light-03);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+}
+
+.bx-source[data-origin='document'] {
+  border-left-color: var(--mk-evidence);
+}
+
+.bx-source[data-origin='voice'] {
+  border-left-color: var(--mk-accent);
+}
+
+.bx-source[data-origin='touch'],
+.bx-source[data-origin='typed'] {
+  border-left-color: var(--mk-light-30);
+}
+
+.bx-source__head {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+.bx-source__verbatim {
+  margin: 0;
+  padding-left: var(--mk-space-3);
+  border-left: 2px solid var(--mk-light-12);
+  font-size: var(--mk-text-sm);
+  line-height: 1.5;
+}
+
+.bx-source__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--mk-space-3);
+  margin: 0;
+  font-size: var(--mk-text-2xs);
+}
+
+.bx-source__meta dt {
+  color: var(--mk-ink-faint);
+}
+
+.bx-source__meta dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "not measured" must not look like a low score. Italic, muted, no number, no bar. */
+.bx-unmeasured {
+  color: var(--mk-ink-faint);
+  font-style: italic;
+}
+
+.bx-source__flag,
+.bx-source__human {
+  margin: 0;
+  font-size: var(--mk-text-2xs);
+  color: var(--mk-warm-ink);
+  line-height: 1.5;
+}
+
+.bx-source__human {
+  color: var(--mk-evidence-ink);
+}
+
+/* ── narrow screens ────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .bx {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--mk-space-4);
+  }
+
+  .bx-evidence {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: auto;
+    max-height: 70dvh;
+    border-radius: var(--mk-radius-lg) var(--mk-radius-lg) 0 0;
+    z-index: var(--mk-z-toast);
+  }
+
+  .bx-line {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .bx-line__label {
+    grid-column: 1 / -1;
+  }
+}

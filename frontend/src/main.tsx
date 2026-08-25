@@ -34,6 +34,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { KioskApp } from './kiosk/KioskApp';
 import { PhysicianApp } from './physician/PhysicianApp';
 import { DemoLauncher } from './shared/DemoLauncher';
+import { BriefRoute } from './brief/BriefRoute';
 import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
@@ -71,6 +72,7 @@ import './design/ambient.css';
 import './design/glass.css';
 import './design/nav.css';
 import './design/wakebanner.css';
+import './brief/brief.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
@@ -85,6 +87,7 @@ const DEPTH: Record<string, AmbientDepth> = {
   '/intake': 'surface',
   '/demo': 'surface',
   '/physician': 'deep',
+  '/brief': 'deep',
 };
 
 function Shell(): JSX.Element {
@@ -122,6 +125,9 @@ function Shell(): JSX.Element {
             <Route path="/intake" element={<KioskApp />} />
             <Route path="/physician" element={<PhysicianApp />} />
             <Route path="/demo" element={<DemoLauncher />} />
+            {/* The Clinical Intelligence Brief. Same payload, two audiences — the
+                `?patient` flag picks the grouping, not a different assembly. */}
+            <Route path="/brief" element={<BriefRoute />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.div>

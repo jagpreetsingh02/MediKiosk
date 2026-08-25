@@ -1,0 +1,55 @@
+{
+  "spoken": "burning pain in my stomach for about a week",
+  "path": "hpi.character",
+  "audioIsSynthetic": true,
+  "recognitionIsReal": true,
+  "sampleRate": 16000,
+  "asr": {
+    "text": "burning pain in my stomach for about a week",
+    "confidence": 0.9768712222222222,
+    "confidenceStatus": "measured",
+    "measured": true,
+    "reliable": true,
+    "durationMs": 2268,
+    "backend": "local",
+    "wordConfidences": [
+      [
+        "burning",
+        0.791841
+      ],
+      [
+        "pain",
+        1.0
+      ],
+      [
+        "in",
+        1.0
+      ],
+      [
+        "my",
+        1.0
+      ],
+      [
+        "stomach",
+        1.0
+      ],
+      [
+        "for",
+        1.0
+      ],
+      [
+        "about",
+        1.0
+      ],
+      [
+        "a",
+        1.0
+      ],
+      [
+        "week",
+        1.0
+      ]
+    ]
+  },
+  "note": "Synthetic audio, real recognition. Proves the voice evidence PATH, and says nothing about ASR accuracy on real speakers in a real OPD."
+}

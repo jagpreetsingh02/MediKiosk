@@ -14,6 +14,7 @@ Idempotent: seeding twice leaves one patient with two encounters.
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,27 @@ from app.modules.encounter.promote import (
 log = get_logger(__name__)
 
 FIXTURES = Path(__file__).resolve().parents[3] / "data" / "fixtures" / "documents"
+AUDIO_FIXTURES = Path(__file__).resolve().parents[3] / "data" / "fixtures" / "audio"
+
+#: The one seeded answer that arrives by VOICE.
+#:
+#: Without it the `utterance/voice` evidence type existed nowhere in the data, so the
+#: click-to-source drawer's voice branch — transcript segment, ASR confidence, the
+#: degradation policy that produced it — had never rendered anything. A branch that has
+#: never run is not a feature.
+#:
+#: ⛔ IT GOES THROUGH THE REAL ASR PATH, for the same reason the seeded lab reports now go
+#: through the real OCR pipeline. `seed.py` once called the OCR backend directly and the
+#: result was described as having been "through the pipeline" when it had skipped the route,
+#: the consent gate and the size limit. The lesson generalises: a seed that fakes the path it
+#: claims to exercise is how a project convinces itself a feature works.
+#:
+#: The AUDIO is synthetic (macOS `say`). The RECOGNITION is real Vosk, on that exact file,
+#: through `LocalSpeechBackend.transcribe`. When no model is configured the confidence is
+#: recorded as UNAVAILABLE rather than substituted — a number nobody measured, attached to a
+#: clinical fact, is fabricated provenance and is indistinguishable downstream from a real one.
+VOICE_FIXTURE_STEM = "seed_en_voice_stomach"
+VOICE_FACT_PATH = "hpi.character"
 
 #: Must match the mock IdP's derivation, or the seeded history will not join to the login.
 DEMO_ABHA_ADDRESS = "demo@abdm"
@@ -72,6 +94,46 @@ PRIOR_VISIT_FACTS: tuple[tuple[str, Any, str, str], ...] = (
     ("drug_allergy.taking_medicines", True, "Yes", "confirmed"),
     ("personal_history.diet", "mixed", "Both", "confirmed"),
 )
+
+
+def transcribe_seed_voice() -> tuple[str, float | None, str, int]:
+    """Run the committed voice fixture through the REAL ASR backend.
+
+    Returns (text, confidence, confidence_status, duration_ms).
+
+    Falls back to the fixture's recorded transcript with confidence UNAVAILABLE when no ASR
+    model is configured — which is the ordinary case on a fresh clone, and is also exactly
+    what happens in production on the browsers that report no confidence for Indic locales.
+    The text is still true (it is what was spoken and what the manifest records); only the
+    score is absent, and absent is said rather than filled in.
+    """
+    manifest_path = AUDIO_FIXTURES / f"{VOICE_FIXTURE_STEM}.json"
+    spoken = ""
+    if manifest_path.exists():
+        spoken = json.loads(manifest_path.read_text(encoding="utf-8")).get("spoken", "")
+
+    wav = AUDIO_FIXTURES / f"{VOICE_FIXTURE_STEM}.wav"
+    if not wav.exists():
+        return spoken, None, "unavailable", 0
+
+    try:
+        from app.speech.registry import get_speech
+
+        transcript = get_speech().transcribe(
+            wav.read_bytes(), language="en", media_type="audio/wav"
+        )
+    except Exception as exc:
+        # No model, or an engine that could not start. Honest absence, and it is logged so
+        # nobody has to guess why a seeded confidence is missing.
+        log.info("seed.voice_asr_unavailable", error=str(exc)[:160])
+        return spoken, None, "unavailable", 0
+
+    return (
+        transcript.text or spoken,
+        transcript.confidence,
+        transcript.confidence_status,
+        transcript.duration_ms,
+    )
 
 
 async def already_seeded(db: AsyncSession) -> Patient | None:
@@ -190,9 +252,13 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
             value_json={"v": value},
             display_value=verbatim,
             tier=tier,
+            # A tap is not scored: 1.0 is the honest confidence for "the patient pressed
+            # this button". The follow-up visit below carries the measured ones.
             confidence=1.0,
             confidence_status="measured",
+            state=tier,
             recorded_at=visit.occurred_at,
+            valid_from=visit.occurred_at,
             confirmed_by_physician=True,
         )
         db.add(fact)
@@ -241,21 +307,190 @@ async def seed_demo_patient(db: AsyncSession) -> dict[str, Any]:
         )
     )
 
+    # ------------------------------------------------ 2026: the follow-up visit
+    # THE VISIT THE BRIEF IS ACTUALLY READ AGAINST, and the reason it exists is that a brief
+    # with one encounter behind it cannot demonstrate the thing the brief is for. "What
+    # changed?" needs a prior, and the four evidence types need somewhere to live together —
+    # a physician clicking through a record should be able to reach a spoken answer, a typed
+    # one, a tapped one and a document region without hunting across visits.
+    await _seed_follow_up_visit(db, patient=patient, prescription_ref=prescription)
+
     await db.flush()
     documents = [lab, lab_2025, lab_2026, prescription]
     log.info(
         "demo.patient_seeded",
         patient=patient.patient_ref,
-        encounters=5,
+        encounters=6,
         documents=documents,
     )
     return {
         "created": True,
         "patientRef": patient.patient_ref,
         "abhaRef": patient.abha_ref,
-        "encounters": 5,
+        "encounters": 6,
         "documents": documents,
     }
+
+
+#: The follow-up visit's answers. Same complaint as 2025 — which is the point: `persisting`
+#: features are what make a follow-up screen useful, and a diff with nothing in common would
+#: not exercise it. `severity` and `timing` differ so `new` and `resolved` are non-empty too.
+FOLLOW_UP_FACTS: tuple[tuple[str, Any, str, str, str], ...] = (
+    ("chief_complaint.text", "stomach", "Stomach problem", "confirmed", "touch"),
+    ("chief_complaint.duration", "month_1", "About a month", "confirmed", "touch"),
+    ("hpi.site", "abdomen", "Stomach / abdomen", "confirmed", "touch"),
+    ("hpi.onset", "gradual", "Slowly, over days or weeks", "confirmed", "touch"),
+    ("hpi.timing", "constant", "There all the time", "confirmed", "touch"),
+    ("hpi.severity", 7, "Bad (7 of 10)", "confirmed", "touch"),
+    ("hpi.associated", ["vomiting"], "Vomiting", "confirmed", "touch"),
+    ("hpi.exacerbating", ["worse_food"], "Worse after eating", "confirmed", "touch"),
+    # TYPED — the patient wrote this in their own words rather than picking an option.
+    ("hpi.relieving", "milk", "Drinking milk helps a little", "stated", "typed"),
+    ("drug_allergy.taking_medicines", True, "Yes", "confirmed", "touch"),
+)
+
+
+async def _seed_follow_up_visit(
+    db: AsyncSession, *, patient: Patient, prescription_ref: str
+) -> None:
+    """The 2026 intake: touch, typed, voice and document evidence on one encounter.
+
+    ⛔ THE DOCUMENT EVIDENCE IS NOT INVENTED. Its bounding box comes from running the real
+    prescription fixture back through `read_and_extract` — the same front door a patient
+    upload uses — so the region a physician clicks in the evidence drawer is a region the
+    extractor actually found on that page. A hand-written bbox would render a crop of blank
+    paper and look like a bug in the drawer rather than a lie in the data.
+    """
+    visit = Encounter(
+        encounter_ref="enc_demo20260118v",
+        patient_id=patient.id,
+        occurred_at=datetime(2026, 1, 18, 10, 20, tzinfo=UTC),
+        kind="intake",
+        language="en",
+        priority="routine",
+        headline="Stomach problem, worse than last time",
+        confirmed_by="dr.mehta@aiia (synthetic)",
+        completeness=0.91,
+        summary_json={"status": "confirmed", "seeded": True},
+    )
+    db.add(visit)
+    await db.flush()
+
+    voice_text, voice_conf, voice_status, voice_ms = transcribe_seed_voice()
+    log.info(
+        "seed.voice_answer",
+        path=VOICE_FACT_PATH,
+        confidence=voice_conf,
+        status=voice_status,
+        durationMs=voice_ms,
+    )
+
+    rows: list[tuple[str, Any, str, str, str]] = [
+        *FOLLOW_UP_FACTS,
+        (VOICE_FACT_PATH, "burning", voice_text or "Burning", "stated", "voice"),
+    ]
+
+    for path, value, verbatim, tier, modality in rows:
+        spoken = modality == "voice"
+        fact = ClinicalFactRecord(
+            encounter_id=visit.id,
+            fact_ref=f"fact_fu{abs(hash(path)) % 10**8:08d}",
+            path=path,
+            value_json={"v": value},
+            display_value=verbatim,
+            tier=tier,
+            state=tier,
+            # Only the spoken answer has a measured score. A tap is not scored, and a typed
+            # answer is exactly what the patient wrote — 1.0 is honest for both.
+            confidence=voice_conf if spoken else 1.0,
+            confidence_status=voice_status if spoken else "measured",
+            recorded_at=visit.occurred_at,
+            valid_from=visit.occurred_at,
+            confirmed_by_physician=True,
+        )
+        db.add(fact)
+        await db.flush()
+        db.add(
+            SourceEvidence(
+                fact_id=fact.id,
+                source_type="utterance",
+                verbatim=verbatim,
+                language="en",
+                modality=modality,
+                question_id=path,
+                asr_confidence=voice_conf if spoken else None,
+            )
+        )
+
+    # ---- the DOCUMENT-sourced fact, with a bbox the extractor actually found ----
+    fixture = "prescription_2025-02-14.pdf"
+    path_on_disk = FIXTURES / fixture
+    if path_on_disk.exists():
+        _ocr, confident, _needs = read_and_extract(
+            path_on_disk.read_bytes(),
+            filename=fixture,
+            media_type="application/pdf",
+            sex=patient.gender,
+        )
+        medicine = next((e for e in confident if e.kind == "medication"), None)
+        if medicine is not None:
+            fact = ClinicalFactRecord(
+                encounter_id=visit.id,
+                fact_ref="fact_fudoc0001",
+                path="medications[0].name",
+                value_json={"v": medicine.text},
+                display_value=medicine.text,
+                tier="document",
+                state="document",
+                confidence=medicine.confidence,
+                confidence_status="measured",
+                recorded_at=visit.occurred_at,
+                valid_from=visit.occurred_at,
+                confirmed_by_physician=True,
+            )
+            db.add(fact)
+            await db.flush()
+            db.add(
+                SourceEvidence(
+                    fact_id=fact.id,
+                    source_type="document",
+                    verbatim=medicine.source_text or medicine.text,
+                    language="en",
+                    document_ref=prescription_ref,
+                    page=medicine.page,
+                    bbox_json={
+                        "x": medicine.bbox.x,
+                        "y": medicine.bbox.y,
+                        "width": medicine.bbox.width,
+                        "height": medicine.bbox.height,
+                    }
+                    if medicine.bbox
+                    else None,
+                    ocr_confidence=medicine.confidence,
+                )
+            )
+
+    db.add(
+        TimelineEventRecord(
+            patient_id=patient.id,
+            encounter_id=visit.id,
+            event_ref="evt_demo20260118v",
+            occurred_on=visit.occurred_at.date(),
+            date_precision="exact",
+            kind="encounter",
+            label="Stomach problem, worse than last time",
+            detail="Confirmed by dr.mehta@aiia (synthetic)",
+        )
+    )
+    db.add(
+        PhysicianDecision(
+            encounter_id=visit.id,
+            decision="confirmed_summary",
+            actor="dr.mehta@aiia (synthetic)",
+            detail_json={"seeded": True},
+        )
+    )
+    await db.flush()
 
 
 async def _seed_document_encounter(

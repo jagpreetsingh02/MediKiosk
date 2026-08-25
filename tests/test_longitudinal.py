@@ -385,10 +385,14 @@ async def test_overview_masks_the_identifier(seeded_patient) -> None:
     overview = await H.overview(db, patient)
     assert overview["abhaMasked"] is not None
     assert patient.abha_ref not in overview["abhaMasked"]
-    # Five: the 2025 intake, the prescription, and three dated lab reports. The lab
-    # series exists so the clinical brief has a trajectory to chart rather than a single
+    # Six: TWO intakes (2025 and the 2026 follow-up), the prescription, and three dated
+    # lab reports. The second intake is not padding — "What changed?" needs a prior to diff
+    # against, and the four evidence types (touch, typed, voice, document) have to coexist
+    # on one encounter for the brief's click-to-source to be exercisable at all.
+    #
+    # The lab series exists so the brief has a trajectory to chart rather than a single
     # point — see tests/test_clinical_report.py.
-    assert overview["counts"]["encounters"] == 5
+    assert overview["counts"]["encounters"] == 6
     assert overview["counts"]["prescriptions"] == 1
     assert overview["counts"]["labReports"] == 3
 
