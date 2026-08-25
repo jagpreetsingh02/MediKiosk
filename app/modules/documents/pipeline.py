@@ -217,6 +217,37 @@ def _record_entity(
     return written
 
 
+def read_and_extract(
+    data: bytes,
+    *,
+    filename: str,
+    media_type: str,
+    sex: str | None = None,
+    backend_name: str | None = None,
+) -> tuple[OCRResult, list[ExtractedEntity], list[ExtractedEntity]]:
+    """Read a document and extract its entities — THE ONLY WAY IN.
+
+    ⛔ Every OCR read in this application goes through here or through `ingest()`. Nothing
+    else may import an OCR backend, and `test_ocr_has_one_front_door` fails the build if
+    anything does.
+
+    THIS EXISTS BECAUSE OF A SPECIFIC FAILURE. `seed.py` imported `get_ocr_backend` and
+    `extract_entities` directly, so the three dated lab reports in the demo patient's history
+    were produced by an in-process Python call that skipped the upload route, the multipart
+    handling, the consent gate, the size limit and this module entirely. On that basis the
+    claim "these went through the actual OCR pipeline" was made, and it was not true in any
+    sense that mattered — no browser, no route, no gate. A private back door into OCR is how
+    a project convinces itself a feature works when only a fragment of it does.
+
+    Returns the raw result alongside the confident and needs-checking entity lists, because
+    the seed writes durable rows directly while `ingest()` writes session facts. They are
+    different destinations for the same reading, which is exactly what should be shared.
+    """
+    ocr = read_document(data, filename=filename, media_type=media_type, requested=backend_name)
+    confident, needs_check = extract_entities(ocr, sex=sex)
+    return ocr, list(confident), list(needs_check)
+
+
 def ingest(
     ledger: FactLedger,
     data: bytes,

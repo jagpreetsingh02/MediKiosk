@@ -237,6 +237,23 @@ class TextLayerOCR:
 # ---------------------------------------------------------------- tesseract
 
 
+def _image_size(path: Path) -> tuple[int, int] | None:
+    """The real pixel size of a rendered page, for normalising bounding boxes.
+
+    Returning None rather than raising: a missing size falls back to the old text-extent
+    behaviour, which is wrong but survivable, whereas failing the whole read because Pillow
+    could not stat a file would lose the extraction entirely.
+    """
+    try:
+        from PIL import Image  # noqa: PLC0415
+
+        with Image.open(path) as image:
+            return (image.width, image.height)
+    except Exception:  # noqa: BLE001
+        log.warning("ocr.page_size_unavailable", path=str(path))
+        return None
+
+
 class TesseractOCR:
     """Real OCR over rasterised pages, with per-word confidence from Tesseract's TSV output."""
 
@@ -336,10 +353,17 @@ class TesseractOCR:
 
         return OCRResult(
             backend=self.name,
-            pages=tuple(self._parse_tsv(completed.stdout.decode("utf-8", "replace"))),
+            pages=tuple(
+                self._parse_tsv(
+                    completed.stdout.decode("utf-8", "replace"),
+                    page_size=_image_size(source),
+                )
+            ),
         )
 
-    def _parse_tsv(self, tsv: str) -> list[OCRPage]:
+    def _parse_tsv(
+        self, tsv: str, page_size: tuple[int, int] | None = None
+    ) -> list[OCRPage]:
         """Tesseract TSV -> pages of blocks, grouped by (block, paragraph, line).
 
         Word-level rows are merged into line-level blocks: a bounding box around one word is
@@ -347,6 +371,25 @@ class TesseractOCR:
         The line's confidence is the *minimum* of its words, not the mean — one badly read
         word in a dosage is what sends the whole line to the verification lane, and averaging
         would hide exactly that.
+
+        ⛔ `page_size` IS THE REAL IMAGE SIZE, AND PASSING IT MATTERS.
+
+        This used to derive the page dimensions from the words themselves —
+        `max(left + width), max(top + height)` — which is the extent of the DETECTED TEXT, not
+        the page. On a prescription whose lower half is blank that came out as 1168x1072 for
+        an image that is actually 1797x2470, and every bbox was then normalised by the wrong
+        divisor. Every coordinate was inflated, so:
+
+          * the patient's verification-lane crop showed a patch of empty desk instead of the
+            line it claimed to be evidence for, and
+          * the physician's evidence overlay drew its box somewhere the text is not.
+
+        `render.py`'s own header states the standard this violated: "a box drawn in the wrong
+        place is worse than no box, because it tells a physician the system read a line it did
+        not read."
+
+        The fallback to the text extent remains for callers that genuinely cannot supply a
+        size, but every caller in this module now can.
         """
         raw_lines: dict[
             tuple[int, int, int, int], list[tuple[str, float, tuple[int, int, int, int]]]
@@ -371,8 +414,11 @@ class TesseractOCR:
             text = row[11].strip()
             if not text or confidence < 0:
                 continue
-            page_w, page_h = dimensions.get(page, (0, 0))
-            dimensions[page] = (max(page_w, left + width), max(page_h, top + height))
+            if page_size is not None:
+                dimensions[page] = page_size
+            else:
+                page_w, page_h = dimensions.get(page, (0, 0))
+                dimensions[page] = (max(page_w, left + width), max(page_h, top + height))
             raw_lines.setdefault((page, block_no, para_no, line_no), []).append(
                 (text, confidence, (left, top, width, height))
             )

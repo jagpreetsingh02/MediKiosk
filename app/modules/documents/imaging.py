@@ -33,6 +33,25 @@ THE ORDER MATTERS and is not arbitrary:
                                 every photo taken under one overhead light. Local thresholds
                                 keep text in the shadow AND in the glare.
 
+ILLUMINATION NORMALISATION WAS TRIED HERE AND REMOVED, because it measured worse. The
+reasoning for adding it is sound and standard — divide the page by a blurred estimate of its
+own lighting before deciding what is ink — and on a simulated phone-shadow photo it made the
+target case dramatically worse, not better:
+
+    hard shadow edge      no flattening   62 words, 3 of 4 drug lines
+                          radius 1/6      25 words, 0 of 4
+                          radius 1/12     17 words, 0 of 4
+                          1/6, gain<=1.5  35 words, 2 of 4     <- best variant, still worse
+
+Six parameter combinations were swept; none beat doing nothing. The cause is that in deep
+shadow the divisor is small, so the gain is large (~4.5x at 22% illumination), and it
+amplifies JPEG noise into structures the threshold then reads as ink. The adaptive threshold
+does not need the absolute level corrected — it compares each pixel to its own neighbourhood,
+which is already illumination-invariant at the scale that matters.
+
+Anyone reaching for CLAHE or background division here should measure first, on
+`h_hard_shadow`-style input, against these numbers.
+
 NEVER CROP. Not at any step. A cropped prescription is a prescription with medicines missing
 from it, and the failure is invisible — the extraction simply does not mention the drug that
 was on the part we threw away.

@@ -197,7 +197,7 @@ export function DocumentUpload({
       <input
         ref={imageInput}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif"
         multiple
         hidden
         onChange={(event) => void upload(event.target.files)}

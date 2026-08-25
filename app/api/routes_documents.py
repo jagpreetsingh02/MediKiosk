@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, File, Form, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, Request, Response, UploadFile
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import (
@@ -13,6 +13,7 @@ from app.api.deps import (
     DbSession,
     load_context,
     require_action,
+    require_any_action,
     save_context,
 )
 from app.audit.chain import record
@@ -44,8 +45,69 @@ async def backends() -> dict[str, Any]:
     }
 
 
+def _too_large(size_bytes: int) -> ValidationError:
+    """One message, used by both checks, written for a patient rather than an operator.
+
+    It names the actual size — being told "too large" without being told how large, or how
+    large is allowed, gives someone no way to decide what to do next — and it offers the
+    action most likely to work, which is the camera button, because a capture is smaller than
+    a gallery original almost every time.
+    """
+    return ValidationError(
+        f"That file is {size_bytes / 1_000_000:.0f} MB, which is larger than this kiosk can "
+        f"read ({settings.max_upload_bytes // 1_000_000} MB). Please take a photo using the "
+        "camera button on this screen — those are smaller — or upload one page at a time."
+    )
+
+
+async def _read_within_limit(request: Request, file: UploadFile) -> bytes:
+    """Read the upload, refusing an oversized one BEFORE it is all in memory.
+
+    TWO CHECKS, AND BOTH ARE NEEDED.
+
+    `Content-Length` is the cheap one: when a browser sends it — which it does for a normal
+    form post — an oversized upload is refused before a single chunk is read. That is the
+    difference between rejecting a 200MB file instantly and rejecting it after holding 200MB
+    of it in RAM.
+
+    But Content-Length is a claim, not a guarantee. It is absent under chunked transfer
+    encoding, and it can simply be wrong. So the streaming loop enforces the same ceiling
+    again as bytes actually arrive, and stops at the first chunk that crosses it. Trusting
+    the header alone would make the limit advisory, which on a public-facing kiosk is the
+    same as not having one.
+
+    The route previously did `await file.read()` with no check at all.
+    """
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > settings.max_upload_bytes:
+        raise _too_large(int(declared))
+
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+        total += len(chunk)
+        if total > settings.max_upload_bytes:
+            # Stop reading. The remainder of the body is discarded by the server when the
+            # response goes out, and we are never holding more than the limit plus one chunk.
+            raise _too_large(total)
+        chunks.append(chunk)
+
+    if total == 0:
+        raise ValidationError(
+            "That file appears to be empty. Please choose it again, or take a photo of the "
+            "paper using the camera button on this screen."
+        )
+    return b"".join(chunks)
+
+
+#: 1 MiB. Large enough that a typical photo is a handful of reads, small enough that the
+#: overshoot past the limit before we notice is negligible.
+_UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
 @router.post("", status_code=201)
 async def upload(
+    request: Request,
     db: DbSession,
     session_ref: str,
     identity: CurrentIdentity,
@@ -57,26 +119,7 @@ async def upload(
     if "documents" not in context.ledger.consent_scopes:
         raise ConsentRequired("The documents scope was not granted for this session.")
 
-    data = await file.read()
-
-    # A SPECIFIC ERROR, NOT A GENERIC ONE. There was no limit at all here: a 40MB burst photo
-    # from a modern phone was read entirely into memory and then rasterised, and the patient's
-    # experience of that is a screen that hangs and then fails for no stated reason. An
-    # explicit ceiling with a sentence the patient can act on is the difference between a
-    # dead end and a retake.
-    if len(data) > settings.max_upload_bytes:
-        raise ValidationError(
-            f"That file is {len(data) / 1_000_000:.0f} MB, which is larger than this kiosk "
-            f"can read ({settings.max_upload_bytes // 1_000_000} MB). Please take a photo "
-            "using the camera button on this screen — those are smaller — or upload a "
-            "single page instead of the whole file."
-        )
-    if not data:
-        raise ValidationError(
-            "That file appears to be empty. Please choose it again, or take a photo of the "
-            "paper using the camera button."
-        )
-
+    data = await _read_within_limit(request, file)
     sex = context.state.values.get("demographics.gender")
 
     result: IngestResult = ingest(
@@ -483,7 +526,12 @@ def _marker_for(
 
 
 @router.get(
-    "/{document_id}/file", dependencies=[Depends(require_action("document.read"))]
+    "/{document_id}/file",
+    # A clinician reads any session's page; a patient reads their OWN, which is what the
+    # verification lane is built on — it shows the crop of the paper beside the reading taken
+    # from it, and without this the patient gets a 403 where their evidence should be.
+    # Ownership is proved separately by `load_context()` below.
+    dependencies=[Depends(require_any_action("document.read", "document.read_own"))],
 )
 async def document_file(
     db: DbSession,

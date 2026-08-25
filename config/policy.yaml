@@ -50,6 +50,12 @@ roles:
       # session, this one only ever reaches a document in a session the caller owns,
       # and `load_context()` is what proves the ownership.
       - document.verify_own
+      # Reads back the rendered page of a document in a session the caller OWNS. The
+      # verification lane shows the patient the patch of their own paper each reading came
+      # from — without it they are asked "is this right?" with no evidence to check against.
+      # Deliberately NOT `document.read`, which is the clinician's action over ANY session
+      # and carries no ownership constraint; `load_context()` proves ownership for this one.
+      - document.read_own
       - session.submit
       - system.about
 

@@ -35,8 +35,7 @@ from app.db.durable import (
     SourceEvidence,
     TimelineEventRecord,
 )
-from app.modules.documents.backends import get_ocr_backend
-from app.modules.documents.entities import extract_entities
+from app.modules.documents.pipeline import read_and_extract
 from app.modules.encounter.promote import (
     ABHA_SYSTEM,
     STATUS_DOCUMENTED,
@@ -312,10 +311,20 @@ async def _seed_document_encounter(
     if content is None:
         return document.document_ref
 
-    ocr = get_ocr_backend("textlayer").read(
-        content, filename=fixture, media_type="application/pdf"
+    # THROUGH THE PIPELINE'S FRONT DOOR, not around it. This used to call
+    # `get_ocr_backend("textlayer").read(...)` and `extract_entities(...)` directly, which is
+    # how the demo patient's lab reports came to be described as having gone "through the
+    # actual OCR pipeline" when they had skipped the route, the gate and this module.
+    #
+    # Note it no longer pins `textlayer` either: the engine is chosen from what the file
+    # actually is, exactly as it is for a patient upload. These fixtures are digital PDFs so
+    # the text-layer reader still wins — but by the same rule, not by a private exception.
+    _ocr, confident, _needs_check = read_and_extract(
+        content,
+        filename=fixture,
+        media_type="application/pdf",
+        sex=patient.gender,
     )
-    confident, _needs_check = extract_entities(ocr, sex=patient.gender)
 
     for position, entity in enumerate(confident):
         db.add(

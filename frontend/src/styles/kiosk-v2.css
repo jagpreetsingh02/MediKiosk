@@ -1068,3 +1068,155 @@
  * all-caps metadata keeps a heavier weight, because at 12px letter-spaced caps
  * a light weight stops being legible.
  */
+
+/* ═══════════════════════════════════ the verification lane ═══════════════════
+ * Nothing extracted becomes durable until a human confirms it, so this screen is
+ * the product, not a confirmation dialog. It is laid out to be answerable rather
+ * than merely readable: the patch of the patient's own paper sits beside the
+ * reading taken from it, so the question is "do these match?" and not "do you
+ * remember?" — answerable even by someone who cannot read the words.
+ */
+
+/* The crop spans the row, above the reading. A prescription line is a wide strip — twenty
+   times wider than it is tall — and a 220px column rendered it as an illegible smear. Full
+   width is both truer to its shape and large enough to actually compare against, which is the
+   only reason it is on screen. */
+.extract-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'crop crop'
+    'body actions';
+  align-items: center;
+  gap: var(--mk-space-3) var(--mk-space-5);
+}
+
+.extract-item > .kx-crop { grid-area: crop; }
+.extract-item > .extract-body { grid-area: body; }
+.extract-item > .extract-actions { grid-area: actions; }
+
+/* This screen holds evidence side by side, so it needs more width than a question does. */
+.kx-stage:has(.extract-list) {
+  max-width: 980px;
+}
+
+/* The crop. White because it is a photograph of paper — see `.evi-frame`, the same
+   rule: evidence is displayed, never styled. */
+.kx-crop {
+  margin: 0;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--mk-radius-sm);
+  background-color: var(--mk-paper);
+  background-repeat: no-repeat;
+  box-shadow: var(--mk-edge-light), inset 0 0 0 1px var(--mk-light-12);
+  position: relative;
+  flex: none;
+}
+
+.kx-crop--missing {
+  height: 56px;
+  display: grid;
+  place-items: center;
+  background: var(--mk-glass-fill-sunken);
+  color: var(--mk-ink-subtle);
+  font-size: var(--mk-text-2xs);
+  text-align: center;
+  padding: var(--mk-space-2);
+}
+
+/* --------------------------------------------------- three certainty tones ---
+ * `unclear` and `unknown` must not look alike. Low confidence is a claim about the
+ * READING; absent confidence is a claim about the ENGINE. Amber warns; a neutral
+ * slate says "we do not know", which is the honest signal for a missing number.
+ */
+.extract-band {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+}
+
+.extract-band svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.extract-band--clear {
+  color: var(--mk-accent-ink);
+}
+
+.extract-band--unclear {
+  color: var(--mk-warm-ink);
+}
+
+.extract-band--unknown {
+  color: var(--mk-ink-muted);
+}
+
+.extract-item--unclear {
+  background-color: var(--mk-warm-soft);
+  border-color: var(--mk-warm-edge);
+}
+
+/* Deliberately NOT tinted like a warning. Nothing is wrong with this row; we simply
+   have no measurement for it, and colouring it amber would assert a doubt we do not
+   actually have. A dashed edge reads as "incomplete", which is what is true. */
+.extract-item--unknown {
+  background-color: var(--mk-light-05);
+  border-style: dashed;
+  border-color: var(--mk-line-strong);
+}
+
+/* ----------------------------------------------------------- the correction ---
+ * The third action, and the one that carries the commonest real outcome: right
+ * medicine, misread. */
+.extract-correct {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+  min-width: 260px;
+}
+
+.extract-correct label {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+}
+
+.extract-correct__actions {
+  display: flex;
+  gap: var(--mk-space-2);
+}
+
+.btn-discard {
+  border-color: var(--mk-line);
+  color: var(--mk-ink-muted);
+}
+
+.btn-discard:hover:not(:disabled) {
+  border-color: var(--mk-danger-edge);
+  color: var(--mk-danger-ink);
+}
+
+@media (max-width: 720px) {
+  /* The crop stays. It is the point of the screen, so it goes full width above the
+     reading rather than being dropped. */
+  .extract-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+
+/* The crop while its page is in flight. A shimmer rather than a blank box, so the row does
+   not appear to be missing its evidence. */
+.kx-crop--loading {
+  height: 56px;
+  background: linear-gradient(
+    90deg,
+    var(--mk-light-05) 25%,
+    var(--mk-light-12) 37%,
+    var(--mk-light-05) 63%
+  );
+  background-size: 400% 100%;
+  animation: mk-shimmer 1.4s ease-in-out infinite;
+}

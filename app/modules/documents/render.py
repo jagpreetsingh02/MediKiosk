@@ -36,7 +36,22 @@ def render_page_png(data: bytes, *, media_type: str, page: int = 1) -> bytes:
     would be a provenance failure, not a cosmetic one.
     """
     if media_type.startswith("image/"):
-        return data
+        # THE PREPARED IMAGE, NOT THE RAW UPLOAD — and this is a correctness fix, not a
+        # preference. OCR does not read the bytes the patient sent; it reads the conditioned
+        # page produced by `imaging.prepare` (EXIF-rotated, scaled, deskewed with expand=True,
+        # thresholded). Deskew alone changes the canvas size, so a bbox measured on the
+        # prepared page does not land anywhere near the same content on the original.
+        #
+        # Returning the raw bytes here meant every crop and every physician overlay was drawn
+        # in the wrong place. It showed up first in the patient's verification lane, where the
+        # crop of "METFORMIN 500MG" rendered as an empty patch of desk — evidence that proved
+        # nothing, beside a reading the patient was being asked to confirm.
+        #
+        # This restores the invariant this module's own header states: the image someone looks
+        # at is the image the coordinates were measured against.
+        from app.modules.documents import imaging  # noqa: PLC0415
+
+        return imaging.to_png(imaging.prepare(data, filename=f"page-{page}"))
 
     if "pdf" not in media_type:
         raise ValidationError(

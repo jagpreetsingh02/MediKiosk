@@ -58,6 +58,34 @@ def require_action(action: str):
     return _check
 
 
+def require_any_action(*actions: str):
+    """Enforce that the caller holds AT LEAST ONE of several actions.
+
+    For routes two different roles reach legitimately by different rights. The document page
+    image is the case that forced this: a clinician reads any session's document
+    (`document.read`), and a patient reads their OWN document during the verification lane
+    (`document.read_own`). One route, two justifications, and neither role should be granted
+    the other's action to make a single check pass.
+
+    This is NOT a weakening. Each action is still evaluated by the same ABAC policy, and the
+    ownership half is proved separately by `load_context()`, which refuses a session the
+    caller does not own. The alternative — giving `patient` the blanket `document.read` — is
+    what would actually widen the grant, because that action carries no ownership constraint.
+    """
+
+    async def _check(identity: CurrentIdentity, purpose: CurrentPurpose) -> Decision:
+        last: Decision | None = None
+        for action in actions:
+            decision = evaluate(role=identity.role, purpose=purpose, action=action)
+            if decision.allowed:
+                return decision
+            last = decision
+        assert last is not None, "require_any_action needs at least one action"
+        return last.require()  # raises with the final denial's reason
+
+    return _check
+
+
 @dataclass(slots=True)
 class SessionContext:
     row: IntakeSession
