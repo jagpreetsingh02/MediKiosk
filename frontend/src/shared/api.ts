@@ -559,15 +559,49 @@ export class ApiError extends Error {
 /** `status: 0` — the request never reached the server at all. */
 export const OFFLINE = 0;
 
+/**
+ * Render's free tier sleeps the backend after 15 minutes idle; the next request pays a
+ * 30–60s cold boot. Nothing on screen distinguishes that from a hang or a crash — the ordinary
+ * spinners were built assuming a warm server, so a patient staring at one for a minute reads it
+ * as broken, not busy.
+ *
+ * This only ever fires for the FIRST request of a page load. `warmed` flips permanently true the
+ * moment any response comes back (success or error) — a real 500 is not a cold start, and a
+ * later slow request (OCR genuinely takes several seconds on a warm server) has its own honest
+ * "Reading your paper…" copy already; re-showing a wake message over that would be dishonest in
+ * the other direction, implying a sleep that did not happen.
+ */
+let warmed = false;
+const WAKE_THRESHOLD_MS = 1800;
+type WakeListener = (waking: boolean) => void;
+const wakeListeners = new Set<WakeListener>();
+
+export function subscribeToWakeState(fn: WakeListener): () => void {
+  wakeListeners.add(fn);
+  return () => wakeListeners.delete(fn);
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
+  let wakeTimer: ReturnType<typeof setTimeout> | null = null;
+  if (!warmed) {
+    wakeTimer = setTimeout(() => {
+      wakeListeners.forEach((fn) => fn(true));
+    }, WAKE_THRESHOLD_MS);
+  }
+
   let response: Response;
   try {
     response = await fetch(path, { ...init, headers });
   } catch (cause) {
+    if (wakeTimer) {
+      clearTimeout(wakeTimer);
+      warmed = true;
+      wakeListeners.forEach((fn) => fn(false));
+    }
     // The API is down, the network dropped, or the dev server is up without the
     // backend behind it. `fetch` rejects with a bare TypeError here, which used to
     // escape uncaught and surface to the patient as raw JS.
@@ -577,6 +611,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       'offline',
       cause instanceof Error ? cause.message : String(cause),
     );
+  }
+  if (wakeTimer) {
+    clearTimeout(wakeTimer);
+    warmed = true;
+    wakeListeners.forEach((fn) => fn(false));
   }
 
   const text = await response.text();

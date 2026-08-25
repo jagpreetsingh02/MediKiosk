@@ -1,0 +1,49 @@
+/* "Waking the server" — a floating notice, not a layout-reserving bar like `.mk-dbbadge`. It
+ * appears at most once per page load and clears itself on the real response, so it never needs
+ * space held open for it. Warm/amber — the same "heads up, not a failure" family as the
+ * mock-identity banner — because a cold boot is expected behaviour, not an error. */
+.mk-wakebanner {
+  position: fixed;
+  top: var(--mk-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--mk-z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-3);
+  max-width: calc(100vw - var(--mk-space-6));
+  padding: var(--mk-space-3) var(--mk-space-5);
+  border-radius: var(--mk-radius-pill);
+  background: var(--mk-warm-soft);
+  border: 1px solid var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+  font-size: var(--mk-text-sm);
+  line-height: 1.35;
+  box-shadow: var(--mk-shadow-md);
+}
+
+.mk-wakebanner strong {
+  font-weight: var(--mk-weight-bold);
+}
+
+.mk-wakebanner__spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--mk-warm-edge);
+  border-top-color: var(--mk-warm-ink);
+  animation: mk-wakebanner-spin 0.8s linear infinite;
+}
+
+@keyframes mk-wakebanner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-wakebanner__spinner {
+    animation: none;
+  }
+}

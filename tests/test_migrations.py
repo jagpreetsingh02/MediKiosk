@@ -126,24 +126,39 @@ def test_the_rls_migration_does_not_assume_supabase_roles() -> None:
 
 def test_rls_is_enabled_for_every_table_the_schema_owns() -> None:
     """The lockdown must not drift behind the schema: a table added without being
-    listed here is a table published to the internet by PostgREST."""
-    import importlib.util
+    locked down is a table published to the internet by PostgREST.
+
+    SCANS THE WHOLE MIGRATION HISTORY, not one list. This used to read `TABLES` out of
+    `fdb61bb8d5ef` alone, which encoded an assumption that stopped being true the moment a
+    later migration added a table: `report_snapshot` is locked down in the migration that
+    creates it, which is the right place for it — a table and its RLS should not be able to
+    arrive in separate releases. The invariant is "every owned table is locked SOMEWHERE",
+    so that is what gets checked.
+    """
+    import re
 
     from app.db import durable, models  # noqa: F401
     from app.db.base import Base
 
-    spec = importlib.util.spec_from_file_location(
-        "rls_migration",
-        PROJECT_ROOT / "alembic" / "versions" / "fdb61bb8d5ef_lock_every_table_behind_rls.py",
-    )
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    locked: set[str] = set()
+    for path in (PROJECT_ROOT / "alembic" / "versions").glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        # The literal statement, however it is spelled — a bare string, an f-string over a
+        # loop variable, or one table named inline.
+        for match in re.finditer(
+            r"ALTER TABLE public\.(\{table\}|[a-z_]+) ENABLE ROW LEVEL SECURITY", source
+        ):
+            name = match.group(1)
+            if name == "{table}":
+                # A loop over a module-level list. Pull the list rather than guessing.
+                for literal in re.findall(r'^\s*"([a-z_]+)",\s*$', source, re.M):
+                    locked.add(literal)
+            else:
+                locked.add(name)
 
-    locked = set(module.TABLES)
     owned = set(Base.metadata.tables)
     missing = owned - locked
     assert not missing, (
-        f"these tables have no RLS lockdown and would be readable over PostgREST: "
-        f"{sorted(missing)}"
+        f"these tables have no RLS lockdown in any migration and would be readable over "
+        f"PostgREST: {sorted(missing)}"
     )

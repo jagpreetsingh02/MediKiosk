@@ -98,6 +98,16 @@ class Encounter(Base):
     patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id", ondelete="CASCADE"))
     #: The capture session this came from. Kept for audit; that session's rows are gone.
     source_session_ref: Mapped[str | None] = mapped_column(String(64))
+    #: The consent under which this encounter was captured.
+    #:
+    #: `ConsentRecord` already existed, already durable, already versioned and scoped — but it
+    #: is keyed by `session_ref`, and the session is purged on submit. So a committed encounter
+    #: had no way to answer "what was this patient's consent when we captured it?" without
+    #: joining on a string whose owning row had been deliberately destroyed. Retention and
+    #: purge decisions reference consent, so the encounter has to be able to reach it directly.
+    #: Not a foreign key: consent_record lives on the capture side and its lifecycle is not
+    #: this table's to constrain.
+    consent_ref: Mapped[str | None] = mapped_column(String(64), index=True)
     occurred_at: Mapped[datetime] = ts_column()
     kind: Mapped[str] = mapped_column(String(32), default="intake")
     language: Mapped[str] = mapped_column(String(8), default="en")
@@ -134,16 +144,54 @@ class Encounter(Base):
     decisions: Mapped[list[PhysicianDecision]] = relationship(
         back_populates="encounter", cascade="all, delete-orphan"
     )
+    snapshots: Mapped[list[ReportSnapshot]] = relationship(
+        back_populates="encounter", cascade="all, delete-orphan"
+    )
 
 
 # ---------------------------------------------------------------- facts and evidence
 
 
+#: What a fact's `state` may be. THREE OF THESE MIRROR `tier`, AND THREE DO NOT, which is the
+#: whole reason the column exists separately.
+#:
+#: `tier` answers "how good is this evidence" — stated, confirmed, document — and is bound by
+#: Invariant 2 to a span that exists. It therefore has no way to express an ABSENCE, and the
+#: brief needs three kinds of absence told apart:
+#:
+#:     not_asked   the dialogue never reached the question. No patient action, no span.
+#:     declined    the patient was asked and refused. A REAL action, with a real span.
+#:     unknown     the patient was asked and does not know. Also a real action and span.
+#:
+#: "We did not ask" and "she chose not to say" are different clinical facts, and flattening
+#: both to a blank line on the report is how a physician comes to believe a question was
+#: answered in the negative when it was never put. `declined` and `unknown` carry provenance
+#: like any other fact; `not_asked` is the only one that may exist without a span, because
+#: nothing happened to have a span of.
+FACT_STATES = ("stated", "confirmed", "document", "unknown", "not_asked", "declined")
+
+
 class ClinicalFactRecord(Base):
-    """A promoted fact. Same shape as `SessionFact`, but it outlives the session."""
+    """A promoted fact. Same shape as `SessionFact`, but it outlives the session.
+
+    FACTS ARE NEVER DELETED AND NEVER OVERWRITTEN. A patient who changes an answer, and a
+    branch of the interview that turns out not to apply, both leave their original rows in
+    place — superseded or invalidated, but still readable and still carrying their evidence.
+
+    That is not tidiness, it is the difference between a record and a rumour. If changing an
+    answer edited the row, the report could show "no chest pain" with a source span where the
+    patient said the opposite an hour earlier, and nothing on the screen would be wrong
+    exactly — the evidence would simply have been quietly replaced. Click-to-source only means
+    something if the thing it opens is the thing that was actually said at the time.
+    """
 
     __tablename__ = "clinical_fact"
-    __table_args__ = (Index("ix_clinical_fact_path", "encounter_id", "path"),)
+    __table_args__ = (
+        Index("ix_clinical_fact_path", "encounter_id", "path"),
+        # The brief's assembly reads live facts constantly and superseded ones rarely; without
+        # this every section pays a full scan of an append-only table that only ever grows.
+        Index("ix_clinical_fact_live", "encounter_id", "superseded_by_id", "invalidated_reason"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     encounter_id: Mapped[int] = mapped_column(ForeignKey("encounter.id", ondelete="CASCADE"))
@@ -152,10 +200,31 @@ class ClinicalFactRecord(Base):
     value_json: Mapped[dict | None] = mapped_column(JSON)
     display_value: Mapped[str | None] = mapped_column(Text)
     tier: Mapped[str] = mapped_column(String(16))
+    #: One of `FACT_STATES`. Defaults to mirroring `tier` for anything promoted before this
+    #: column existed — see the migration, which backfills rather than guessing at render time.
+    state: Mapped[str] = mapped_column(String(16), default="stated")
     confidence: Mapped[float | None] = mapped_column(Float)
     #: "measured" | "unavailable" — see ADR-0011. Never fabricated.
     confidence_status: Mapped[str] = mapped_column(String(16), default="measured")
     recorded_at: Mapped[datetime] = ts_column()
+
+    #: The fact that REPLACED this one. Null means this row is the live answer.
+    #:
+    #: Self-referential and `ondelete="SET NULL"`: if a superseding row is ever removed the
+    #: older one must become live again rather than vanish behind a dangling pointer. Nothing
+    #: in the app deletes facts, but a foreign key is not the place to assume that.
+    superseded_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clinical_fact.id", ondelete="SET NULL"), index=True
+    )
+    #: When this fact became the live answer. Distinct from `recorded_at`, which is when the
+    #: row was written: a fact promoted from a capture session was TRUE from the moment the
+    #: patient said it, not from the moment a physician committed the encounter.
+    valid_from: Mapped[datetime] = ts_column()
+    #: Why this fact stopped applying WITHOUT being replaced — the dead-branch case. "Asked
+    #: about pregnancy, patient is male" has no superseding value; the question simply should
+    #: not have been on the path. Null for live facts and for superseded ones alike.
+    invalidated_reason: Mapped[str | None] = mapped_column(Text)
+
     #: True once a physician explicitly confirmed this individual fact.
     confirmed_by_physician: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -163,6 +232,11 @@ class ClinicalFactRecord(Base):
     evidence: Mapped[list[SourceEvidence]] = relationship(
         back_populates="fact", cascade="all, delete-orphan"
     )
+
+    @property
+    def is_live(self) -> bool:
+        """The answer that currently stands. What every report section reads."""
+        return self.superseded_by_id is None and self.invalidated_reason is None
 
 
 class SourceEvidence(Base):
@@ -389,3 +463,41 @@ class PhysicianDecision(Base):
     decided_at: Mapped[datetime] = ts_column()
 
     encounter: Mapped[Encounter] = relationship(back_populates="decisions")
+
+
+# ---------------------------------------------------------------- report snapshots
+
+
+class ReportSnapshot(Base):
+    """A clinical brief exactly as it was rendered, kept.
+
+    WHY STORE WHAT A PURE FUNCTION CAN REBUILD. `app/modules/report/` assembles the brief
+    deterministically from stored rows, so re-running it on the same data gives the same bytes
+    — that is what makes click-to-source trustworthy. But "the same data" is the assumption
+    that breaks: facts get superseded, a physician corrects an entity, the reference ranges
+    behind an observation are edited in a later release. Re-rendering last month's brief then
+    produces something the physician never saw and never signed.
+
+    So the payload is frozen at generation. `report_version` records which assembler wrote it,
+    because a change to the assembler is exactly the kind of change that makes an old snapshot
+    unreproducible — and the honest response to that is to say which version rendered it, not
+    to pretend the difference does not exist.
+
+    This is a record of what was SHOWN, not a cache. Nothing reads it to save work.
+    """
+
+    __tablename__ = "report_snapshot"
+    __table_args__ = (Index("ix_report_snapshot_encounter", "encounter_id", "generated_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    snapshot_ref: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    encounter_id: Mapped[int] = mapped_column(ForeignKey("encounter.id", ondelete="CASCADE"))
+    #: Which assembler produced this. Bumped whenever the output shape or content changes.
+    report_version: Mapped[str] = mapped_column(String(16))
+    #: "clinician" | "patient" — the same facts, grouped and worded for different readers.
+    audience: Mapped[str] = mapped_column(String(16), default="clinician")
+    generated_at: Mapped[datetime] = ts_column()
+    #: The rendered brief, whole. Serialized payload, not a pointer to one.
+    payload_json: Mapped[dict | None] = mapped_column(JSON)
+
+    encounter: Mapped[Encounter] = relationship(back_populates="snapshots")

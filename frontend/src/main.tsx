@@ -38,6 +38,7 @@ import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
 import { DatabaseBadge } from './design/DatabaseBadge';
+import { WakeBanner } from './design/WakeBanner';
 import { reduced, route as routeVariants } from './design/motion';
 
 // Fonts are self-hosted through @fontsource, never linked from a CDN: the kiosk is expected to
@@ -69,6 +70,7 @@ import './design/base.css';
 import './design/ambient.css';
 import './design/glass.css';
 import './design/nav.css';
+import './design/wakebanner.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
@@ -98,6 +100,10 @@ function Shell(): JSX.Element {
       {/* Renders nothing against Supabase. Mounted above `Routes` so there is no surface a
           local-database demo could be presented from without it. */}
       <DatabaseBadge />
+
+      {/* Renders nothing once the first request has ever resolved. Mounted above `Routes` so
+          a cold Render boot is visible no matter which screen the page happens to land on. */}
+      <WakeBanner />
 
       {/* `mode="wait"` so the outgoing surface is gone before the incoming one commits.
           Overlapping them cross-fades two full screens through each other, which on a moving

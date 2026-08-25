@@ -16,16 +16,24 @@ development. Read it the morning of, not during.
 * **Database:** Supabase, session-mode pooler — the same one local development uses. Render's
   outbound network reaches it over IPv4, same as the pooler was chosen for in the first place.
 
-**COLD START IS REAL ON THE FREE TIER.** Render spins the backend down after inactivity; the
-first request after a sleep can take 30–60 seconds while the container boots and reconnects to
-Supabase. **Warm it up about two minutes before you present**, with one plain request:
+**COLD START IS REAL ON THE FREE TIER.** Render spins the backend down after **15 minutes**
+idle; the first request after a sleep takes 30–60 seconds while the container boots and
+reconnects to Supabase.
 
-```bash
-curl https://medikiosk-api-docker.onrender.com/health
-```
+> **WARM THE BACKEND ~2 MINUTES BEFORE PRESENTING** by hitting `/about`:
+>
+> ```bash
+> curl https://medikiosk-api-docker.onrender.com/about
+> ```
 
 Do this *again* right before walking up — a second gap (a judge's question, a room change) is
 enough for it to sleep again on the free tier.
+
+If you forget, the product does not lie about it: the first slow request raises a
+"Waking the server… this can take up to a minute on first load" notice, so a cold boot reads as
+a wait rather than a crash. It clears itself the moment the response lands — on the real
+response, not a timer. That is a safety net, not a substitute for warming it: a minute of dead
+air in front of judges is still a minute.
 
 The frontend calls `/api/*`, `/about`, and `/mock-idp/*` as relative paths; `vercel.json`
 rewrites those to the Render URL, so the browser never talks cross-origin and there is nothing
