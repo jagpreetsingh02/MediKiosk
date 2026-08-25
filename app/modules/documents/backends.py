@@ -106,8 +106,15 @@ class TextLayerOCR:
             return self._read_text(data)
         if media_type == "application/pdf" or filename.lower().endswith(".pdf"):
             return self._read_pdf(data)
+        # NO BACKEND NAME. This message reaches a patient's screen, and it used to read
+        # "textlayer reads PDFs and plain text, not 'application/zip'." — which names an
+        # engine they have never heard of and a MIME type they did not choose. The engine and
+        # the media type go to the log, where the operator is.
+        log.info("ocr.unsupported_media", backend=self.name, media_type=media_type)
         raise UnsupportedMedia(
-            f"{self.name} reads PDFs and plain text, not {media_type!r}."
+            "This kiosk can read photographs and PDF files. Taking a photo of the paper is "
+            "usually the easiest way.",
+            reason="unsupported_type",
         )
 
     def _read_text(self, data: bytes) -> OCRResult:
@@ -131,8 +138,11 @@ class TextLayerOCR:
         if not any(p.blocks for p in pages):
             # A scan wearing a PDF extension. `read_document()` catches this and retries
             # on an image-capable engine rather than surfacing it.
+            # Caught by `read_document`, which retries on the image engine — a patient never
+            # sees this one. Kept technical deliberately: it is a routing signal, not copy.
             raise UnsupportedMedia(
-                "This PDF carries no text layer — it is a scan, and needs image OCR."
+                "This PDF carries no text layer — it is a scan, and needs image OCR.",
+                reason="scanned_pdf_needs_image_ocr",
             )
         return OCRResult(backend=self.name, pages=tuple(pages))
 
@@ -521,7 +531,7 @@ def read_document(data: bytes, *, filename: str, media_type: str, requested: str
     backend = backend_for(media_type, filename, requested=requested)
     try:
         return backend.read(data, filename=filename, media_type=media_type)
-    except UnsupportedMedia:
+    except UnsupportedMedia as unsupported:
         if requested:
             raise
         fallback = get_ocr_backend("tesseract")
@@ -533,7 +543,26 @@ def read_document(data: bytes, *, filename: str, media_type: str, requested: str
             then=fallback.name,
             media_type=media_type,
         )
-        return fallback.read(data, filename=filename, media_type=media_type)
+        try:
+            return fallback.read(data, filename=filename, media_type=media_type)
+        except ValidationError as image_error:
+            # THE RETRY MUST NOT REWRITE THE DIAGNOSIS.
+            #
+            # This fallback exists for one case: a PDF exported by a phone scanner app, which
+            # has no text layer and IS an image. For a file that is simply not a document —
+            # an archive, an audio file, something renamed by accident — the image engine also
+            # fails, and reporting ITS error tells the patient "we could not open that photo"
+            # about a file that was never a photo. They then retake a picture, which cannot
+            # possibly help.
+            #
+            # The first refusal was the correct one. Keep it, and keep the image engine's
+            # detail in the log for whoever is debugging rather than in the patient's face.
+            log.info(
+                "ocr.fallback_also_failed",
+                media_type=media_type,
+                image_error=str(image_error)[:120],
+            )
+            raise unsupported from image_error
 
 
 def get_ocr_backend(name: str | None = None) -> OCRBackend:

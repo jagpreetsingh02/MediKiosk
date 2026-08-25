@@ -96,6 +96,19 @@ class IngestResult:
             "lowConfidenceCount": len(self.needs_verification),
             "extracted": self.extracted_items(),
             "documentKind": classify_document(self.extracted_items()),
+            # UNDER-RESOLUTION IS A MORE ACTIONABLE CAUSE THAN "nothing found".
+            #
+            # Both produce an empty extraction, and the UI would otherwise say "we could not
+            # find any printed writing" — true, but it sends the patient looking for a
+            # different paper when the fix is to stand closer. The imaging step already knows
+            # the page was below the resolution text can be resolved at; this carries that
+            # forward so the failure screen can say the useful thing instead of the accurate
+            # one. Null when the reading was not from an image at all.
+            "tooSmall": (
+                self.ocr.preparation.too_small
+                if self.ocr is not None and self.ocr.preparation is not None
+                else None
+            ),
         }
 
     def document_ref(self) -> DocumentRef:

@@ -56,7 +56,8 @@ def _too_large(size_bytes: int) -> ValidationError:
     return ValidationError(
         f"That file is {size_bytes / 1_000_000:.0f} MB, which is larger than this kiosk can "
         f"read ({settings.max_upload_bytes // 1_000_000} MB). Please take a photo using the "
-        "camera button on this screen — those are smaller — or upload one page at a time."
+        "camera button on this screen — those are smaller — or upload one page at a time.",
+        reason="too_large",
     )
 
 
@@ -95,7 +96,8 @@ async def _read_within_limit(request: Request, file: UploadFile) -> bytes:
     if total == 0:
         raise ValidationError(
             "That file appears to be empty. Please choose it again, or take a photo of the "
-            "paper using the camera button on this screen."
+            "paper using the camera button on this screen.",
+            reason="empty_file",
         )
     return b"".join(chunks)
 
@@ -117,7 +119,23 @@ async def upload(
     """Upload → OCR → entities → facts → timeline, in one call."""
     context = await load_context(db, session_ref, identity=identity)
     if "documents" not in context.ledger.consent_scopes:
-        raise ConsentRequired("The documents scope was not granted for this session.")
+        # ⛔ Invariant 6, and the wording matters as much as the refusal.
+        #
+        # This used to read "The documents scope was not granted for this session." Every noun
+        # in that sentence is ours, not the patient's: they did not agree to a "scope", they
+        # are not thinking about a "session", and "not granted" describes our record rather
+        # than their choice. A patient reading it learns only that something went wrong.
+        #
+        # It is also NOT a dead end — the kiosk can ask for this one permission in place, and
+        # the frontend has that path — so the message says what happened, what it is for, and
+        # that they can change it now, without ever implying they should.
+        raise ConsentRequired(
+            "You have not given permission for us to read your papers yet. "
+            "You can turn that on now if you would like to add a prescription or a report — "
+            "we only read the papers you choose to show us, and you can say no and carry on "
+            "with your visit.",
+            reason="consent_required",
+        )
 
     data = await _read_within_limit(request, file)
     sex = context.state.values.get("demographics.gender")

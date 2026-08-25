@@ -151,11 +151,13 @@ def decode(data: bytes, *, filename: str) -> Image.Image:
             raise ValidationError(
                 "This looks like an iPhone photo in HEIC format and this kiosk could not "
                 "open it. Please take the photo again using the camera button on this "
-                "screen, or change your iPhone's camera setting to 'Most Compatible'."
+                "screen, or change your iPhone's camera setting to 'Most Compatible'.",
+                reason="heic_unreadable",
             ) from exc
         raise ValidationError(
             "This file could not be opened as a photograph. Please take a photo of the "
-            "paper, or upload a PDF."
+            "paper, or upload a PDF.",
+            reason="unreadable_image",
         ) from exc
     return image
 

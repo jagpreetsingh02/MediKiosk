@@ -1220,3 +1220,55 @@
   background-size: 400% 100%;
   animation: mk-shimmer 1.4s ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════ the failure state ═══════════════════
+ * A named cause, three ways forward, and a way out. It replaces a single red line
+ * reading "We could not read that paper", which was true of every failure and
+ * useful for none — it named no cause, so the patient could not tell whether to
+ * move the paper into better light, pick a different file, or stop trying.
+ */
+.kx-failure {
+  text-align: left;
+}
+
+.kx-failure__glyph {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-warm-soft);
+  box-shadow: var(--mk-edge-light), inset 0 0 0 1px var(--mk-warm-edge);
+  color: var(--mk-warm-ink);
+  margin-bottom: var(--mk-space-6);
+}
+
+.kx-failure__glyph svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* The server's own sentence, when it sent one. Set apart from our copy because it is
+   more specific — it can name the actual file size — and should read as a detail
+   rather than as a second, competing explanation. */
+.kx-failure__detail {
+  margin-top: var(--mk-space-4);
+  padding: var(--mk-space-4) var(--mk-space-5);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-light-05);
+  box-shadow: var(--mk-edge-light);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-base);
+  line-height: var(--mk-leading-relaxed);
+}
+
+.kx-failure__actions {
+  flex-wrap: wrap;
+  margin-top: var(--mk-space-8);
+}
+
+/* Leaving without the paper is always available and never the loudest thing on screen.
+   A patient who cannot get the photo to work must not feel stuck. */
+.kx-failure__skip {
+  margin-top: var(--mk-space-5);
+}

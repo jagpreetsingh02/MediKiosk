@@ -7,6 +7,7 @@
  */
 import { useRef, useState } from 'react';
 import { ApiError, api, type UploadResult } from '../shared/api';
+import { DocumentFailure, failureReasonFrom, type FailureReason } from './DocumentFailure';
 import { Icon } from '../shared/Icon';
 import { CameraCapture } from './CameraCapture';
 import { DocumentReview } from './DocumentReview';
@@ -36,6 +37,10 @@ export function DocumentUpload({
   const [granting, setGranting] = useState(false);
   const [camera, setCamera] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** A failure with a NAMED cause, which gets its own screen rather than a red line. */
+  const [failure, setFailure] = useState<
+    { reason: FailureReason; message: string | null; filename: string } | null
+  >(null);
   /** Two pickers, because "a photo" and "a PDF" are different things to a patient and the
    *  file dialog should not offer both when they have already said which they have. */
   const imageInput = useRef<HTMLInputElement>(null);
@@ -44,21 +49,41 @@ export function DocumentUpload({
   async function send(file: File): Promise<void> {
     setBusy(true);
     setError(null);
+    setFailure(null);
     try {
       const result = await api.upload(sessionRef, file);
       setUploads((current) => [...current, result]);
+
+      // The file was read, but nothing printed was found on it. That is not an error — it is
+      // the normal outcome for a handwritten note — and it gets the state that says so
+      // rather than a success screen with an empty list on it.
+      if (!result.extracted?.length) {
+        // Both cases produce an empty extraction, and they need different advice: "stand
+        // closer" versus "this page has no printed writing on it". Under-resolution is the
+        // more actionable of the two, so it wins when the imaging step reported it.
+        setFailure({
+          reason: result.tooSmall ? 'too_small' : 'no_text_found',
+          message: null,
+          filename: file.name,
+        });
+        return;
+      }
+
       // Straight into the readback. An extraction the patient never saw is an extraction
       // that became true without anybody agreeing to it.
       setReviewing(result);
     } catch (exc) {
-      // Whatever went wrong — a missing OCR engine, an unreadable file, a dead network —
-      // the patient gets one sentence they can act on. The detail is in the server log,
-      // where the person who can fix it will look.
-      setError(
-        exc instanceof ApiError && exc.status === 413
-          ? 'That file is too large. Please take a photo instead.'
-          : 'We could not read that paper. Please try another photo, or skip this step.',
-      );
+      // The cause decides the screen, and the screen decides which action is offered first —
+      // Retake fixes a blurry photo and is useless for an unsupported file type. The stable
+      // `reason` code is what makes that distinction possible without matching on wording.
+      const apiError = exc instanceof ApiError ? exc : null;
+      setFailure({
+        reason: failureReasonFrom(apiError?.reason, apiError?.status),
+        // The server's own sentence when it sent one — it is written for the patient too and
+        // is often more specific than ours, naming the actual file size for instance.
+        message: apiError?.message ?? null,
+        filename: file.name,
+      });
     } finally {
       setBusy(false);
     }
@@ -76,6 +101,37 @@ export function DocumentUpload({
         onCaptured={(file) => {
           setCamera(false);
           void send(file);
+        }}
+      />
+    );
+  }
+
+  // A named failure takes the whole screen, not a red line above the buttons. It has to
+  // carry a cause, three ways forward and a way out, and none of that fits in a banner.
+  if (failure) {
+    return (
+      <DocumentFailure
+        reason={failure.reason}
+        message={failure.message}
+        filename={failure.filename}
+        onRetake={() => {
+          setFailure(null);
+          setCamera(true);
+        }}
+        onChooseAnother={() => {
+          setFailure(null);
+          imageInput.current?.click();
+        }}
+        onEnterManually={() => {
+          // Typing it in is answering the interview, which is where typed answers belong —
+          // the same lane, the same provenance tier, no special case for "text the patient
+          // entered because OCR failed".
+          setFailure(null);
+          onDone(alreadyUploaded + uploads.length);
+        }}
+        onSkip={() => {
+          setFailure(null);
+          onDone(alreadyUploaded + uploads.length);
         }}
       />
     );

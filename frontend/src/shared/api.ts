@@ -282,6 +282,9 @@ export interface SessionDocument {
 }
 
 export interface UploadResult {
+  /** The page was below the resolution at which text can be resolved. Null when the source
+   *  was not an image. More actionable than "nothing found", so the failure screen prefers it. */
+  tooSmall?: boolean | null;
   documentId: string;
   filename: string;
   backend: string;
@@ -538,6 +541,16 @@ export class ApiError extends Error {
     readonly issueCode?: string,
     /** The raw cause. For diagnostics, never for the kiosk. */
     readonly detail?: string,
+    /**
+     * A STABLE MACHINE CODE for what went wrong — `too_large`, `unreadable_image`,
+     * `heic_unreadable`, `unsupported_type`, `consent_required`.
+     *
+     * The failure screen has to tell these apart to offer the right next step: Retake fixes a
+     * blurry photo and does nothing for an unsupported file type. Branching on the message
+     * TEXT would work until someone improved the wording, which is the kind of coupling that
+     * quietly stops anyone improving it.
+     */
+    readonly reason?: string,
   ) {
     super(message);
   }
@@ -589,7 +602,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     // choice, so they are surfaced verbatim when present.
     const issue = body?.issue?.[0];
     if (issue?.diagnostics) {
-      throw new ApiError(issue.diagnostics, response.status, issue.code, issue.diagnostics);
+      throw new ApiError(
+        issue.diagnostics,
+        response.status,
+        issue.code,
+        issue.diagnostics,
+        // Carried in `details.text` rather than in the sentence the patient reads.
+        issue.details?.text,
+      );
     }
     // No OperationOutcome. Say something true and useful instead of the status code.
     throw new ApiError(

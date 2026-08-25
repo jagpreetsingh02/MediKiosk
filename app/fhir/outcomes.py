@@ -35,7 +35,16 @@ def outcome_from_error(
     if exc.details:
         rendered = ", ".join(f"{k}={v!r}" for k, v in exc.details.items())
         detail = f"{detail} [{rendered}]"
-    return outcome(issue(exc.issue_code, detail, severity=exc.severity, expression=expression))
+    return outcome(
+        issue(
+            exc.issue_code,
+            detail,
+            severity=exc.severity,
+            expression=expression,
+            # The stable code the UI branches on, kept out of the sentence the patient reads.
+            details_text=getattr(exc, "reason", None),
+        )
+    )
 
 
 def information(text: str) -> OperationOutcomeIssue:

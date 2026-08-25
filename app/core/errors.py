@@ -13,10 +13,28 @@ class MediKioskError(Exception):
     severity = "error"
     http_status = 400
 
-    def __init__(self, message: str, *, diagnostics: str | None = None, **details: object) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        diagnostics: str | None = None,
+        reason: str | None = None,
+        **details: object,
+    ) -> None:
         super().__init__(message)
         self.message = message
         self.diagnostics = diagnostics or message
+        #: A STABLE MACHINE CODE, carried separately from the human sentence.
+        #:
+        #: The UI has to tell "this photo is too small to read" apart from "this file type is
+        #: not one we can open" in order to offer the right next step — Retake helps the
+        #: first and is useless for the second. Matching on the message text to work that out
+        #: would break the moment the wording is improved, which is exactly the sort of
+        #: coupling that stops anyone improving it.
+        #:
+        #: It travels in the OperationOutcome's `details.text`, NOT in `diagnostics`, because
+        #: diagnostics is what a patient reads and a code is not a sentence.
+        self.reason = reason
         self.details = details
 
 
