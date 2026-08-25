@@ -363,20 +363,64 @@ async def promote(
             continue
         inv_span = _span_for(ledger, investigation.analyte.fact_ids)
         document_ref = getattr(inv_span, "document_id", None)
+        assessment = _assess_investigation(investigation)
         db.add(
             ObservationEvent(
                 patient_id=patient.id,
                 encounter_id=encounter.id,
-                analyte_key=None,
+                # ⛔ THE KEY IS WHAT THREADS THE SERIES, and this was hardcoded to None.
+                #
+                # `analyte_key` is how a lab reading joins the patient's trend for that
+                # analyte — it is the join column for the HbA1c series a physician reads.
+                # Hardcoding None meant NO reading promoted from a real upload could ever
+                # join it: the only rows with a key were the ones `seed.py` wrote directly.
+                # The trend on screen was therefore made entirely of seeded data, and a
+                # genuine uploaded report sat beside it, unlinked and invisible to the chart.
+                #
+                # It is DERIVED, not recorded as a fact, and that distinction is Invariant 2
+                # working as intended: "hba1c" does not appear verbatim on the page — "HbA1c"
+                # does — so it is a normalisation, not a quotation. `match_analyte` is the
+                # same closed-vocabulary lookup `entities.py` uses, so a reading keys the same
+                # way whether it arrived through a browser upload or through the seed.
+                analyte_key=assessment.analyte_key,
                 display=str(investigation.analyte.value),
                 value=_as_float(investigation.value.value),
                 value_text=(
                     str(investigation.value.value) if investigation.value.recorded else None
                 ),
-                unit=investigation.unit,
-                reference_low=investigation.reference_low,
-                reference_high=investigation.reference_high,
-                range_flag=investigation.range_flag,
+                # THE UNIT AND THE RANGE ARE DERIVED WHEN THE HISTORY DOES NOT CARRY THEM.
+                #
+                # Only `analyte`, `value` and `observed_on` are ontology paths, so those are
+                # the only investigation fields that can be recorded as FACTS — the unit and
+                # the printed interval are read off the page but have nowhere to be stored,
+                # and arrived here as None. A reading promoted from a real upload therefore
+                # landed with no unit and `range_flag='unknown'`: "HbA1c 9.1" with no idea
+                # whether that is high, sitting beside seeded rows that say "9.1 % high".
+                #
+                # `assess()` is a range COMPARISON, not an interpretation (Invariant 5's
+                # spirit: retrieved, never generated), and `range_source` records honestly
+                # that the interval came from our reference table rather than from the report
+                # itself. Where the history does carry the values, they win — the page is
+                # more authoritative about its own reference interval than we are.
+                unit=investigation.unit or assessment.unit,
+                reference_low=(
+                    investigation.reference_low
+                    if investigation.reference_low is not None
+                    else assessment.low
+                ),
+                reference_high=(
+                    investigation.reference_high
+                    if investigation.reference_high is not None
+                    else assessment.high
+                ),
+                range_flag=(
+                    investigation.range_flag
+                    if investigation.range_flag != "unknown"
+                    else assessment.flag
+                ),
+                range_source=(
+                    "report" if investigation.reference_low is not None else assessment.source
+                ),
                 observed_on=investigation.observed_on
                 or (
                     document_rows[document_ref].document_date
@@ -485,6 +529,33 @@ def _as_date(value: Any) -> date | None:
         return date.fromisoformat(str(value))
     except ValueError:
         return None
+
+
+def _assess_investigation(investigation: Any) -> Any:
+    """Range comparison and closed-vocabulary lookup for one reading.
+
+    Kept in one place so the key, the unit and the flag are all derived from the SAME
+    assessment — deriving them separately is how they drift apart.
+    """
+    from app.modules.documents.ranges import assess
+
+    return assess(
+        str(investigation.analyte.value),
+        _as_float(investigation.value.value),
+    )
+
+
+def _analyte_key(display: str) -> str | None:
+    """The closed-vocabulary key for an analyte name, or None when it is not one we know.
+
+    None is a valid answer and is not a failure — an unrecognised analyte is recorded with its
+    display name and simply does not join a trend, which is honest. Guessing a key would put a
+    reading into the wrong patient's wrong series.
+    """
+    from app.modules.documents.ranges import match_analyte
+
+    analyte = match_analyte(display)
+    return analyte.key if analyte else None
 
 
 def _as_float(value: Any) -> float | None:

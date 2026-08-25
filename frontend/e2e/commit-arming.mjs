@@ -92,13 +92,20 @@ const browser = await chromium.launch();
   if (!(await openASummary(page))) {
     check('a summary could be opened', false, 'no live session in the queue');
   } else {
-    // Make the column taller than its content, exactly reproducing a brief encounter.
-    await page.locator('.phys-main').evaluate((el) => {
-      el.style.height = `${el.scrollHeight + 400}px`;
-      el.style.maxHeight = 'none';
-      el.style.overflowY = 'auto';
-    });
-    await page.waitForTimeout(600);
+    // Make the column taller than its content, reproducing a brief encounter. Measured twice:
+    // the summary grows after first paint as images and late sections land, so a height fixed
+    // from the first measurement is stale by the time it is asserted on.
+    const fit = async () => {
+      await page.locator('.phys-main').evaluate((el) => {
+        el.style.height = 'auto';
+        el.style.maxHeight = 'none';
+        el.style.overflowY = 'auto';
+        el.style.height = `${el.scrollHeight + 600}px`;
+      });
+      await page.waitForTimeout(800);
+    };
+    await fit();
+    await fit();
 
     const metrics = await page.locator('.phys-main').evaluate((el) => ({
       scrollHeight: el.scrollHeight,

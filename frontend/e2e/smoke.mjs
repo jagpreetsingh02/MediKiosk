@@ -238,7 +238,9 @@ check('every item carries a confidence word, not a percentage',
   extracted > 0 && !(await page.locator('.extract-band').first().innerText()).includes('%'));
 
 if (extracted > 0) {
-  await page.locator('.extract-item').first().getByRole('button', { name: /^Yes$/ }).click();
+  // Confirm / Correct / Discard, not Yes / No. Two options cannot express the commonest real
+  // outcome — right medicine, misread — so the lane offers a third.
+  await page.locator('.extract-item').first().getByRole('button', { name: /^Confirm$/ }).click();
   // Wait for the outcome rather than for a fixed 400 ms. The confirmation is a round-trip,
   // and on a remote database that is over a second — the old sleep was timing a SQLite file.
   await page.waitForSelector('.extract-outcome', { timeout: 30000 }).catch(() => {});

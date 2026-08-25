@@ -13,8 +13,15 @@
  * device will give us — text recognition is resolution-bound, and downscaling before OCR
  * throws away the strokes that distinguish a 5 from a 6.
  *
- * Permission failure is not a dead end: the caller keeps Upload Image and Upload PDF, and
- * this component says plainly which of the two things went wrong (refused, or no camera).
+ * ⛔ THE CAMERA NEVER BLOCKS THE ENCOUNTER. A refused permission, a device with no camera, or
+ * a page served over plain HTTP are all ORDINARY STATES here, not errors — they are rendered
+ * as a calm explanation with "Choose a file instead" as the primary action, never as a red
+ * error banner. A patient who declined the camera has done nothing wrong, and a kiosk that
+ * shouts at them for it will lose the document altogether.
+ *
+ * SECURE CONTEXT. `getUserMedia` is undefined on anything but https:// or localhost, so on a
+ * phone reaching a laptop over the LAN it is simply absent — and the honest message is about
+ * the connection, not about the camera. See docs/DEMO-DAY.md for the HTTPS path.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../shared/Icon';
@@ -22,14 +29,42 @@ import { Icon } from '../shared/Icon';
 interface Props {
   onCaptured: (file: File) => void;
   onCancel: () => void;
+  /** Hand the patient straight to the file picker. The camera must never be the only door. */
+  onUseFileInstead?: () => void;
 }
 
-type Phase = 'starting' | 'live' | 'captured' | 'failed';
+type Phase = 'starting' | 'live' | 'captured' | 'unavailable';
 
-export function CameraCapture({ onCaptured, onCancel }: Props): JSX.Element {
+/** Why the camera is not available. Each is an ordinary situation with its own sentence —
+ *  none of them is the patient's mistake. */
+type Unavailable = 'denied' | 'absent' | 'insecure' | 'busy' | 'unknown';
+
+const UNAVAILABLE_COPY: Record<Unavailable, string> = {
+  denied:
+    'The camera is turned off for this page. You can allow it in your browser and try again, ' +
+    'or simply choose a photo you have already taken — either works just as well.',
+  absent:
+    'This device does not have a camera we can use. Choosing a photo or a PDF works just as ' +
+    'well.',
+  insecure:
+    'The camera only works when this page is opened securely. On this device you can still ' +
+    'choose a photo or a PDF, which works just as well.',
+  busy:
+    'Another app is using the camera at the moment. You can close it and try again, or choose ' +
+    'a photo you have already taken.',
+  unknown:
+    'The camera could not be opened just now. Choosing a photo or a PDF works just as well.',
+};
+
+export function CameraCapture({
+  onCaptured,
+  onCancel,
+  onUseFileInstead,
+}: Props): JSX.Element {
   const video = useRef<HTMLVideoElement | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const [phase, setPhase] = useState<Phase>('starting');
+  const [reason, setReason] = useState<Unavailable>('unknown');
   const [error, setError] = useState<string | null>(null);
   const [shot, setShot] = useState<{ url: string; file: File } | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -46,8 +81,10 @@ export function CameraCapture({ onCaptured, onCancel }: Props): JSX.Element {
 
     async function open(): Promise<void> {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setPhase('failed');
-        setError('This device has no camera we can use. You can still upload a photo or a PDF.');
+        // `getUserMedia` is absent for two very different reasons, and conflating them sends
+        // the patient looking for a camera that is present and working.
+        setPhase('unavailable');
+        setReason(window.isSecureContext ? 'absent' : 'insecure');
         return;
       }
       try {
@@ -74,14 +111,16 @@ export function CameraCapture({ onCaptured, onCancel }: Props): JSX.Element {
         setPhase('live');
       } catch (exc) {
         if (cancelled) return;
-        setPhase('failed');
         const name = (exc as { name?: string }).name;
-        setError(
-          name === 'NotAllowedError'
-            ? 'The camera is blocked. Allow the camera, or upload a photo instead.'
-            : name === 'NotFoundError'
-              ? 'No camera was found on this device. You can upload a photo or a PDF.'
-              : 'The camera could not be opened. You can upload a photo or a PDF.',
+        setPhase('unavailable');
+        setReason(
+          name === 'NotAllowedError' || name === 'SecurityError'
+            ? 'denied'
+            : name === 'NotFoundError' || name === 'OverconstrainedError'
+              ? 'absent'
+              : name === 'NotReadableError' || name === 'AbortError'
+                ? 'busy'
+                : 'unknown',
         );
       }
     }
@@ -132,6 +171,41 @@ export function CameraCapture({ onCaptured, onCancel }: Props): JSX.Element {
     setError(null);
     setPhase('starting');
     setAttempt((n) => n + 1);
+  }
+
+  // AN ORDINARY STATE, NOT AN ERROR. No red banner, no apology, and the way forward is the
+  // primary action. Trying again stays available where trying again could plausibly work.
+  if (phase === 'unavailable') {
+    return (
+      <div className="camera camera--unavailable kiosk-panel">
+        <h1 className="kiosk-title">Let us use a photo you already have</h1>
+        <p className="kiosk-lead">{UNAVAILABLE_COPY[reason]}</p>
+
+        <div className="kiosk-actions">
+          {onUseFileInstead && (
+            <button type="button" className="btn-primary" onClick={onUseFileInstead}>
+              <Icon name="camera" />
+              Choose a photo instead
+            </button>
+          )}
+          {(reason === 'denied' || reason === 'busy' || reason === 'unknown') && (
+            <button type="button" className="btn-secondary" onClick={retake}>
+              Try the camera again
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-quiet"
+            onClick={() => {
+              stopCamera();
+              onCancel();
+            }}
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -59,6 +59,26 @@ def _text(div: str) -> Narrative:
     )
 
 
+def _clean_unit(unit: str | None) -> str | None:
+    """A unit worth sending, or None.
+
+    FHIR's `Quantity.unit` must match `[ \r\n\t\S]+` — at least one non-whitespace
+    character — so an empty or whitespace-only unit is not a valid value, it is an absent one.
+    Sending `""` fails validation and takes the whole commit down with a 500.
+    """
+    cleaned = (unit or "").strip()
+    return cleaned or None
+
+
+def _quantity(value: float | int, unit: str | None) -> dict[str, Any]:
+    """A FHIR Quantity with the unit omitted when there is not one."""
+    quantity: dict[str, Any] = {"value": value}
+    cleaned = _clean_unit(unit)
+    if cleaned:
+        quantity["unit"] = cleaned
+    return quantity
+
+
 def _concept(text: str, coding: dict[str, Any] | None = None) -> CodeableConcept:
     """`text` always; `coding` only when the sidecar retrieved one. Unmapped is normal."""
     payload: dict[str, Any] = {"text": text}
@@ -239,22 +259,33 @@ def build_bundle(
         }
         if inv.value.recorded:
             try:
-                payload["valueQuantity"] = {
-                    "value": float(str(inv.value.value)),
-                    "unit": inv.unit or "",
-                }
+                # AN ABSENT UNIT IS OMITTED, NOT SENT AS "".
+                #
+                # FHIR requires `Quantity.unit` to be a non-empty string, so `unit: ""`
+                # fails validation and the whole commit returns 500 — the physician presses
+                # Confirm and gets nothing, with a pydantic error in the log and no clue on
+                # screen. It happens whenever OCR reads a value but not its unit, which is
+                # ordinary on a photographed report: "ESR 41" with the mm/hr smudged is a
+                # perfectly good reading and must not take the encounter down with it.
+                #
+                # Dropping the key is also the correct FHIR: an optional element that is not
+                # known is absent, not empty.
+                quantity: dict[str, Any] = {"value": float(str(inv.value.value))}
+                if _clean_unit(inv.unit):
+                    quantity["unit"] = _clean_unit(inv.unit)
+                payload["valueQuantity"] = quantity
             except ValueError:
                 payload["valueString"] = str(inv.value.value)
         if inv.reference_low is not None or inv.reference_high is not None:
             payload["referenceRange"] = [
                 {
                     **(
-                        {"low": {"value": inv.reference_low, "unit": inv.unit or ""}}
+                        {"low": _quantity(inv.reference_low, inv.unit)}
                         if inv.reference_low is not None
                         else {}
                     ),
                     **(
-                        {"high": {"value": inv.reference_high, "unit": inv.unit or ""}}
+                        {"high": _quantity(inv.reference_high, inv.unit)}
                         if inv.reference_high is not None
                         else {}
                     ),

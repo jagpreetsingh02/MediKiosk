@@ -292,3 +292,55 @@ def test_crop_positioning_uses_a_percentage_model_that_works_on_both_axes() -> N
         "the crop no longer takes its shape from the real pixel aspect, so a wide text line "
         "will be squashed into the container's shape"
     )
+
+
+# ─────────────────────────────────────── a unit-less reading must not 500 ───
+
+
+def test_a_reading_with_no_unit_still_produces_a_valid_observation() -> None:
+    """⛔ The physician's commit returned 500 on a lab report read from a photograph.
+
+    FHIR requires `Quantity.unit` to match `[ \\r\\n\\t\\S]+` — at least one non-whitespace
+    character — and the bundle builder sent `unit: ""` whenever OCR read a value but not its
+    unit. That is an ORDINARY outcome on a photographed report: "ESR 41" with the mm/hr
+    smudged is a perfectly good reading.
+
+    The failure mode was the worst shape available. The physician ticks the attestation,
+    presses Confirm and commit, and gets nothing at all — a 500, a pydantic traceback in the
+    log, and no indication on screen that the encounter did not reach the record.
+    """
+    from app.fhir.bundle import _clean_unit, _quantity
+
+    assert _clean_unit(None) is None
+    assert _clean_unit("") is None
+    assert _clean_unit("   ") is None, "whitespace is an absent unit, not a valid one"
+    assert _clean_unit(" mg/dL ") == "mg/dL"
+
+    # An absent unit means the key is ABSENT, not empty — that is both valid FHIR and the
+    # only thing pydantic will accept.
+    assert _quantity(41.0, None) == {"value": 41.0}
+    assert _quantity(41.0, "") == {"value": 41.0}
+    assert "unit" not in _quantity(9.1, "   ")
+    assert _quantity(9.1, "%") == {"value": 9.1, "unit": "%"}
+
+
+def test_the_observation_model_rejects_what_used_to_be_sent() -> None:
+    """Proof the guard above is load-bearing rather than defensive.
+
+    If `Observation` accepted an empty unit, `_clean_unit` would be dead code and nobody would
+    know until it was deleted.
+    """
+    import pytest as _pytest
+    from pydantic import ValidationError as PydanticValidationError
+
+    from app.fhir.r4 import Observation
+
+    with _pytest.raises(PydanticValidationError):
+        Observation(
+            status="final",
+            code={"text": "ESR"},
+            valueQuantity={"value": 41.0, "unit": ""},
+        )
+
+    # And the shape we now send is accepted.
+    Observation(status="final", code={"text": "ESR"}, valueQuantity={"value": 41.0})

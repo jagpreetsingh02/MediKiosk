@@ -1272,3 +1272,10 @@
 .kx-failure__skip {
   margin-top: var(--mk-space-5);
 }
+
+/* The camera-unavailable state. Styled as an ordinary screen, deliberately: a refused
+   permission or a laptop without a camera is not a fault, and a red banner would tell the
+   patient they had done something wrong on their way to doing nothing wrong. */
+.camera--unavailable .kiosk-title {
+  margin-bottom: var(--mk-space-3);
+}

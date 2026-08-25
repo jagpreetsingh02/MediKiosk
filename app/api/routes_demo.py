@@ -94,6 +94,24 @@ CASES: tuple[DemoCase, ...] = (
         ),
     ),
     DemoCase(
+        id="photo-misread",
+        title="A photographed prescription, misread — and caught",
+        shows="High-confidence OCR error surfaced by the verification lane, not by a threshold",
+        language="en",
+        ayush=False,
+        script="s22-diabetes-followup",
+        document="prescription_photo_handheld.jpg",
+        watch_for=(
+            "The paper says AMLODIPINE 5MG. OCR reads it as 'SMG' — a 5 mistaken for an S.",
+            "Confidence on that line is 0.94. The engine is not hedging; it is confident "
+            "and wrong, which is what a confidence threshold cannot catch.",
+            "The patient sees the crop of their OWN line beside the reading, so the "
+            "mismatch is visible rather than remembered — and Correct is one tap.",
+            "Amlodipine 5mg and 10mg are both ordinary doses: a misread digit here is a "
+            "different prescription, not a typo.",
+        ),
+    ),
+    DemoCase(
         id="contradiction",
         title="Patient says no medicines; the prescription disagrees",
         shows="Both sources retained, neither overwritten, conflict surfaced to the physician",

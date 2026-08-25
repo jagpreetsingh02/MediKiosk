@@ -102,6 +102,11 @@ export function DocumentUpload({
           setCamera(false);
           void send(file);
         }}
+        onUseFileInstead={() => {
+          // The camera being unavailable must cost the patient one tap, not the document.
+          setCamera(false);
+          imageInput.current?.click();
+        }}
       />
     );
   }
