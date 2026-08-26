@@ -19,6 +19,20 @@ pypdf>=5.0
 pillow>=10.4
 pypdfium2>=4.30
 
+# The clinical brief as a PDF (app/modules/report/pdf.py). RUNTIME, not tooling.
+#
+# ⛔ reportlab was missing from this file while being imported at module scope, and the local
+# suite could never have caught it: the package was sitting in the dev venv as an undeclared
+# leftover, so `import reportlab` worked, 404 tests passed, and the Docker image had no idea.
+# The deploy died with ModuleNotFoundError before uvicorn could load the app.
+# tests/test_dependencies_are_declared.py now reads the import graph against this file.
+reportlab>=4.0
+
+# Build-time only: derives the PDF's Inter faces from the woff2 the web build serves
+# (scripts/make_pdf_fonts.py). The resulting TTFs are COMMITTED under data/fonts/, so the
+# runtime image never needs this — but the script has to stay runnable.
+fonttools[woff]>=4.5
+
 # Image conditioning for OCR (app/modules/documents/imaging.py). A phone photo needs EXIF
 # orientation applied, greyscale, resolution normalisation, deskew and an adaptive threshold
 # before Tesseract can read it; without them image OCR returns empty output or confident
