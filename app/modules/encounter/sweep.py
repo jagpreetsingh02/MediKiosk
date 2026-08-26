@@ -120,11 +120,12 @@ async def purge_guest(db: AsyncSession, patient: Patient) -> dict[str, int]:
             result = await db.execute(
                 delete(model).where(model.session_ref.in_(session_refs))
             )
-            removed[name] = result.rowcount or 0
+            # CursorResult at runtime; the async Result stub does not expose rowcount.
+            removed[name] = int(getattr(result, "rowcount", 0) or 0)
 
     # Everything else goes with the patient, by ON DELETE CASCADE.
     result = await db.execute(delete(Patient).where(Patient.id == patient.id))
-    removed["patient"] = result.rowcount or 0
+    removed["patient"] = int(getattr(result, "rowcount", 0) or 0)
     await db.flush()
     return removed
 
