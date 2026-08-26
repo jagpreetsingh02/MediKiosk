@@ -58,7 +58,16 @@ def is_guest_ref(patient_ref: str) -> bool:
 
 
 async def create(db: AsyncSession) -> dict[str, Any]:
-    """Create one guest patient with the full seeded history. The caller commits."""
+    """Create one guest patient with the full seeded history. The caller commits.
+
+    Sweeps expired guests first. Guest creation is the one moment guest records are definitely
+    being made, which makes it the natural place to clear the old ones — and it means the
+    cleanup needs no scheduler, which this deployment does not have.
+    """
+    from app.modules.encounter.sweep import sweep_on_create
+
+    await sweep_on_create(db)
+
     ref = f"{GUEST_PREFIX}{uuid.uuid4().hex[:10]}"
     patient = Patient(
         patient_ref=ref,

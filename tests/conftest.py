@@ -37,6 +37,21 @@ async def db_session() -> AsyncIterator:
     from app.db.base import Base
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+
+    # ⛔ SQLITE IGNORES `ON DELETE CASCADE` UNLESS THIS PRAGMA IS SET, per connection.
+    #
+    # Every cascade in this schema was declared, relied on in production, and never exercised
+    # by this suite. It surfaced when the guest-sweep test failed: the patient was deleted and
+    # its encounter survived — behaviour that PostgreSQL does not have. A suite that tests a
+    # different database from the deployed one is describing something else.
+    from sqlalchemy import event
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _fk_on(dbapi_connection, _record) -> None:  # noqa: ANN001
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)

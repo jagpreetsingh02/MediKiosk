@@ -29,6 +29,7 @@ from app.modules.dialogue.answers import record_answer, record_derived
 from app.modules.dialogue.voice import handle_spoken_answer
 from app.modules.documents.pipeline import ingest
 from app.modules.encounter import guest
+from app.modules.encounter import sweep as SWEEP
 from app.redflags.engine import evaluate, raise_priority
 from app.speech.protocol import Transcript
 
@@ -417,3 +418,36 @@ async def reset_guest(db: DbSession, patient_ref: str) -> dict[str, Any]:
     result = await guest.reset(db, patient_ref)
     await db.commit()
     return result
+
+
+@router.post("/guest/sweep")
+async def sweep_guests(
+    db: DbSession, hours: float | None = None, dry_run: bool = False
+) -> dict[str, Any]:
+    """Remove demo records older than the TTL, and everything attributable to them.
+
+    Runs automatically when a new guest is created; this endpoint exists so it can be run on
+    demand — before an event, or to clear a backlog. `dry_run=true` reports what WOULD go
+    without touching anything, which is the only sane way to point a cascading delete at a
+    production database for the first time.
+
+    Scoped to guest records by two independent conditions inside `sweep`; a clinical record
+    cannot be reached from here even if one were mislabelled.
+    """
+    result = await SWEEP.sweep(db, hours=hours, dry_run=dry_run)
+    if not dry_run:
+        await db.commit()
+    return result
+
+
+@router.get("/guest/orphans")
+async def guest_orphans(db: DbSession) -> dict[str, Any]:
+    """Capture-side rows whose owning encounter is gone. Should always be zero."""
+    return {
+        "orphans": await SWEEP.orphan_report(db),
+        "note": (
+            "consent_record, intake_session and submitted_bundle are keyed by session_ref and "
+            "have no foreign key to patient, so a plain patient delete would strand them. "
+            "Non-zero here means something deleted a patient without clearing them."
+        ),
+    }

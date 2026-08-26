@@ -92,9 +92,33 @@ def get_engine() -> AsyncEngine:
 
         kwargs["connect_args"] = connect_args
     engine = create_async_engine(settings.resolved_database_url, **kwargs)  # type: ignore[arg-type]
-    if not settings.is_sqlite:
+    if settings.is_sqlite:
+        _enforce_sqlite_foreign_keys(engine)
+    else:
         _stamp_every_connection(engine)
     return engine
+
+
+def _enforce_sqlite_foreign_keys(engine: AsyncEngine) -> None:
+    """Turn ON foreign keys in SQLite, so the test suite exercises the real cascade.
+
+    ⛔ SQLITE IGNORES `ON DELETE CASCADE` BY DEFAULT. The pragma is off per connection unless
+    it is set, so every cascade in this schema was declared, relied upon in production, and
+    NEVER EXERCISED by the suite that is supposed to protect it.
+
+    It surfaced when the guest sweep's own test failed: the patient was deleted and its
+    encounter survived. On PostgreSQL the cascade fires and the row goes; on SQLite it does
+    not — so a test asserting "nothing is left behind" would have passed against production
+    behaviour and failed against the tested one. The tested schema has to behave like the
+    deployed one, or the tests are describing a different database.
+    """
+    from sqlalchemy import event
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _on_connect(dbapi_connection, _record) -> None:  # noqa: ANN001
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 #: How long the SERVER waits before terminating one of our idle connections.

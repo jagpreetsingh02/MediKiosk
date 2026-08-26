@@ -84,6 +84,14 @@ class Settings(BaseSettings):
     #:
     #: The dialect guard is unaffected — this is still PostgreSQL, so `require_postgres()`
     #: has nothing to forgive.
+    #: How long a guest/demo record survives before the sweep removes it.
+    #:
+    #: Guest mode writes real rows and only an explicit Reset removed them, so every judge who
+    #: pressed Try Demo left a patient and ~30 rows behind — permanently, on a free-tier
+    #: database with a hard storage cap. 24 hours is long enough that a demo day never loses a
+    #: record mid-event and short enough that the leak cannot accumulate.
+    guest_ttl_hours: float = 24.0
+
     demo_local_db: bool = False
     #: Where that local Postgres lives. Port 5433 so it cannot collide with a Postgres the
     #: developer already runs on 5432.
