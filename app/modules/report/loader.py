@@ -88,21 +88,54 @@ async def _facts_for(db: AsyncSession, encounter_id: int) -> list[ClinicalFactRe
     )
 
 
-async def load(db: AsyncSession, patient: Patient) -> Rows:
-    """One read of everything. Ordered explicitly everywhere, for the reason above."""
+async def load(
+    db: AsyncSession, patient: Patient, *, encounter_ref: str | None = None
+) -> Rows:
+    """One read of everything. Ordered explicitly everywhere, for the reason above.
+
+    `encounter_ref` picks WHICH visit the brief is about. Without it the most recent one is
+    "current", which is what a clinician opening a live queue wants. With it, a patient can
+    open the report for a specific past visit — and "What changed?" then correctly compares
+    against the visit before THAT one, not against today.
+
+    CONFIRMED ENCOUNTERS ONLY, and the filter is belt-and-braces rather than necessary: an
+    `Encounter` row can only be created by `promote()`, which is reachable only from the
+    physician commit route behind `summary.commit` and an explicit `confirmed: true`. So an
+    unconfirmed encounter cannot exist. `tests/test_patient_self_service.py` asserts that
+    structurally; this filter means a future code path that broke the rule still could not
+    show a patient an unconfirmed visit.
+    """
     encounters = list(
         (
             await db.execute(
                 select(Encounter)
-                .where(Encounter.patient_id == patient.id, Encounter.kind == "intake")
+                .where(
+                    Encounter.patient_id == patient.id,
+                    Encounter.kind == "intake",
+                    Encounter.confirmed_by.is_not(None),
+                    Encounter.confirmed_by != "",
+                )
                 .order_by(Encounter.occurred_at, Encounter.id)
             )
         )
         .scalars()
         .all()
     )
-    current = encounters[-1] if encounters else None
-    previous = encounters[-2] if len(encounters) >= 2 else None
+
+    if encounter_ref:
+        index = next(
+            (i for i, e in enumerate(encounters) if e.encounter_ref == encounter_ref), None
+        )
+        if index is None:
+            # Not this patient's encounter. Returning an empty read rather than another
+            # patient's data is the only safe answer; the route turns it into a 404.
+            current, previous, encounters = None, None, []
+        else:
+            current = encounters[index]
+            previous = encounters[index - 1] if index >= 1 else None
+    else:
+        current = encounters[-1] if encounters else None
+        previous = encounters[-2] if len(encounters) >= 2 else None
 
     facts = await _facts_for(db, current.id) if current else []
     prior_facts = await _facts_for(db, previous.id) if previous else []

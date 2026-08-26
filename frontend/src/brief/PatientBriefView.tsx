@@ -23,16 +23,18 @@ import { ExportButtons } from './ExportButtons';
 
 interface Props {
   patientRef: string;
+  /** Which visit to show. Omitted on the kiosk, where "the current one" is what is meant. */
+  encounterRef?: string;
 }
 
-export function PatientBriefView({ patientRef }: Props): JSX.Element {
+export function PatientBriefView({ patientRef, encounterRef }: Props): JSX.Element {
   const [brief, setBrief] = useState<PatientBrief | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
     api
-      .patientBrief(patientRef)
+      .patientBrief(patientRef, encounterRef)
       .then((b) => live && setBrief(b))
       .catch(
         (e) =>
@@ -46,7 +48,7 @@ export function PatientBriefView({ patientRef }: Props): JSX.Element {
     return () => {
       live = false;
     };
-  }, [patientRef]);
+  }, [patientRef, encounterRef]);
 
   if (error) return <p className="bx-empty bx-empty--error">{error}</p>;
   if (!brief) return <div className="bx-loading" aria-label="Loading your record" />;

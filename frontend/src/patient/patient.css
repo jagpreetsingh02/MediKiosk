@@ -1,0 +1,89 @@
+/* The patient portal. Patient density — one column, generous air, large type — because this
+ * is read at home by the person it is about, not scanned in ninety seconds by a clinician. */
+.pp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-5);
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.pp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mk-space-4);
+}
+
+.pp-visits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-visit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-glass-fill);
+  border: 1px solid var(--mk-glass-edge-top);
+  backdrop-filter: blur(var(--mk-glass-blur));
+}
+
+.pp-visit__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pp-visit__when strong {
+  font-size: var(--mk-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-visit__what {
+  font-size: var(--mk-text-lg);
+  line-height: 1.4;
+}
+
+.pp-visit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mk-space-3);
+}
+
+/* The report opens inline rather than navigating away: a patient comparing two visits should
+   not lose their place in the list to do it. */
+.pp-visit__report {
+  margin-top: var(--mk-space-3);
+  padding-top: var(--mk-space-3);
+  border-top: 1px solid var(--mk-light-12);
+}
+
+.pp-visit__report .bx {
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pp-visit__report .bx-main {
+  max-width: none;
+}
+
+/* The returning-patient link on the hero. Inline and quiet — it is for people who have
+   already been seen, not the front door's primary action. */
+.hx-inline-link {
+  color: var(--mk-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hx-inline-link:hover,
+.hx-inline-link:focus-visible {
+  color: var(--mk-accent-ink);
+}

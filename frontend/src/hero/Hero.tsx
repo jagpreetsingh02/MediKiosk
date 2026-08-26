@@ -181,6 +181,15 @@ export function Hero(): JSX.Element {
             {startingDemo ? 'Setting up the demo…' : 'Try demo'}
           </button>
           {demoError && <p className="hx-cta-note">{demoError}</p>}
+
+          {/* The patient's own way back in, after a visit. Quiet: it is for returning
+              patients, not the primary action on the front door. */}
+          <p className="hx-cta-note">
+            Been seen already?{' '}
+            <Link to="/patient/me" className="hx-inline-link">
+              See your records
+            </Link>
+          </p>
         </div>
 
         <div className="hx-stats">

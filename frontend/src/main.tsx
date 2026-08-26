@@ -36,6 +36,7 @@ import { PhysicianApp } from './physician/PhysicianApp';
 import { DemoLauncher } from './shared/DemoLauncher';
 import { BriefRoute } from './brief/BriefRoute';
 import { SignIn } from './account/SignIn';
+import { PatientPortal } from './patient/PatientPortal';
 import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
@@ -77,6 +78,7 @@ import './design/wakebanner.css';
 import './brief/brief.css';
 import './guest/demo.css';
 import './account/account.css';
+import './patient/patient.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
@@ -93,6 +95,8 @@ const DEPTH: Record<string, AmbientDepth> = {
   '/physician': 'deep',
   '/brief': 'deep',
   '/sign-in': 'surface',
+  '/patient': 'surface',
+  '/patient/me': 'surface',
 };
 
 function Shell(): JSX.Element {
@@ -140,6 +144,9 @@ function Shell(): JSX.Element {
             <Route path="/brief" element={<BriefRoute />} />
             {/* A stub, labelled as one on the screen itself. See account/SignIn.tsx. */}
             <Route path="/sign-in" element={<SignIn />} />
+            {/* The patient reads their OWN record here, after a physician has confirmed it.
+                Identity is the mock ABHA IdP, unchanged. */}
+            <Route path="/patient/:patientRef" element={<PatientPortal />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.div>

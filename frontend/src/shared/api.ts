@@ -1043,6 +1043,23 @@ export const api = {
     `/api/v1/sessions/${sessionRef}/documents/${documentId}/file` +
     (page ? `?page=${page}` : ''),
 
+  /** A patient's own CONFIRMED visits, newest first. Only what a physician committed. */
+  myEncounters: (patientRef: string) =>
+    request<{
+      patientRef: string;
+      displayName: string | null;
+      isSynthetic: boolean;
+      encounters: {
+        encounterRef: string;
+        occurredOn: string;
+        headline: string | null;
+        confirmedBy: string;
+        confirmedAt: string | null;
+        language: string;
+      }[];
+      note: string;
+    }>(`/api/v1/patients/${patientRef}/encounters`),
+
   /** Account STUB. Always refuses, in the same words for every cause — see routes_account. */
   signIn: (identifier: string, password: string) =>
     request<{ ok: boolean }>('/api/v1/account/sign-in', {
@@ -1076,16 +1093,27 @@ export const api = {
 
   /** The deterministic brief. Two calls on unchanged data return identical bytes. */
   brief: (patientRef: string) => request<Brief>(`/api/v1/patients/${patientRef}/brief`),
-  patientBrief: (patientRef: string) =>
-    request<PatientBrief>(`/api/v1/patients/${patientRef}/brief/patient`),
+  patientBrief: (patientRef: string, encounterRef?: string) =>
+    request<PatientBrief>(
+      `/api/v1/patients/${patientRef}/brief/patient`
+      + (encounterRef ? `?encounter=${encounterRef}` : ''),
+    ),
   /**
    * The brief as a PDF, rendered server-side. Returns a blob URL the caller must revoke.
    * A plain <a href> cannot carry the bearer token, so it is fetched like any other route.
    */
-  briefPdf: async (patientRef: string, audience: 'clinician' | 'patient'): Promise<{ url: string; filename: string }> => {
+  briefPdf: async (
+    patientRef: string,
+    audience: 'clinician' | 'patient',
+    encounterRef?: string,
+  ): Promise<{ url: string; filename: string }> => {
     const headers = new Headers();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    const response = await fetch(`/api/v1/patients/${patientRef}/brief.pdf?audience=${audience}`, { headers });
+    const response = await fetch(
+      `/api/v1/patients/${patientRef}/brief.pdf?audience=${audience}`
+      + (encounterRef ? `&encounter=${encounterRef}` : ''),
+      { headers },
+    );
     if (!response.ok) throw new ApiError('The report could not be prepared.', response.status, 'pdf');
     const disposition = response.headers.get('Content-Disposition') ?? '';
     const match = /filename="([^"]+)"/.exec(disposition);
