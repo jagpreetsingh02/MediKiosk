@@ -125,6 +125,8 @@ async def test_a_swept_guest_leaves_zero_rows_anywhere(db_session) -> None:
 
     assert result["count"] == 1
     assert result["swept"] == ["pat_guest_sweep01"]
+    # The sweep proves its own cleanup rather than the test taking it on trust.
+    assert result["rowsRemoved"].get("residue", 0) == 0
     for table, before in baseline.items():
         assert after[table] == before, (
             f"{table} still holds {after[table] - before} row(s) after the sweep — "
@@ -141,9 +143,7 @@ async def test_the_capture_side_rows_go_too(db_session) -> None:
 
     assert (await _counts(db_session))["consent_record"] == 0
     assert (await _counts(db_session))["intake_session"] == 0
-    assert await S.orphan_report(db_session) == {
-        "consent_record": 0, "intake_session": 0, "submitted_bundle": 0
-    }
+    assert await S.orphan_report(db_session) == {"consent_record": 0, "submitted_bundle": 0}
 
 
 async def test_a_young_guest_is_left_alone(db_session) -> None:
@@ -238,3 +238,23 @@ async def test_audit_events_are_deliberately_retained(db_session) -> None:
         (await db_session.execute(select(func.count()).select_from(AuditEvent))).scalar() or 0
     )
     assert after >= before, "the sweep removed audit rows; the hash chain would no longer verify"
+
+
+async def test_an_abandoned_intake_is_not_reported_as_an_orphan(db_session) -> None:
+    """A session that never became an encounter is ordinary, not a leak.
+
+    The first orphan_report counted exactly this and reported 48 on production — sending
+    somebody hunting a problem that does not exist. `consent_record` is also documented as
+    outliving its session deliberately, because proving consent was given is a legal
+    requirement. Only a row that can no longer be tied to ANY patient is a real orphan.
+    """
+    db_session.add(IntakeSession(session_ref="sess_abandoned", language="en", state_json={}))
+    db_session.add(ConsentRecord(
+        consent_ref="consent_abandoned", session_ref="sess_abandoned", language="en",
+        scopes_granted=["history"], scopes_refused=[], audio_explained=True,
+        policy_version="1.0.0"))
+    await db_session.flush()
+
+    assert await S.orphan_report(db_session) == {"consent_record": 0, "submitted_bundle": 0}, (
+        "an abandoned intake was reported as an orphan; it is a patient who did not finish"
+    )

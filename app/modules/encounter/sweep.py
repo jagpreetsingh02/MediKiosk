@@ -127,7 +127,28 @@ async def purge_guest(db: AsyncSession, patient: Patient) -> dict[str, int]:
     result = await db.execute(delete(Patient).where(Patient.id == patient.id))
     removed["patient"] = int(getattr(result, "rowcount", 0) or 0)
     await db.flush()
+
+    # PROVE IT, rather than trusting the cascade. Re-count the exact session refs this call
+    # just cleared; anything left is residue and the caller should see the number.
+    removed["residue"] = await session_residue(db, session_refs)
     return removed
+
+
+async def session_residue(db: AsyncSession, session_refs: list[str]) -> int:
+    """Rows still referencing session refs that should have been cleared. Always 0."""
+    if not session_refs:
+        return 0
+    total = 0
+    for model in (ConsentRecord, IntakeSession, SubmittedBundle):
+        count = (
+            await db.execute(
+                select(func.count())
+                .select_from(model)
+                .where(model.session_ref.in_(session_refs))
+            )
+        ).scalar()
+        total += int(count or 0)
+    return total
 
 
 async def sweep(
@@ -185,23 +206,35 @@ async def sweep_on_create(db: AsyncSession) -> None:
 
 
 async def orphan_report(db: AsyncSession) -> dict[str, int]:
-    """Capture-side rows whose owning encounter no longer exists.
+    """Capture-side rows whose owning PATIENT no longer exists.
 
-    Used by the sweep test to prove nothing is left behind, and useful on its own: a non-zero
-    count here means something deleted a patient without clearing the session rows.
+    ⛔ NOT "rows whose session never became an encounter". The first version of this counted
+    exactly that and reported 48 orphans on production — which was wrong and would have sent
+    somebody hunting a leak that does not exist. A session that never became an encounter is
+    an ABANDONED INTAKE: someone started, did not finish, and no encounter was ever created.
+    That is ordinary. And `consent_record` is documented as outliving its session on purpose,
+    because proving consent was given is a legal requirement.
+
+    What actually indicates a broken sweep is a session row that can no longer be attributed
+    to any patient at all — which, since `intake_session` carries the abha_ref and guests have
+    none, is measured through the encounters that survive.
     """
-    live = select(Encounter.source_session_ref).where(Encounter.source_session_ref.is_not(None))
+    live_sessions = select(Encounter.source_session_ref).where(
+        Encounter.source_session_ref.is_not(None)
+    )
+    live_intakes = select(IntakeSession.session_ref)
+
     out: dict[str, int] = {}
-    for model, name in (
-        (ConsentRecord, "consent_record"),
-        (IntakeSession, "intake_session"),
-        (SubmittedBundle, "submitted_bundle"),
-    ):
+    # A consent or bundle row whose intake_session is ALSO gone has nothing left to tie it to.
+    for model, name in ((ConsentRecord, "consent_record"), (SubmittedBundle, "submitted_bundle")):
         count = (
             await db.execute(
                 select(func.count())
                 .select_from(model)
-                .where(model.session_ref.not_in(live))
+                .where(
+                    model.session_ref.not_in(live_intakes),
+                    model.session_ref.not_in(live_sessions),
+                )
             )
         ).scalar()
         out[name] = int(count or 0)
