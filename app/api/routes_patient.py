@@ -38,7 +38,26 @@ async def _resolve(db: DbSession, identity: CurrentIdentity, patient_ref: str) -
         raise ValidationError(f"No patient {patient_ref!r}.")
 
     if identity.role == "patient":
-        if not identity.abha_ref or identity.abha_ref != patient.abha_ref:
+        # A SYNTHETIC RECORD IS NOBODY'S PRIVATE RECORD, and this is the one exception.
+        #
+        # Guest patients are created with `abha_ref = None` on purpose — a guest has not
+        # authenticated with anything, and minting a plausible-looking ABHA ref would put a
+        # fabricated identity into the column real identities live in. But the demo path then
+        # signs the visitor in through the mock ABHA IdP to run the intake, and that token's
+        # abha_ref can never match None. The result was a 403 on the visitor's OWN demo brief:
+        #
+        #     "A patient may only read their own record. This reference belongs to somebody
+        #      else."
+        #
+        # It does not belong to somebody else. It contains no person's data at all — every
+        # value in it was fabricated by `guest.build_history`, and `cohort.py` already stops
+        # it from ever touching a clinical record in either direction. Refusing here protected
+        # nothing and broke the judge path at exactly the screen the demo exists to show.
+        #
+        # Clinical records keep the strict ownership check, unchanged.
+        if not patient.is_synthetic and (
+            not identity.abha_ref or identity.abha_ref != patient.abha_ref
+        ):
             raise PolicyDenied(
                 "A patient may only read their own record. This reference belongs to "
                 "somebody else."

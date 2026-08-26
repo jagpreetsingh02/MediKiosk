@@ -188,3 +188,36 @@ def test_the_boundary_is_symmetric_by_construction() -> None:
                     "the cohort filter compares is_synthetic to a literal; it must compare to "
                     "the viewer's own value or the boundary only works in one direction"
                 )
+
+
+async def test_a_patient_token_may_read_a_synthetic_record(two_populations) -> None:
+    """A demo record is nobody's private record, and refusing broke the judge path.
+
+    Guests are created with `abha_ref = None` (no fabricated identity), then the demo signs
+    the visitor in through the mock ABHA IdP to run the intake. That token's abha_ref can
+    never equal None, so the ownership check returned 403 on the visitor's OWN demo brief —
+    protecting nothing, because the record contains no person's data.
+    """
+    from app.api.routes_patient import _resolve
+    from app.auth.identity import Identity
+
+    db, demo, real = two_populations
+    visitor = Identity(actor="demo@abdm", role="patient", abha_ref="abha:someone-else")
+
+    resolved = await _resolve(db, visitor, demo.patient_ref)
+    assert resolved.patient_ref == demo.patient_ref
+
+
+async def test_a_patient_token_still_cannot_read_someone_elses_clinical_record(
+    two_populations,
+) -> None:
+    """The exception is for SYNTHETIC records only. Ownership is unchanged for real ones."""
+    from app.api.routes_patient import _resolve
+    from app.auth.identity import Identity
+    from app.core.errors import PolicyDenied
+
+    db, demo, real = two_populations
+    visitor = Identity(actor="someone@abdm", role="patient", abha_ref="abha:not-theirs")
+
+    with pytest.raises(PolicyDenied, match="only read their own record"):
+        await _resolve(db, visitor, real.patient_ref)
