@@ -15,6 +15,19 @@ clinically real. Every patient in this repository is synthetic — docs/CURRENT_
 so and that has not changed. The column separates two POPULATIONS so retrieval cannot cross
 between them; it does not certify either one.
 
+⛔ EXCEPT FOR ROWS THAT ARE VISIBLY GUEST RECORDS, and this is not a nicety. A blanket
+`SET false` is correct the first time this runs — production has no guest patients yet — and
+WRONG on any re-run after a downgrade. Verified on the local database: a down/up cycle turned
+three `pat_guest_*` patients into `is_synthetic = false`, silently moving invented
+conference data into the CLINICAL cohort where a real patient's similarity query could
+retrieve it. That is the dangerous direction of the boundary, arriving through the migration
+rather than through the query layer.
+
+`pat_guest_` is a recorded fact about the row, written by `guest.create()`, so recovering
+from it is not inference. Anything else stays `false`, which is the safe default: a record
+wrongly marked clinical is visible to clinical retrieval, and that is the failure this
+whole column exists to prevent.
+
 Added nullable, backfilled, then made NOT NULL. A bare `ADD COLUMN ... NOT NULL` aborts on a
 populated table (production has patients), and leaving a `server_default` behind would give
 every future insert a value nobody chose — the same trap as `clinical_fact.state` in
@@ -37,7 +50,13 @@ depends_on: str | None = None
 
 def upgrade() -> None:
     op.add_column("patient", sa.Column("is_synthetic", sa.Boolean(), nullable=True))
+    # Default everything to the CLINICAL cohort first...
     op.execute("UPDATE patient SET is_synthetic = false WHERE is_synthetic IS NULL")
+    # ...then recover the guest records from the prefix `guest.create()` writes. Without this
+    # a re-run after a downgrade moves demo data into the clinical cohort. See the docstring.
+    op.execute(
+        "UPDATE patient SET is_synthetic = true WHERE patient_ref LIKE 'pat_guest_%'"
+    )
     op.alter_column("patient", "is_synthetic", nullable=False)
     op.create_index(op.f("ix_patient_is_synthetic"), "patient", ["is_synthetic"])
 
