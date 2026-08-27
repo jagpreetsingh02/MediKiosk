@@ -85,6 +85,12 @@ import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
 
+// shadcn's Tailwind setup, scoped to src/components/ui/ (see tailwind.config.js). Kept last
+// and separate from everything above: it is a second, independent token system for vendored
+// primitives, not a replacement for the --mk-* one the rest of the app reads from.
+import './components/ui/shadcn-tokens.css';
+import './components/ui/tailwind.css';
+
 /**
  * How far into the product each route sits, which is how much the ground recedes behind it.
  * The hero gets the footage at full strength because it has almost nothing on top of it; the

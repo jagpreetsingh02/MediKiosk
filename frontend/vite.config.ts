@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -5,6 +6,13 @@ import react from '@vitejs/plugin-react';
 // A kiosk that needs CORS configured to work is a kiosk that stops working at a venue.
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // Only for shadcn-style components vendored into src/components/ui/, which import each
+    // other via "@/..." by convention. Nothing else in this codebase uses this alias.
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: {
     port: 5173,
     proxy: {
