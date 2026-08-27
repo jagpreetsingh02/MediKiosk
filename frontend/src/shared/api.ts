@@ -1060,6 +1060,62 @@ export const api = {
       note: string;
     }>(`/api/v1/patients/${patientRef}/encounters`),
 
+  /**
+   * The auditor's screen for one encounter. Every call carries `purpose=RESEARCH` because
+   * the auditor role is scoped to purposes [RESEARCH, STATISTICS] in policy.yaml, and the
+   * purpose check defaults to TREATMENT when unspecified — an auditor calling without one
+   * is refused for that reason alone, found the hard way once already.
+   */
+  auditReview: (encounterRef: string) =>
+    request<{
+      encounterRef: string;
+      occurredOn: string;
+      confirmedBy: string;
+      consentRef: string | null;
+      chain: {
+        intact: boolean;
+        eventsChecked: number;
+        totalEvents: number;
+        firstBrokenIndex: number | null;
+        firstBrokenEventId: number | null;
+        detail: string | null;
+      };
+      trail: {
+        id: number;
+        ts: string;
+        actor: string;
+        actorRole: string;
+        purposeOfUse: string;
+        action: string;
+        outcome: string;
+        modelName: string | null;
+      }[];
+      provenance: {
+        totalFacts: number;
+        withEvidence: number;
+        withExplicitAbsence: number;
+        offenders: { factRef: string; path: string; state: string }[];
+        complete: boolean;
+      };
+      noAssessmentClaim: {
+        clean: boolean;
+        offenders: { field: string; path: string }[];
+      };
+    }>(`/api/v1/audit/encounters/${encounterRef}?purpose=RESEARCH`),
+
+  auditTamperDemo: () =>
+    request<{
+      available: boolean;
+      eventsInDemo: number;
+      tamperedEventId: number | null;
+      tamperedField: string | null;
+      originalValue: string | null;
+      corruptedValue: string | null;
+      detected: boolean;
+      firstBrokenIndex: number | null;
+      note: string;
+    }>('/api/v1/audit/tamper-demo?purpose=RESEARCH'),
+
   /** Account STUB. Always refuses, in the same words for every cause — see routes_account. */
   signIn: (identifier: string, password: string) =>
     request<{ ok: boolean }>('/api/v1/account/sign-in', {

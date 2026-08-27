@@ -44,12 +44,18 @@ type SidePanel = 'source' | 'timeline' | 'verify' | 'conflicts';
  */
 type MainView = 'brief' | 'visit' | 'timeline' | 'medications' | 'similar' | 'documents';
 
-const MAIN_VIEWS: { id: MainView; label: string }[] = [
+const MAIN_VIEWS: { id: MainView; label: string; title?: string }[] = [
   // First, and the default: the brief is the answer to "what did we get back for
   // all that input". Everything after it is a way of drilling into one part of it.
   { id: 'brief', label: 'Clinical brief' },
   { id: 'visit', label: 'Current visit' },
-  { id: 'timeline', label: 'Timeline' },
+  {
+    id: 'timeline',
+    label: 'Timeline',
+    // Distinct from the side panel's "Uploads" tab, which is only today's documents — this
+    // is the patient's whole record, and the two used to share the name "Timeline".
+    title: "The patient's whole record across every past visit, not just this session",
+  },
   { id: 'medications', label: 'Medications' },
   { id: 'similar', label: 'Similar visits' },
   { id: 'documents', label: 'Documents' },
@@ -66,6 +72,12 @@ export function PhysicianApp(): JSX.Element {
   const [selected, setSelected] = useState<number | null>(null);
   const [panel, setPanel] = useState<SidePanel>('source');
   const [view, setView] = useState<MainView>('visit');
+  /** Both default open — these hide chrome that is useful sometimes, not chrome that should
+   *  start hidden. A judge or a physician sees the same screen either way until they choose
+   *  to simplify it. */
+  const [queueVisible, setQueueVisible] = useState(true);
+  const [juryVisible, setJuryVisible] = useState(true);
+  const [sideVisible, setSideVisible] = useState(true);
   const [context, setContext] = useState<PatientContext | null>(null);
   const [documents, setDocuments] = useState<SessionDocument[]>([]);
   const [evidence, setEvidence] = useState<{
@@ -288,7 +300,12 @@ export function PhysicianApp(): JSX.Element {
     // smaller targets, smaller reading sizes, tighter gutters. It no longer
     // changes a single colour: this surface and the kiosk share one ground and
     // one material, and differ only in how much of the record fits on screen.
-    <div className="phys" data-surface="clinical">
+    <div
+      className="phys"
+      data-surface="clinical"
+      data-queue-hidden={!queueVisible}
+      data-side-hidden={!sideVisible}
+    >
       {/* The same bar the hero wears, at clinical density. A physician arriving
           from the landing page keeps the mark, the material and the centre pill;
           only what the pill contains is theirs rather than the patient's. */}
@@ -305,6 +322,7 @@ export function PhysicianApp(): JSX.Element {
                   className={view === entry.id ? 'active' : undefined}
                   aria-selected={view === entry.id}
                   onClick={() => setView(entry.id)}
+                  title={entry.title}
                 >
                   {entry.label}
                   {entry.id === 'similar' && context.similar.length
@@ -317,10 +335,43 @@ export function PhysicianApp(): JSX.Element {
         }
         actions={
           <>
-            <span className="phys-keys" aria-hidden="true">
-              <kbd>1-9</kbd> patient · <kbd>j</kbd>/<kbd>k</kbd> line ·{' '}
-              <kbd>s</kbd>/<kbd>t</kbd>/<kbd>v</kbd> panel · <kbd>⌘↵</kbd> commit
-            </span>
+            <button
+              type="button"
+              className={`btn sm${queueVisible ? ' primary' : ''}`}
+              aria-pressed={queueVisible}
+              onClick={() => setQueueVisible((current) => !current)}
+              title="Show or hide the patient queue"
+            >
+              {queueVisible ? 'Hide queue' : 'Show queue'}
+            </button>
+            <button
+              type="button"
+              className={`btn sm${juryVisible ? ' primary' : ''}`}
+              aria-pressed={juryVisible}
+              onClick={() => setJuryVisible((current) => !current)}
+              title="Show or hide the engineering detail panel"
+            >
+              {juryVisible ? 'Hide jury view' : 'Show jury view'}
+            </button>
+            <button
+              type="button"
+              className={`btn sm${sideVisible ? ' primary' : ''}`}
+              aria-pressed={sideVisible}
+              onClick={() => setSideVisible((current) => !current)}
+              title="Show or hide the source, timeline, verify and conflicts panel"
+            >
+              {sideVisible ? 'Hide side panel' : 'Show side panel'}
+            </button>
+            <button
+              type="button"
+              className="btn sm"
+              title={
+                '1-9 opens a queued patient · j/k moves between summary lines\n' +
+                's/t/v/c switches the side panel · ⌘/Ctrl+Enter commits'
+              }
+            >
+              Shortcuts
+            </button>
             <span className="phys-actor">
               {actor} · {role}
             </span>
@@ -328,9 +379,11 @@ export function PhysicianApp(): JSX.Element {
         }
       />
 
-      <aside className="phys-queue">
-        <QueueList entries={queue} activeRef={activeRef} onSelect={(ref) => void open(ref)} />
-      </aside>
+      {queueVisible && (
+        <aside className="phys-queue">
+          <QueueList entries={queue} activeRef={activeRef} onSelect={(ref) => void open(ref)} />
+        </aside>
+      )}
 
       <main className="phys-main" ref={containerRef}>
         {error && <div className="phys-error">{error}</div>}
@@ -364,7 +417,14 @@ export function PhysicianApp(): JSX.Element {
         )}
 
         {summary && context?.reconciliation?.length ? (
-          <div className="phys-rec">
+          // Collapsed by default — the finding is real and worth surfacing, but not worth
+          // pushing the actual summary (what the physician is here to read) further down the
+          // screen for every patient who has one.
+          <details className="phys-rec">
+            <summary className="phys-rec-summary">
+              Needs medication reconciliation · {context.reconciliation.length}{' '}
+              {context.reconciliation.length === 1 ? 'finding' : 'findings'}
+            </summary>
             {context.reconciliation.map((finding, index) => (
               <div key={`${finding.kind}-${index}`} className="phys-rec-row">
                 <div className="phys-rec-status">{finding.status}</div>
@@ -382,7 +442,7 @@ export function PhysicianApp(): JSX.Element {
                 <p className="phys-rec-note">{finding.note}</p>
               </div>
             ))}
-          </div>
+          </details>
         ) : null}
 
         {summary && (
@@ -489,6 +549,7 @@ export function PhysicianApp(): JSX.Element {
         <div ref={sentinelRef} className="phys-end-sentinel" aria-hidden="true" />
       </main>
 
+      {sideVisible && (
       <aside className="phys-side">
         <div style={{ display: 'flex', gap: 5, marginBottom: 12 }}>
           <button
@@ -502,6 +563,7 @@ export function PhysicianApp(): JSX.Element {
             type="button"
             className={`btn sm${panel === 'timeline' ? ' primary' : ''}`}
             onClick={() => setPanel('timeline')}
+            title="Documents uploaded during this visit, organised by their own dates"
           >
             Timeline <kbd>t</kbd>
           </button>
@@ -589,6 +651,7 @@ export function PhysicianApp(): JSX.Element {
           />
         )}
       </aside>
+      )}
 
       {evidence && (
         <EvidenceDrawer
@@ -599,7 +662,7 @@ export function PhysicianApp(): JSX.Element {
         />
       )}
 
-      <JuryDrawer sessionRef={activeRef} />
+      {juryVisible && <JuryDrawer sessionRef={activeRef} />}
 
       <footer className="phys-bottom">
         {summary ? (

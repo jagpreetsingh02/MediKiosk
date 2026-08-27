@@ -437,6 +437,9 @@ async def commit(
             "hisStatus": pushed.status,
             "shared": allows_share,
             "entries": len(payload_json.get("entry", [])),
+            # Lets the auditor find every audit row for one encounter. Not clinical content —
+            # a reference, same class of thing consent_ref already is on this row.
+            "encounterRef": promotion.encounter_ref,
         },
     )
     # Commit the promotion and everything above it. If this raises, the capture session is

@@ -80,7 +80,12 @@
   height: 100vh;
   height: 100dvh;
   display: grid;
-  grid-template-columns: 288px minmax(0, 1fr) 400px;
+  /* Named as custom properties, not hardcoded twice, so the queue and side columns can each
+     collapse to 0 independently (see the [data-*-hidden] rules below) without needing one
+     selector per combination of the two. */
+  --phys-queue-w: 288px;
+  --phys-side-w: 400px;
+  grid-template-columns: var(--phys-queue-w) minmax(0, 1fr) var(--phys-side-w);
   /* The commit bar gets a real row rather than being auto-placed into an implicit one. */
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
@@ -93,6 +98,25 @@
   background: transparent;
   color: var(--mk-ink);
   font-size: var(--mk-text-sm);
+}
+
+/* Both toggled from the nav bar. The grid areas stay named 'queue'/'side' either way — only
+   the column custom property changes — so 'main'/'bottom' never need to know this happened,
+   and hiding one column is independent of the other. */
+.phys[data-queue-hidden='true'] {
+  --phys-queue-w: 0px;
+}
+
+.phys[data-queue-hidden='true'] .phys-queue {
+  display: none;
+}
+
+.phys[data-side-hidden='true'] {
+  --phys-side-w: 0px;
+}
+
+.phys[data-side-hidden='true'] .phys-side {
+  display: none;
 }
 
 /* ---------------------------------------------------------------- header --- */
@@ -124,15 +148,9 @@
   padding-right: var(--mk-space-5);
 }
 
-/* The keyboard legend and the signed-in actor, in the nav's right slot. The
-   legend is the first thing to go when the bar runs out of room — a physician
-   learns the shortcuts once; the queue and the record are needed every time. */
-.phys-keys {
-  font-size: var(--mk-text-2xs);
-  color: var(--mk-ink-subtle);
-  white-space: nowrap;
-}
-
+/* The signed-in actor, in the nav's right slot. The keyboard legend that used to sit next to
+   it is a `title` tooltip on a "Shortcuts" button now — a physician learns the shortcuts
+   once, and a judge does not need them spelled out in the bar on every screen. */
 .phys-actor {
   font-size: var(--mk-text-2xs);
   font-weight: var(--mk-weight-medium);
@@ -142,12 +160,6 @@
   background: var(--mk-light-05);
   box-shadow: var(--mk-edge-light);
   white-space: nowrap;
-}
-
-@media (max-width: 1400px) {
-  .phys-keys {
-    display: none;
-  }
 }
 
 .phys-brand {
@@ -866,10 +878,14 @@
 
 /* -------------------------------------------------- current vs history --- */
 
+/* A stacked card — head bar, then feature rows, then the foot — not a 2-column grid. This
+   used to say `grid-template-columns: 1fr 1fr`, which put the head bar in one column and the
+   entire feature grid in the other: the head rendered squeezed into half width while the
+   whole card stretched to whatever height the feature grid needed, leaving the other column
+   as ~1000px of empty space. The responsive rule further down already special-cased mobile
+   back to a single column, which is the tell that the base rule here was simply wrong. */
 .cvh {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--mk-space-5);
+  display: block;
 }
 
 .cvh-head {
@@ -930,6 +946,7 @@
 /* ---------------------------------------------------------------- login --- */
 
 .phys-login {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
@@ -937,13 +954,30 @@
   padding: var(--mk-space-8);
   background: var(--mk-bg);
   background-image: var(--mk-bg-ambient);
+  overflow: hidden;
+}
+
+/* The constellation effect sits behind the card, in place of the shared Ambient video for
+   this one screen — deliberately not touching Ambient itself, which stays mounted above the
+   router for every other route. --mk-bg-ambient above still shows first and stays underneath
+   as the fallback ground if the iframe is ever blocked. */
+.phys-login-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .phys-login-card {
+  position: relative;
+  z-index: 1;
   width: min(440px, 100%);
   padding: var(--mk-space-8);
   border-radius: var(--mk-radius-xl);
-  background: var(--mk-surface);
+  /* Solid, not glass — the ground behind this card now moves (the constellation field), and
+     --mk-surface's near-nothing fill (1% white) was designed for a still ground. Opaque so
+     the card reads cleanly regardless of what's animating behind it. */
+  background: var(--mk-surface-solid);
   border: 1px solid var(--mk-line-strong);
   box-shadow: var(--mk-shadow-xl);
 }
@@ -998,10 +1032,6 @@
   .phys-queue {
     border-right: none;
     border-top: 1px solid var(--mk-line);
-  }
-
-  .cvh {
-    grid-template-columns: 1fr;
   }
 }
 

@@ -31,9 +31,12 @@ export function CurrentVsHistory({ context, onOpenEncounter }: Props): JSX.Eleme
   // Labels come from the backend, which already holds them for the shared-feature list.
   const rows = (context.currentFeatures ?? []).filter((row) => row.values.length > 0);
 
+  // Collapsed by default — this is a lot of screen real estate for something that matters
+  // less than the summary itself, and the summary line below already says what it would
+  // have told you: how many features this visit shares with the last one.
   return (
-    <section className="cvh">
-      <div className="cvh-head">
+    <details className="cvh">
+      <summary className="cvh-head">
         <div>
           <span className="cvh-tag today">Today</span>
           <span className="cvh-date">This visit</span>
@@ -45,7 +48,10 @@ export function CurrentVsHistory({ context, onOpenEncounter }: Props): JSX.Eleme
             {match.headline ? ` · ${match.headline}` : ''}
           </span>
         </div>
-      </div>
+        {/* `match.band` is already words, not the count — see `_band()` on the backend, which
+            exists specifically so this never reads like a percentage or a probability. */}
+        <span className="cvh-band">{match.band}</span>
+      </summary>
 
       <div className="cvh-grid">
         {rows.map((row) => {
@@ -80,10 +86,6 @@ export function CurrentVsHistory({ context, onOpenEncounter }: Props): JSX.Eleme
       </div>
 
       <div className="cvh-foot">
-        <span className="cvh-band">
-          {match.sharedCount} shared {match.sharedCount === 1 ? 'feature' : 'features'} ·{' '}
-          {match.band}
-        </span>
         <button
           type="button"
           className="btn sm"
@@ -93,7 +95,7 @@ export function CurrentVsHistory({ context, onOpenEncounter }: Props): JSX.Eleme
         </button>
       </div>
       <p className="cvh-note">{match.note}</p>
-    </section>
+    </details>
   );
 }
 

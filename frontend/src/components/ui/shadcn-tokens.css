@@ -1,0 +1,15 @@
+/**
+ * shadcn's own semantic colour variables — a SEPARATE token system from src/design/theme.css,
+ * scoped to components vendored under src/components/ui/. shadcn primitives read these names
+ * (e.g. `border-border` -> hsl(var(--border))); the rest of the app never does and keeps
+ * reading --mk-* exclusively. Kept in its own file, in its own directory, so the two systems
+ * never have to agree with each other.
+ *
+ * Values are the dark set only — this app has no light-mode surfaces these primitives render
+ * on, so shadcn's usual light/dark pair is collapsed to the one this product actually uses.
+ */
+:root {
+  --background: 222 47% 6%;
+  --foreground: 210 20% 96%;
+  --border: 217 19% 22%;
+}

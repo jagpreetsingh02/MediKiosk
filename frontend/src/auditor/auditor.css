@@ -1,0 +1,145 @@
+/* The auditor screen. Clinical density — dense, tabular — since this is read by someone
+ * verifying a record, not by the patient it is about. Same material and palette as the rest
+ * of the product: glass surfaces, the shared accent, no green, no second visual language. */
+.ax {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-5);
+}
+
+.ax-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ax-lookup {
+  display: flex;
+  gap: var(--mk-space-3);
+  flex-wrap: wrap;
+}
+
+.ax-input {
+  flex: 1 1 320px;
+  min-height: var(--mk-touch-min);
+  padding: 10px 14px;
+  border-radius: var(--mk-radius-sm);
+  border: 1px solid var(--mk-light-18);
+  background: var(--mk-glass-fill);
+  color: var(--mk-ink);
+  font: inherit;
+  font-size: var(--mk-text-base);
+}
+
+.ax-input:focus-visible {
+  outline: none;
+  border-color: var(--mk-accent-edge);
+  box-shadow: var(--mk-shadow-focus);
+}
+
+.ax-section {
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-glass-fill);
+  border: 1px solid var(--mk-glass-edge-top);
+  backdrop-filter: blur(var(--mk-glass-blur));
+}
+
+.ax-section h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-2);
+  margin: 0 0 var(--mk-space-3);
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-semibold);
+}
+
+/* A checked-and-clean result is the accent, not a second "success" hue — the product has no
+   green, and a verified state is not a different kind of thing from the rest of the palette. */
+.ax-section[data-state='ok'] {
+  border-color: var(--mk-accent-edge);
+}
+
+.ax-section[data-state='broken'] {
+  border-color: var(--mk-danger-edge);
+  background: var(--mk-danger-soft);
+}
+
+.ax-verdict {
+  margin: 0;
+  font-size: var(--mk-text-sm);
+  line-height: 1.55;
+}
+
+.ax-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+  margin: 0;
+}
+
+.ax-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--mk-space-3);
+  font-size: var(--mk-text-sm);
+}
+
+.ax-row dt {
+  color: var(--mk-ink-muted);
+}
+
+.ax-row dd {
+  margin: 0;
+}
+
+.ax-offenders {
+  margin: var(--mk-space-3) 0 0;
+  padding-left: var(--mk-space-5);
+  font-size: var(--mk-text-sm);
+  color: var(--mk-danger-ink);
+}
+
+.ax-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--mk-text-sm);
+}
+
+.ax-table th {
+  padding: var(--mk-space-2) var(--mk-space-3);
+  border-bottom: 1px solid var(--mk-light-12);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-2xs);
+  font-weight: var(--mk-weight-semibold);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--mk-tracking-wide);
+}
+
+.ax-table td {
+  padding: var(--mk-space-2) var(--mk-space-3);
+  border-bottom: 1px solid var(--mk-light-05);
+  font-variant-numeric: tabular-nums;
+}
+
+.ax-section--tamper {
+  border-style: dashed;
+}
+
+.ax-tamper-result {
+  margin-top: var(--mk-space-4);
+  padding: var(--mk-space-4);
+  border-radius: var(--mk-radius-md);
+  background: var(--mk-light-03);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-2);
+}
+
+.ax-tamper-result code {
+  padding: 1px 6px;
+  border-radius: var(--mk-radius-xs);
+  background: var(--mk-light-08);
+  font-size: 0.9em;
+}

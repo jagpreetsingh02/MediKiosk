@@ -11,13 +11,21 @@ a contrast failure on the one component whose whole job is to warn a clinician.
 So: every hex, `rgb()`, `rgba()`, `hsl()` and Tailwind colour literal belongs in
 `frontend/src/design/theme.css` and nowhere else.
 
-TWO EXEMPTIONS, both narrow and both justified:
+THREE EXEMPTIONS, all narrow and all justified:
 
   * `frontend/src/hero/` — a verbatim port of the design in `ui/`. Its values are the SOURCE
     of the tokens, not a divergence from them, and rewriting them as tokens would destroy the
     thing that makes it a faithful port. It is exempt, and it is the reason the exemption list
     is a list of paths rather than a flag anyone can set.
   * `ui/` itself — not part of the application build at all.
+  * `frontend/src/components/ui/` — shadcn's own vendoring convention: components dropped here
+    are copy-pasted from an external source and owned/upgraded as a unit, not hand-edited to
+    match this app's palette. They bring their own colour system (shadcn's CSS variables, see
+    `components/ui/shadcn-tokens.css`) rather than drifting from this one. A component in this
+    folder that embeds a colour literal INSIDE an isolated, sandboxed document it builds at
+    runtime (an iframe `srcDoc`, for instance) is a different case again — that literal never
+    reaches this app's own stylesheet or DOM at all — but the folder-level exemption covers
+    both without needing to tell them apart.
 
 Run directly, or via `make lint`.
 """
@@ -35,7 +43,7 @@ FRONTEND = ROOT / "frontend" / "src"
 TOKEN_FILE = FRONTEND / "design" / "theme.css"
 
 #: Paths whose colour literals are the source of the tokens rather than a drift from them.
-EXEMPT_DIRS = (FRONTEND / "hero",)
+EXEMPT_DIRS = (FRONTEND / "hero", FRONTEND / "components" / "ui")
 
 SCANNED_SUFFIXES = {".css", ".ts", ".tsx", ".js", ".jsx"}
 

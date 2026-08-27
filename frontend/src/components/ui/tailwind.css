@@ -1,0 +1,10 @@
+/**
+ * Tailwind's own layers. `preflight` is disabled in tailwind.config.js, so `@tailwind base`
+ * below contributes no global element reset — it exists so Tailwind's own custom-property
+ * plumbing and the utility/component layers have somewhere to attach. Nothing in this file
+ * runs unless a class it generates is actually used, and `content` in tailwind.config.js is
+ * scoped to src/components/ui/ only.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
