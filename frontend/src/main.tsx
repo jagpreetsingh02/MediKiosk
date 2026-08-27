@@ -37,6 +37,7 @@ import { DemoLauncher } from './shared/DemoLauncher';
 import { BriefRoute } from './brief/BriefRoute';
 import { SignIn } from './account/SignIn';
 import { PatientPortal } from './patient/PatientPortal';
+import { AuditorScreen } from './auditor/AuditorScreen';
 import { Hero } from './hero/Hero';
 import { ToastProvider } from './design/ui';
 import { Ambient, type AmbientDepth } from './design/Ambient';
@@ -79,6 +80,7 @@ import './brief/brief.css';
 import './guest/demo.css';
 import './account/account.css';
 import './patient/patient.css';
+import './auditor/auditor.css';
 import './design/primitives.css';
 import './styles/kiosk-v2.css';
 import './styles/physician-v2.css';
@@ -97,6 +99,7 @@ const DEPTH: Record<string, AmbientDepth> = {
   '/sign-in': 'surface',
   '/patient': 'surface',
   '/patient/me': 'surface',
+  '/auditor': 'deep',
 };
 
 function Shell(): JSX.Element {
@@ -147,6 +150,8 @@ function Shell(): JSX.Element {
             {/* The patient reads their OWN record here, after a physician has confirmed it.
                 Identity is the mock ABHA IdP, unchanged. */}
             <Route path="/patient/:patientRef" element={<PatientPortal />} />
+            {/* Read-only. See app/audit/review.py and tests/test_auditor_role.py. */}
+            <Route path="/auditor" element={<AuditorScreen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </motion.div>

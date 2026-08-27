@@ -194,6 +194,14 @@ async def promote(
         encounter_ref=_ref("enc"),
         patient_id=patient.id,
         source_session_ref=session_row.session_ref,
+        # ⛔ WITHOUT THIS, `encounter.consent_ref` is null on every encounter promote() ever
+        # creates — the column exists (migration e42b36db0938) specifically so a committed
+        # encounter can still answer "what was the consent this was captured under?" after
+        # its capture session is purged, and the auditor's trail (app/audit/review.py) joins
+        # on exactly this column to find every audit_event for a visit. Found while building
+        # the auditor screen: a fresh commit through the real API still audited with an empty
+        # trail, because nothing had ever set this despite the column existing since Part 1.
+        consent_ref=session_row.consent_ref,
         occurred_at=session_row.created_at or datetime.now(UTC),
         kind="intake",
         language=session_row.language,
@@ -231,6 +239,16 @@ async def promote(
                 else (str(slot.value) if slot and slot.recorded else str(fact.value))
             ),
             tier=fact.tier.value,
+            # ⛔ WITHOUT THIS, EVERY FACT PROMOTED SINCE e42b36db0938 LANDS state="stated" —
+            # the column's Python-side default — REGARDLESS of its real tier. That migration's
+            # own docstring says the reasoning for the backfill: "those facts were all
+            # recorded from real spans, so their state genuinely is their tier." True at
+            # promotion time as much as at backfill time; this line is the half of that
+            # reasoning that was never carried into the write path. Found reviewing the
+            # provenance-completeness check for the auditor role, which reads `state`
+            # directly — a checker sitting next to a value it silently trusted would have
+            # been worse than not building the checker.
+            state=fact.tier.value,
             confidence=fact.confidence,
             confidence_status=(
                 "unavailable" if getattr(span, "asr_confidence", None) is None
@@ -238,6 +256,11 @@ async def promote(
                 else "measured"
             ),
             recorded_at=fact.recorded_at,
+            # Same defect, same column family: left to its server_default, this reads as
+            # "the instant this row was inserted" rather than "the instant the patient said
+            # it" — usually close, briefly, but not what the column means whenever promotion
+            # is not instantaneous with capture.
+            valid_from=fact.recorded_at,
         )
         db.add(row)
         await db.flush()
