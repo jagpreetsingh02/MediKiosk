@@ -954,3 +954,54 @@ kbd {
 .evi-quote.human { border-left-color: var(--accent); }
 .evi-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-3); }
 .evi-dispute { color: var(--warn, #a86a00); font-weight: 700; }
+
+/* ---------------------------------------------------------------- transcription audit
+ *
+ * The physician's view of the handwriting lane. Denser than the patient's, and it shows the
+ * numbers: a reviewer being asked to accept a machine reading cannot do it on adjectives.
+ *
+ * The transcription is monospaced and the interpretation is not — the typographic difference
+ * carries the distinction between "these are the characters on the page" and "this is what we
+ * made of them" without needing a label to be read.
+ */
+.audit { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; background: #fbfcfd; }
+.audit-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.audit-engine { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); }
+.audit-engine.warn { color: var(--warn); font-weight: 700; }
+
+.audit-row { border-top: 1px solid var(--line); padding: 12px 0; }
+.audit-row:first-of-type { border-top: 0; }
+.audit-row.unsure { background: var(--warn-soft); margin: 0 -14px; padding: 12px 14px; }
+
+.audit-tag {
+  display: inline-block; min-width: 92px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700;
+}
+.audit-raw code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px; color: var(--ink-2); overflow-wrap: anywhere;
+}
+.audit-interpreted { margin-top: 4px; font-size: 15px; }
+.audit-interpreted .unresolved { color: var(--warn); }
+
+.audit-candidates { margin: 6px 0 0 92px; padding: 0; list-style: none; font-size: 13px; color: var(--ink-2); }
+.audit-candidates li { padding: 2px 0; }
+
+.audit-fields { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0 0 92px; }
+.audit-field { font-size: 13px; }
+.audit-field dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.audit-field dd { margin: 0; }
+.audit-provenance { display: block; font-size: 11px; color: var(--ink-3); }
+
+.audit-scores { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 0 92px; font-size: 12px; color: var(--ink-3); }
+.audit-scores .warn { color: var(--warn); font-weight: 700; }
+.audit-scores .ok { color: var(--ok); font-weight: 700; }
+.audit-status { font-variant: small-caps; }
+
+.audit-full { margin-top: 10px; }
+.audit-full summary { font-size: 13px; color: var(--accent); cursor: pointer; }
+.audit-full pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: #f2f5f8; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 6px 0 0;
+}

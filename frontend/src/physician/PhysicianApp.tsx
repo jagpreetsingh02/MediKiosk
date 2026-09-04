@@ -31,6 +31,7 @@ import { SourcePanel } from './SourcePanel';
 import { StaffLogin } from './StaffLogin';
 import { SummaryPane } from './SummaryPane';
 import { TimelineView } from './TimelineView';
+import { TranscriptionAudit } from './TranscriptionAudit';
 import { VerificationLane, type PendingEntity } from './VerificationLane';
 
 type SidePanel = 'source' | 'timeline' | 'verify' | 'conflicts';
@@ -428,6 +429,14 @@ export function PhysicianApp(): JSX.Element {
             {documents.map((document) => (
               <section key={document.documentId} className="lt-year">
                 <h3 className="lt-year-label">{document.filename}</h3>
+                {/* Before the extracted entities, because the entities are conclusions and
+                    this is the evidence they were drawn from. */}
+                <TranscriptionAudit
+                  filename={document.filename}
+                  rawOcrText={document.rawOcrText ?? ''}
+                  medications={document.medications ?? []}
+                  backend={document.backend}
+                />
                 {document.extracted.map((item) => (
                   <article
                     key={item.itemId}

@@ -247,6 +247,72 @@ export interface ReviewAnswer {
   canCorrect: boolean;
 }
 
+/** One field of an interpreted prescription line, with its provenance.
+ *
+ *  `raw` is what the OCR produced and `value` is what it was understood as. `source` says
+ *  which of the two did the work — read off the paper, resolved through the abbreviation
+ *  table, or supplied by the medication dictionary — because those are three different
+ *  claims that would otherwise all render as plain text. */
+export interface InterpretedField {
+  value: string;
+  raw: string;
+  source: 'ocr' | 'bare' | 'abbreviation' | 'positional' | 'dictionary';
+  confidence: number;
+}
+
+export interface MedicationCandidate {
+  display: string;
+  generic: string;
+  brand: string | null;
+  score: number;
+  matchedOn: string;
+  matchedKind: 'generic' | 'brand' | 'abbreviation';
+}
+
+/** How the medicine's NAME was resolved — the field with the most room to be wrong.
+ *
+ *  `name: null` is a first-class outcome, not an error: it means we read something, we are
+ *  not confident enough to say what it is, and here is what it might be. */
+export interface NameMatch {
+  raw: string;
+  status: 'exact' | 'abbreviation' | 'normalised' | 'candidate' | 'illegible' | 'unknown';
+  name: string | null;
+  generic: string | null;
+  brand: string | null;
+  confidence: number;
+  needsConfirmation: boolean;
+  candidates: MedicationCandidate[];
+}
+
+/** One prescription line, read twice: literally, and for meaning.
+ *
+ *  `rawText` and `medication` must be rendered together. Showing the interpretation alone
+ *  removes the only means a patient or pharmacist has of checking it. */
+export interface InterpretedMedication {
+  rawText: string;
+  page: number;
+  engine: string;
+  medication: {
+    name: string | null;
+    generic: string | null;
+    brand: string | null;
+    strength: string | null;
+    dose: string | null;
+    form: string | null;
+    frequency: string | null;
+    duration: string | null;
+    route: string | null;
+    timing: string | null;
+    instruction: string | null;
+  };
+  fields: Record<string, InterpretedField>;
+  nameMatch: NameMatch;
+  ocrConfidence: number;
+  interpretationConfidence: number;
+  needsVerification: boolean;
+  sentence: string;
+}
+
 export interface ExtractedItem {
   itemId: string;
   kind: string;
@@ -279,6 +345,9 @@ export interface SessionDocument {
   verifiedBy: string | null;
   kind: string;
   extracted: ExtractedItem[];
+  rawOcrText: string;
+  interpretedText: string;
+  medications: InterpretedMedication[];
 }
 
 export interface UploadResult {
@@ -290,6 +359,11 @@ export interface UploadResult {
   lowConfidenceCount: number;
   documentKind: string;
   extracted: ExtractedItem[];
+  /** Exactly what the page appears to say. Never edited, never replaced. */
+  rawOcrText: string;
+  /** What MediKiosk read it as, as readable lines. */
+  interpretedText: string;
+  medications: InterpretedMedication[];
   needsVerification: {
     entityIndex: number;
     kind: string;

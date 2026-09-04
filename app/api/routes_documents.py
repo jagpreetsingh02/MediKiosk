@@ -81,6 +81,7 @@ async def upload(
             needs_verification=bool(result.needs_verification),
             pages_json=result.pages,
             entities_json=[e.to_dict() for e in result.entities] + result.needs_verification,
+            reading_json=result.reading.to_dict() if result.reading else None,
             # The bytes themselves. Without this the column stayed NULL, promotion copied a
             # NULL into durable evidence, and the physician's evidence drawer rendered a
             # bounding box over nothing for every document a patient actually uploaded —
@@ -289,6 +290,12 @@ async def list_documents(
                 "verifiedBy": row.verified_by,
                 "kind": classify_document(list(row.entities_json or [])),
                 "extracted": _addressed(list(row.entities_json or [])),
+                # Both halves travel together — see IngestResult.to_dict(). A screen that
+                # renders the interpretation without the transcription beside it has removed
+                # the only check anyone has on it.
+                "rawOcrText": (row.reading_json or {}).get("rawOcrText", ""),
+                "interpretedText": (row.reading_json or {}).get("interpretedText", ""),
+                "medications": (row.reading_json or {}).get("medications", []),
             }
             for row in rows
         ],

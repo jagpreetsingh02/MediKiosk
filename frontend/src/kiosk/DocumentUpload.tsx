@@ -89,6 +89,9 @@ export function DocumentUpload({
         filename={reviewing.filename}
         kind={reviewing.documentKind}
         items={reviewing.extracted}
+        rawOcrText={reviewing.rawOcrText}
+        medications={reviewing.medications}
+        backend={reviewing.backend}
         onDone={() => setReviewing(null)}
       />
     );

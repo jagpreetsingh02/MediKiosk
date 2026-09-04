@@ -15,8 +15,9 @@
  *    clinically important state, and collapsing it to either side loses information.
  */
 import { useState } from 'react';
-import { ApiError, api, type ExtractedItem } from '../shared/api';
+import { ApiError, api, type ExtractedItem, type InterpretedMedication } from '../shared/api';
 import { Icon } from '../shared/Icon';
+import { PrescriptionReading } from './PrescriptionReading';
 
 interface Props {
   sessionRef: string;
@@ -25,6 +26,11 @@ interface Props {
   /** prescription | lab_report | discharge_summary | other, from what was found on it. */
   kind: string;
   items: ExtractedItem[];
+  /** The page as it literally appears to read. Rendered beside the interpretation, never
+   *  instead of it. */
+  rawOcrText?: string;
+  medications?: InterpretedMedication[];
+  backend?: string;
   onDone: () => void;
 }
 
@@ -46,6 +52,9 @@ export function DocumentReview({
   filename,
   kind,
   items,
+  rawOcrText = '',
+  medications = [],
+  backend,
   onDone,
 }: Props): JSX.Element {
   const [decided, setDecided] = useState<Record<string, string>>({});
@@ -97,6 +106,15 @@ export function DocumentReview({
       </p>
 
       {error && <div className="kiosk-error">{error}</div>}
+
+      {/* Above the confirmation list, not instead of it. The list is where a patient makes
+          decisions; this is where they see what those decisions are about — the words on
+          their paper, and the reading of them, side by side. */}
+      <PrescriptionReading
+        rawOcrText={rawOcrText}
+        medications={medications}
+        backend={backend}
+      />
 
       <div className="extract-list">
         {checkable.map((item) => {
