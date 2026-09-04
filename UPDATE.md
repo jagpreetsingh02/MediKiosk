@@ -150,15 +150,26 @@ whose timing works.
 
 ### OCR backends, measured rather than argued about
 
-| Backend | Digital PDF | Clean scan | Degraded phone photo |
-|---|---|---|---|
-| `textlayer` | recall 1.00, conf 0.99 | *fails honestly* | *fails honestly* |
-| `tesseract` | recall 1.00, conf 0.86 | recall 1.00, conf 0.88 | recall 0.75–1.00, conf 0.61–0.83 |
+| Backend | Digital PDF | Clean scan | Degraded phone photo | Handwritten |
+|---|---|---|---|---|
+| `textlayer` | recall 1.00, conf 0.99 | *fails honestly* | *fails honestly* | *fails honestly* |
+| `tesseract` | recall 1.00, conf 0.86 | recall 1.00, conf 0.88 | recall 0.75–1.00, conf 0.61–0.83 | recall 0.25, conf 0.57 |
+| `trocr` | **not verified — the model is gated** | | | |
 
 The number that matters is the share routed to human verification: **0% on a clean PDF, 60% on a
 degraded lab photo**. That rise is the system working. Tesseract does not get quietly worse as
 quality falls — it stays roughly as accurate and becomes *less confident*, and the low-confidence
 lane converts that into human review instead of a wrong dosage in a record.
+
+On the handwritten fixture the interesting pair is **entity recall 0.25 against name resolution
+0.50**: the constrained matcher identifies medicines on lines the entity regex cannot parse at
+all, which is the whole reason the interpretation layer exists. Everything on that page went to
+a human, which for a 0.57-confidence read is correct.
+
+And the one number with a hard bound: **confidently wrong = 0** — medicines presented with
+`needsVerification: false` and the wrong name — across every engine, fixture and variant. Every
+other column is a quality measure; that one is a safety measure and is not traded against
+recall.
 
 ---
 
@@ -265,6 +276,20 @@ Three things turned out differently from the plan, all recorded here rather than
 - **Dashavidha Pariksha is patient-reportable subset only.** Classical Prakriti assessment rests
   on observation and pulse examination by a vaidya. The physician screen labels it
   "patient-reported, pending vaidya examination" (ADR-0009).
+- **The handwriting model itself has never been run.** `khedim/Medical-Prescription-OCR` is a
+  *gated* Hugging Face repo and 401s without an authorised token, so no number anywhere in this
+  repo describes the fine-tuned weights. What is verified is the pipeline around it — line
+  segmentation, per-crop inference, real per-token confidences, the fallback chain — proven
+  end to end against the ungated `microsoft/trocr-base-handwritten`. That generic checkpoint
+  read 1 of 12 lines on the handwritten fixture and the yield guard refused the page and fell
+  back to Tesseract, which is both the correct behaviour and an honest verdict on the base
+  checkpoint. `/about` reports `ocr.handwriting.tokenConfigured` so a judge can see, on the
+  machine in front of them, whether the model or the fallback is running.
+- **The medication dictionary is 85 entries.** Enough to demonstrate constrained matching and to
+  run the adversarial sweep against; not a formulary. A deployment replaces
+  `data/terminology/medications.json` with the hospital's own, which is why it is a file. A
+  medicine that is not in it is reported as unidentified — the safe failure — but that is still
+  a failure a real formulary would not have.
 - **The Bhashini backend is written but unverified against the live endpoint** — we have no
   government credentials. Request/response shapes follow the published pipeline contract; treat
   the first live call as an integration test.

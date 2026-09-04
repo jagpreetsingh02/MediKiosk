@@ -90,9 +90,21 @@ slot values, and smooth prose — and **never decides what to ask next**. Every 
 answerable by speech or by tap, and the patient can switch mid-answer.
 
 **Module B — document digitisation.** Upload → OCR → clinical entity extraction → chronological
-ordering → out-of-range flagging. An `OCRBackend` protocol with two implementations, benchmarked
-against ground truth rather than argued about. Handwriting goes to a low-confidence lane that
-**cannot** reach the record without a human.
+ordering → out-of-range flagging. An `OCRBackend` protocol with three implementations,
+benchmarked against ground truth rather than argued about. Handwriting goes to a
+low-confidence lane that **cannot** reach the record without a human.
+
+A handwritten prescription takes a longer road, because reading the characters is not the
+job — making them understandable is. The page is deskewed, denoised, cut into individual
+lines, and each line is read on its own by `khedim/Medical-Prescription-OCR`; dosing shorthand
+(BD, TDS, SOS, `1-0-1`) resolves by exact table lookup, and a misread medicine name is
+corrected only by constrained matching against a closed list, with a score. The result keeps
+**both** halves — what the paper appears to say, and what MediKiosk read it as — side by side
+on every screen, because an interpretation nobody can check against the original is not
+evidence. Nothing is invented: an unresolved name stays null and says so. See
+[ADR-0013](docs/adr/ADR-0013-handwriting-is-read-line-by-line-and-named-by-a-closed-list.md).
+The handwriting model is optional (`make setup-handwriting`) and every path it has ends at
+Tesseract.
 
 **Module C — summary generator.** Deterministic template assembly. After generation, every
 clinical claim must resolve to a `record_fact()` entry or generation **fails** — no
