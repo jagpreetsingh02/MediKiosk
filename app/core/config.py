@@ -121,10 +121,56 @@ class Settings(BaseSettings):
     vosk_model_dir: str | None = None
 
     # --- documents (Module B) ---
-    ocr_backend: Literal["textlayer", "tesseract"] = "textlayer"
+    #: Only consulted when a caller names an engine explicitly. Every patient upload is
+    #: routed by what the file IS — see `documents/backends.py::_chain`.
+    ocr_backend: Literal["textlayer", "tesseract", "trocr"] = "textlayer"
     #: Anything at or below this goes to the handwriting lane and is never auto-merged.
     ocr_low_confidence_threshold: float = 0.72
     max_upload_bytes: int = 20 * 1024 * 1024
+    #: Re-read the ambiguous lines with Tesseract and let disagreement cost confidence. Costs
+    #: one subprocess per ambiguous line, and only ever moves a line *toward* verification.
+    ocr_corroborate: bool = True
+
+    # --- handwriting OCR (Module B, the TrOCR lane) ---
+    #: The master switch. Off, `trocr` reports itself unavailable and every photograph goes
+    #: to Tesseract — which is exactly what happens anyway when torch is not installed, so
+    #: this is for turning the model off on a machine that *could* run it.
+    handwriting_ocr_enabled: bool = True
+    #: A TrOCR fine-tune on handwritten prescription lines. Verify a replacement reads single
+    #: LINES, not pages: a page-level model fails by returning one fluent line, silently.
+    trocr_model_id: str = "khedim/Medical-Prescription-OCR"
+    #: Used only when the fine-tune ships weights without tokenizer/image-processor configs,
+    #: which community checkpoints routinely do — the khedim repo has no
+    #: `preprocessor_config.json`, so its image processor always comes from here.
+    trocr_processor_id: str = "microsoft/trocr-base-handwritten"
+    #: Last resort for the tokenizer half. TrOCR's decoder is RoBERTa and shares its
+    #: vocabulary, and unlike the TrOCR checkpoints this one publishes a `tokenizer.json`,
+    #: which recent transformers releases require.
+    trocr_tokenizer_id: str = "roberta-base"
+    #: A Hugging Face access token. `khedim/Medical-Prescription-OCR` is a GATED repo: without
+    #: a token that has been granted access, the download 401s and the kiosk falls back to
+    #: Tesseract. Never logged — see `docs/adr/ADR-0013`.
+    hf_token: str | None = None
+    trocr_device: Literal["auto", "cpu", "cuda", "mps"] = "auto"
+    trocr_batch_size: int = 8
+    #: One prescription line. Well above the longest real one; a cap this low is also what
+    #: bounds the cost of a decoder that has started to loop.
+    trocr_max_new_tokens: int = 64
+    #: A page segmenting into more bands than this is not a prescription — it is a texture.
+    #: Refusing sends it to Tesseract in one pass instead of running hundreds of inferences.
+    trocr_max_lines: int = 60
+    #: Below this the model is guessing at strokes. The line is dropped, not recorded as
+    #: unreliable text: an invented medicine name in the verification lane is still an
+    #: invented medicine name on a physician's screen.
+    trocr_min_line_confidence: float = 0.35
+    #: The fraction of segmented lines the model must actually return text for before the
+    #: page is trusted. Below it the page goes to Tesseract *whole*, because a prescription
+    #: read in part is a prescription with medicines silently missing — and nothing
+    #: downstream can see the gap. See the guard in `trocr.py::_read_page`.
+    trocr_min_line_yield: float = 0.6
+    #: Matches `documents/render.py::RENDER_DPI`, so the boxes the physician sees were
+    #: measured against the image the physician is looking at.
+    trocr_render_dpi: int = 200
 
     # --- terminology (coding sidecar) ---
     namaste_version: str = "1.0"

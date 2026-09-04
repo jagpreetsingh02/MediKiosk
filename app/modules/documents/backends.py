@@ -1,18 +1,23 @@
-"""Module B — the `OCRBackend` protocol and two implementations.
+"""Module B — the `OCRBackend` protocol and three implementations.
 
-Two, deliberately, so they can be *benchmarked* rather than argued about. `eval/ocr_bench.py`
-runs both over the same fixture set and reports character accuracy, entity recall and mean
+Three, deliberately, so they can be *benchmarked* rather than argued about. `eval/ocr_bench.py`
+runs them over the same fixture set and reports character accuracy, entity recall and mean
 confidence per backend. Choosing an OCR engine on a slide is a guess; choosing one on a table
 is a decision.
 
 * **TextLayerOCR** — pulls the embedded text layer out of a digital PDF. Perfect accuracy when
   there is one (a lab portal printout, an e-prescription), useless when there is not. Zero
   dependencies beyond `pypdf`.
-* **TesseractOCR** — real OCR over rasterised pages. Handles scans and photos. Needs the
-  `tesseract` binary; degrades to a clear error rather than silently returning nothing.
+* **TesseractOCR** — real OCR over rasterised pages. Handles scans and printed photos. Needs
+  the `tesseract` binary; degrades to a clear error rather than silently returning nothing.
+  It is also the **fallback for everything**, which is why it must never be removed.
+* **MedicalPrescriptionTrOCR** (`trocr.py`) — `khedim/Medical-Prescription-OCR` over
+  individually segmented lines. The only engine here that can read a doctor's handwriting,
+  and the only one with a heavyweight optional dependency, so every failure path it has ends
+  in Tesseract rather than in an error the patient sees.
 
-Both return the same `OCRPage` shape, and both must supply a per-block confidence and bounding
-box, because Invariant 2 requires a page and a bbox for every `document`-tier fact.
+All three return the same `OCRPage` shape, and all three must supply a per-block confidence
+and bounding box, because Invariant 2 requires a page and a bbox for every `document`-tier fact.
 """
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.contracts.provenance import BoundingBox
 from app.core.errors import UpstreamUnavailable, ValidationError
@@ -41,6 +46,14 @@ class OCRBlock:
     #: True when the block came from a handwriting-shaped region. Routed to the
     #: low-confidence lane and never auto-merged into the record.
     handwritten: bool = False
+    #: Which engine actually produced this string. Provenance, not decoration: with three
+    #: engines behind one protocol and a fallback chain between them, "what read this line"
+    #: is a question the physician's evidence drawer has to be able to answer.
+    engine: str = ""
+    #: Agreement with a second engine's reading of the same region, in [0, 1], where one was
+    #: taken. `None` means no second opinion was sought — which is not the same as
+    #: disagreement, and the two must never render the same way.
+    corroboration: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -402,7 +415,27 @@ def _normalise(raw: tuple[int, int, int, int], page_w: int, page_h: int) -> Boun
     )
 
 
-_BACKENDS: dict[str, type] = {"textlayer": TextLayerOCR, "tesseract": TesseractOCR}
+def _trocr_class() -> type:
+    """Imported lazily. `trocr` imports this module for `OCRBlock`, so a module-level import
+    here would be a cycle, and it also pulls in Pillow-heavy preprocessing that a text-layer
+    read has no use for."""
+    from app.modules.documents.trocr import MedicalPrescriptionTrOCR
+
+    return MedicalPrescriptionTrOCR
+
+
+_BACKENDS: dict[str, Any] = {
+    "textlayer": TextLayerOCR,
+    "tesseract": TesseractOCR,
+    "trocr": _trocr_class,
+}
+
+
+def _backend_class(name: str) -> type | None:
+    entry = _BACKENDS.get(name)
+    if entry is None:
+        return None
+    return entry() if callable(entry) and not isinstance(entry, type) else entry
 
 
 
@@ -419,7 +452,36 @@ class UnsupportedMedia(ValidationError):
 #: default, a phone photo is a PNG, and the patient was told to set an environment variable.
 #: A patient cannot set an environment variable.
 _IMAGE_TYPES = ("image/",)
-_TEXT_TYPES = ("application/pdf", "text/plain")
+_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".heic")
+
+#: What `/about` says each engine is *for*. A demo audience reading three names and three
+#: booleans learns nothing; the interesting fact is that one of them is the fallback.
+_ROLE = {
+    "textlayer": "exact text layer from digital PDFs",
+    "tesseract": "printed scans and photographs — and the fallback for every other engine",
+    "trocr": "handwritten prescriptions, line by line (khedim/Medical-Prescription-OCR)",
+}
+
+
+def is_image(media_type: str, filename: str) -> bool:
+    return media_type.startswith(_IMAGE_TYPES) or filename.lower().endswith(_IMAGE_SUFFIXES)
+
+
+def _chain(media_type: str, filename: str) -> list[str]:
+    """The engines to try, in order, for a file nobody chose an engine for.
+
+    A photograph goes to the handwriting model first and lands on Tesseract if anything at
+    all goes wrong with it — a missing dependency, a failed download, an inference error, a
+    page that will not segment. A PDF goes to its text layer first, because when there is one
+    it is exact and no recognition can beat it, and falls through to the same two engines
+    when it turns out to be a scan wearing a `.pdf` extension.
+
+    Tesseract is last in every chain. That is the invariant this list encodes: the engine
+    with no optional dependencies and no network is always the floor.
+    """
+    if is_image(media_type, filename):
+        return ["trocr", "tesseract"]
+    return ["textlayer", "trocr", "tesseract"]
 
 
 def backend_for(media_type: str, filename: str, *, requested: str | None = None) -> OCRBackend:
@@ -432,50 +494,63 @@ def backend_for(media_type: str, filename: str, *, requested: str | None = None)
     if requested:
         return get_ocr_backend(requested)
 
-    lowered = filename.lower()
-    is_image = media_type.startswith(_IMAGE_TYPES) or lowered.endswith(
-        (".png", ".jpg", ".jpeg", ".webp", ".heic")
-    )
-    if is_image:
-        tesseract = get_ocr_backend("tesseract")
-        if not tesseract.available:
-            raise UpstreamUnavailable(
-                "This kiosk cannot read photographs at the moment."
-            )
-        return tesseract
-    return get_ocr_backend("textlayer")
+    for name in _chain(media_type, filename):
+        backend = get_ocr_backend(name)
+        if backend.available:
+            return backend
+    raise UpstreamUnavailable("This kiosk cannot read photographs at the moment.")
 
 
-def read_document(data: bytes, *, filename: str, media_type: str, requested: str | None = None):
-    """Read a document, retrying on an image-capable engine when the file turns out to be one.
+def read_document(
+    data: bytes, *, filename: str, media_type: str, requested: str | None = None
+) -> OCRResult:
+    """Read a document, walking down the engine chain until one of them actually reads it.
 
-    A PDF exported from a phone scanner app has no text layer, and `textlayer` is right to
-    refuse it — but refusing is not the patient's problem to solve. The retry is what makes
-    "Upload PDF" work for the documents people actually have.
+    Two distinct failures are retried, and the distinction matters:
+
+    * `UnsupportedMedia` — wrong engine for this file. A PDF exported from a phone scanner
+      app has no text layer, and `textlayer` is right to refuse it, but refusing is not the
+      patient's problem to solve.
+    * `UpstreamUnavailable` — right engine, could not do the job. The handwriting model is
+      not installed, or its download failed, or the page would not segment. Also not the
+      patient's problem.
+
+    An engine that raises anything else has a bug, and a bug must not be silently absorbed by
+    a fallback — it propagates.
     """
-    backend = backend_for(media_type, filename, requested=requested)
-    try:
-        return backend.read(data, filename=filename, media_type=media_type)
-    except UnsupportedMedia:
-        if requested:
-            raise
-        fallback = get_ocr_backend("tesseract")
-        if not fallback.available or fallback.name == backend.name:
-            raise
-        log.info(
-            "ocr.retrying_on_image_engine",
-            first=backend.name,
-            then=fallback.name,
-            media_type=media_type,
-        )
-        return fallback.read(data, filename=filename, media_type=media_type)
+    if requested:
+        return get_ocr_backend(requested).read(data, filename=filename, media_type=media_type)
+
+    chain = _chain(media_type, filename)
+    last: Exception | None = None
+    for position, name in enumerate(chain):
+        backend = get_ocr_backend(name)
+        if not backend.available:
+            continue
+        try:
+            return backend.read(data, filename=filename, media_type=media_type)
+        except (UnsupportedMedia, UpstreamUnavailable) as exc:
+            last = exc
+            remaining = [n for n in chain[position + 1 :] if get_ocr_backend(n).available]
+            if not remaining:
+                raise
+            log.info(
+                "ocr.falling_back",
+                first=name,
+                then=remaining[0],
+                media_type=media_type,
+                reason=str(exc)[:160],
+            )
+    if last is not None:
+        raise last
+    raise UpstreamUnavailable("This kiosk cannot read photographs at the moment.")
 
 
 def get_ocr_backend(name: str | None = None) -> OCRBackend:
     from app.core.config import settings
 
     chosen = name or settings.ocr_backend
-    backend_class = _BACKENDS.get(chosen)
+    backend_class = _backend_class(chosen)
     if backend_class is None:
         raise ValidationError(f"Unknown OCR backend {chosen!r}. Known: {sorted(_BACKENDS)}.")
     return backend_class()  # type: ignore[return-value]
@@ -484,7 +559,9 @@ def get_ocr_backend(name: str | None = None) -> OCRBackend:
 def available_backends() -> list[dict[str, object]]:
     """What `/about` reports, so a demo audience can see which engines are actually live."""
     out = []
-    for name, backend_class in _BACKENDS.items():
+    for name in _BACKENDS:
+        backend_class = _backend_class(name)
+        assert backend_class is not None
         instance = backend_class()
-        out.append({"name": name, "available": instance.available})
+        out.append({"name": name, "available": instance.available, "role": _ROLE[name]})
     return out

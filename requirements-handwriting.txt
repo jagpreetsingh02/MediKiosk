@@ -1,0 +1,17 @@
+# Optional: the handwriting OCR lane (app/modules/documents/trocr.py).
+#
+# NOT in requirements.txt on purpose. `make setup` on a fresh clone must stay a small, fast,
+# network-light install, and every path in the TrOCR backend already ends in Tesseract — so a
+# kiosk without these packages loses the handwriting model and nothing else. `/about` reports
+# `trocr: available=false` rather than pretending.
+#
+#     pip install -r requirements-handwriting.txt
+#
+# The model itself (`khedim/Medical-Prescription-OCR`) is a GATED Hugging Face repo: it
+# downloads only for an account that has been granted access. Set HF_TOKEN in .env, or run
+# `huggingface-cli login`. Without a token the download 401s, which the backend treats like
+# any other unavailability — it falls back to Tesseract and logs why.
+torch>=2.2
+transformers>=4.44
+tokenizers>=0.20
+torchvision>=0.17
