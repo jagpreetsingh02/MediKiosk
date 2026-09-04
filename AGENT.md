@@ -101,7 +101,13 @@ app/
   auth/ audit/   ported from SIH 25026 — see docs/PORTED.md
   api/           33 endpoints
 eval/            50 gold scripts + 12 held-out + runner + OCR benchmark
-frontend/src/    kiosk/ (patient) and physician/ (review) — one component per file
+frontend/src/    TWO WORKFLOWS, forked on the first screen (ADR-0016) — one component per file
+                 patient/     the patient's workspace: visits, timeline, medicines, papers, changes
+                 kiosk/       the patient's VISIT — their device, behind the same door
+                 physician/   the doctor's workspace: queue, next patient, review, commit
+                 record/      the three views BOTH roles read. Owned by neither; imports
+                              from neither. patient/ and physician/ never import each other,
+                              and tests/test_role_separation.py fails the build if they do
 ```
 
 ---

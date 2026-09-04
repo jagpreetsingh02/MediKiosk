@@ -351,6 +351,7 @@ export interface MedicationThread {
     dose: string | null;
     frequency: string | null;
     observedOn: string | null;
+    recordedAt: string | null;
     documentRef: string | null;
     encounterRef: string | null;
     encounterOn: string | null;

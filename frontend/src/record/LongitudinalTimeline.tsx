@@ -4,6 +4,12 @@
  * Every row names where it came from, because a timeline that cannot say why it believes a
  * date is a timeline the physician has to double-check elsewhere, which is worse than not
  * having one. Rows derived from a document open the original.
+ *
+ * ROLE-NEUTRAL, and in `record/` for that reason: the doctor's workspace and the patient's
+ * own record show the SAME rows from the SAME route, at different densities. There is no
+ * clinician-only field in this payload to filter out — see ADR-0015 — so there is nothing
+ * here that varies by who is reading. ADR-0016 is why it does not live in either role's
+ * folder.
  */
 import { useMemo, useState } from 'react';
 import type { TimelineRow } from '../shared/api';

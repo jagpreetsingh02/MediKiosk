@@ -1,10 +1,23 @@
 /**
- * One product, four surfaces, one ground.
+ * One product, TWO WORKFLOWS, one ground.
  *
- *   /          the hero — the front door, ported from `ui/`
- *   /intake    the kiosk (the patient's device)
- *   /physician the review workspace
+ *   /          the hero — the front door, and the fork: Patient or Doctor
+ *
+ *   /patient   the patient's own workspace — records, timeline, medicines, changes, uploads
+ *   /intake    the kiosk, which is the patient's *visit* and so sits behind that door
+ *
+ *   /doctor    the doctor's workspace — the queue, the next patient, review and commit
+ *   /physician the same workspace under its original path, kept so `?session=` deep links
+ *              from the demo launcher and any bookmarked URL keep working
+ *
  *   /demo      one-click synthetic cases for a jury
+ *   /auditor   read-only chain verification
+ *
+ * NOTHING IS SHARED BETWEEN THE TWO WORKSPACES AT THE ROUTE LEVEL, and the components below
+ * them are separated the same way: `patient/` and `physician/` never import from each other,
+ * and the three views both roles genuinely need — the timeline, the medication thread, the
+ * evidence drawer — live in `record/`, owned by neither. `tests/test_role_separation.py`
+ * fails the build if that stops being true. See ADR-0016.
  *
  * They used to share the typed API client and nothing else, on the theory that a surface built
  * for a non-literate patient and one built for a time-pressed clinician want opposite things
@@ -101,6 +114,7 @@ const DEPTH: Record<string, AmbientDepth> = {
   '/intake': 'surface',
   '/demo': 'surface',
   '/physician': 'deep',
+  '/doctor': 'deep',
   '/brief': 'deep',
   '/sign-in': 'surface',
   '/patient': 'surface',
@@ -146,6 +160,10 @@ function Shell(): JSX.Element {
           <Routes location={location}>
             <Route path="/" element={<Hero />} />
             <Route path="/intake" element={<KioskApp />} />
+            {/* The doctor's door, and the original path it answered to. Both render the
+                same workspace rather than one redirecting to the other: a redirect would
+                drop the `?session=` the demo launcher deep-links with. */}
+            <Route path="/doctor" element={<PhysicianApp />} />
             <Route path="/physician" element={<PhysicianApp />} />
             <Route path="/demo" element={<DemoLauncher />} />
             {/* The Clinical Intelligence Brief. Same payload, two audiences — the
@@ -153,8 +171,12 @@ function Shell(): JSX.Element {
             <Route path="/brief" element={<BriefRoute />} />
             {/* A stub, labelled as one on the screen itself. See account/SignIn.tsx. */}
             <Route path="/sign-in" element={<SignIn />} />
-            {/* The patient reads their OWN record here, after a physician has confirmed it.
-                Identity is the mock ABHA IdP, unchanged. */}
+            {/* The patient's workspace. `/patient` is the door on the hero and resolves the
+                record from the TOKEN; the `:patientRef` form is what a clinician-signed
+                session or an internal link uses. Same component, same authorisation — the
+                reference is never what grants access. Identity is the mock ABHA IdP,
+                unchanged. */}
+            <Route path="/patient" element={<PatientPortal />} />
             <Route path="/patient/:patientRef" element={<PatientPortal />} />
             {/* Read-only. See app/audit/review.py and tests/test_auditor_role.py. */}
             <Route path="/auditor" element={<AuditorScreen />} />

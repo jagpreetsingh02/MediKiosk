@@ -329,6 +329,61 @@
   color: var(--mk-light-45);
 }
 
+/* ============================================================== doors === */
+
+/* Two entry points, same weight. They wrap on a narrow screen rather than shrinking:
+   a role choice that has become two illegible half-pills is worse than a stacked one,
+   and the kiosk is as likely to be a phone as a wall-mounted tablet. */
+.hx-doors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* `hx-door` sits on top of `hx-cta`, so the pill keeps the hero's exact radius, material
+   and hover transition; only the axis and the padding change, to hold two lines. Written as
+   a two-class selector deliberately: `.hx-cta`'s own responsive rules are further down this
+   file, and at equal specificity the later rule would put the single-line pill's padding and
+   top margin back on a door. */
+.hx-cta.hx-door {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  margin-top: 0;
+  padding: 0.75rem 1.25rem;
+  min-width: 14rem;
+  flex: 1 1 14rem;
+  border-radius: var(--mk-radius-lg);
+}
+
+.hx-door__role {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.hx-door__note {
+  font-size: 0.75rem;
+  font-weight: 300;
+  line-height: 1.4;
+  color: var(--mk-light-60);
+}
+
+@media (min-width: 640px) {
+  .hx-doors {
+    gap: 1rem;
+    margin-top: 2rem;
+    /* Never wider than the headline above it — two doors spanning the full stage would
+       read as a toolbar rather than a choice. */
+    max-width: 34rem;
+  }
+
+  .hx-cta.hx-door {
+    padding: 0.875rem 1.5rem;
+  }
+}
+
 /* ============================================================== stats === */
 
 .hx-stats {

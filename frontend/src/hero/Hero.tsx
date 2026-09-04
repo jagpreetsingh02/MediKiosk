@@ -25,6 +25,21 @@
  * The background video is not here. It lives in `design/Ambient.tsx`, mounted once above the
  * router for the whole application — so the footage the patient sees behind this headline is
  * the same element, on the same frame, still playing, when they reach the consent screen.
+ *
+ * THE FRONT DOOR IS NOW TWO DOORS, and that is the one structural change since the port.
+ *
+ * It used to be one Start button that opened the intake, with the physician workspace reachable
+ * only from a link in the corner and the patient's own record from a sentence under the fold.
+ * That is a reasonable shape for a kiosk bolted to a wall in a corridor, where the only person
+ * who will ever touch it is a patient. It is the wrong shape for the product, because the
+ * product has exactly two kinds of user and they want opposite things on arrival: a patient
+ * wants their own record and today's visit, a doctor wants the list of people waiting. Making
+ * one of them the default and the other a corner link meant the doctor's half of the system
+ * was invisible on the screen that introduces the system.
+ *
+ * So the choice is the first interaction, stated in the two words the users would use about
+ * themselves — Patient, Doctor — and everything behind each door belongs to that role only.
+ * See ADR-0016.
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -35,7 +50,8 @@ import './hero.css';
 
 const NAV_LINKS = [
   { name: 'Home', to: '/', active: true },
-  { name: 'Physician review', to: '/physician', active: false },
+  { name: 'Patient', to: '/patient', active: false },
+  { name: 'Doctor', to: '/doctor', active: false },
   { name: 'Demo', to: '/demo', active: false },
 ];
 
@@ -104,7 +120,7 @@ export function Hero(): JSX.Element {
         </div>
 
         <div className="hx-nav__right">
-          <Link to="/physician" className="hx-round liquid-glass" aria-label="Staff sign in">
+          <Link to="/doctor" className="hx-round liquid-glass" aria-label="Doctor sign in">
             <UserIcon />
           </Link>
         </div>
@@ -136,7 +152,7 @@ export function Hero(): JSX.Element {
             <span className="hx-round liquid-glass">
               <UserIcon />
             </span>
-            <span>Staff</span>
+            <span>Doctor</span>
           </div>
         </div>
       </div>
@@ -165,13 +181,31 @@ export function Hero(): JSX.Element {
 
           <p className="hx-sub">Ready before you meet the doctor.</p>
 
-          <Link to="/intake" className="hx-cta liquid-glass">
-            Start
-          </Link>
-          <p className="hx-cta-note">Speak, tap or type — in your own language.</p>
+          {/* The choice, before anything else. Two doors, same weight — neither role is a
+              secondary case of the other, and the wording is what each person would call
+              themselves rather than what the system calls them ("intake", "physician
+              review"). `hx-cta` is kept on the first so the pill keeps the hero's exact
+              geometry; the browser suite does not key off either class. */}
+          <div className="hx-doors">
+            <Link to="/patient" className="hx-cta hx-door liquid-glass">
+              <span className="hx-door__role">I am a patient</span>
+              <span className="hx-door__note">
+                Your records, your medicines, and today&apos;s visit
+              </span>
+            </Link>
+
+            <Link to="/doctor" className="hx-cta hx-door liquid-glass">
+              <span className="hx-door__role">I am a doctor</span>
+              <span className="hx-door__note">
+                Who is waiting, and the history prepared for each of them
+              </span>
+            </Link>
+          </div>
 
           {/* No account, no personal details, no ABHA. Creates a synthetic record with a
-              history already in it, so the brief has something to show immediately. */}
+              history already in it, so the brief has something to show immediately. It opens
+              the intake directly, which is the patient door's own next screen — "try it"
+              means see the thing work, not choose a role first. */}
           <button
             type="button"
             className="hx-cta-secondary"
@@ -181,15 +215,6 @@ export function Hero(): JSX.Element {
             {startingDemo ? 'Setting up the demo…' : 'Try demo'}
           </button>
           {demoError && <p className="hx-cta-note">{demoError}</p>}
-
-          {/* The patient's own way back in, after a visit. Quiet: it is for returning
-              patients, not the primary action on the front door. */}
-          <p className="hx-cta-note">
-            Been seen already?{' '}
-            <Link to="/patient/me" className="hx-inline-link">
-              See your records
-            </Link>
-          </p>
         </div>
 
         <div className="hx-stats">

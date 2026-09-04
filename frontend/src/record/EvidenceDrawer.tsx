@@ -9,6 +9,10 @@
  * PDF inline may render it, may offer a download, or may show nothing, and none of those can
  * carry an overlay positioned in page coordinates — a box drawn at the wrong scale is worse
  * than no box, because it tells a physician the system read a line it did not read.
+ *
+ * ROLE-NEUTRAL, and in `record/` for that reason. "Show me the page this came off" is the
+ * same question with the same answer whoever asks it; the routes behind it differ, and the
+ * caller passes the URL. ADR-0016.
  */
 import { useEffect, useState } from 'react';
 import { api, type ExtractedItem } from '../shared/api';

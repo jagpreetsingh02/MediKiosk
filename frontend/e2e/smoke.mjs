@@ -104,7 +104,14 @@ const page = await ctx.newPage();
 track(page, 'kiosk');
 await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 check('landing renders', await page.locator('.lx-title').count() > 0);
-await page.getByRole('link', { name: /^Start$/ }).click();
+
+// The front door forks before the intake now: Patient, then Start a visit. Both steps are
+// asserted rather than skipped with a direct `goto('/intake')`, because the fork IS the
+// navigation this suite exists to catch breaking. See ADR-0016 and e2e/two-doors.mjs.
+await page.locator('.hx-door', { hasText: /patient/i }).first().click();
+await page.waitForSelector('.pp-start', { timeout: 24000 });
+check('the patient door reaches the patient surface', true);
+await page.locator('.pp-start').first().click();
 await page.waitForSelector('.language-option', { timeout: 24000 });
 
 await page.getByRole('button', { name: /^English/ }).click();

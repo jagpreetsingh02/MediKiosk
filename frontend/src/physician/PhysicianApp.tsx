@@ -1,11 +1,30 @@
 /**
- * The physician review surface.
+ * The doctor's workspace — the whole of it, and nothing that is not theirs.
+ *
+ * Reached from the Doctor door on the front screen (`/doctor`, and `/physician` which is the
+ * original path kept alive for the demo launcher's `?session=` deep links). Everything a
+ * doctor does with this system is here and only here:
+ *
+ *   who is waiting        the queue, priority-ordered by the server         QueueList
+ *   who is next           the head of that queue, said rather than implied  NextPatient
+ *   their prepared report the clinical brief, assembled deterministically   ClinicalReport
+ *   today's intake        the draft summary, line by line, with sources     SummaryPane
+ *   their whole record    timeline, medications, past visits, documents     record/, Similar…
+ *   adding a document     the same OCR front door the kiosk posts to        DocumentIntake
+ *   verifying and         the lane, the conflicts panel, and the commit —
+ *   committing            Invariant 4 lives at the bottom of this screen    CommitBar
+ *
+ * ⛔ NOTHING FROM THE PATIENT'S WORKSPACE APPEARS HERE, and structurally: this folder never
+ * imports from `patient/` or `kiosk/`. The three views both roles genuinely need live in
+ * `record/`, owned by neither. `tests/test_role_separation.py` fails the build if that
+ * changes. See ADR-0016.
  *
  * Keyboard-first, because a physician with 2–5 minutes per patient does not reach for a
  * mouse: 1–9 jumps to a queue entry, j/k moves through summary lines, s re-reads the source,
  * ⌘↵ commits. The whole review is doable without touching the trackpad.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ApiError,
   api,
@@ -22,10 +41,12 @@ import { JuryDrawer } from '../shared/JuryDrawer';
 import { CommitBar } from './CommitBar';
 import { ContradictionPanel } from './ContradictionPanel';
 import { CurrentVsHistory } from './CurrentVsHistory';
-import { EvidenceDrawer } from './EvidenceDrawer';
+import { EvidenceDrawer } from '../record/EvidenceDrawer';
 import { ClinicalReport } from './ClinicalReport';
-import { LongitudinalTimeline } from './LongitudinalTimeline';
-import { MedicationHistory } from './MedicationHistory';
+import { DocumentIntake } from './DocumentIntake';
+import { NextPatient } from './NextPatient';
+import { LongitudinalTimeline } from '../record/LongitudinalTimeline';
+import { MedicationHistory } from '../record/MedicationHistory';
 import { SimilarEncounters } from './SimilarEncounters';
 import { QueueList } from './QueueList';
 import { RedFlagBanner } from './RedFlagBanner';
@@ -58,7 +79,14 @@ const MAIN_VIEWS: { id: MainView; label: string; title?: string }[] = [
   },
   { id: 'medications', label: 'Medications' },
   { id: 'similar', label: 'Similar visits' },
-  { id: 'documents', label: 'Documents' },
+  {
+    id: 'documents',
+    label: 'Documents',
+    // THIS visit's papers, and where a new one is added. Documents from earlier visits are
+    // on the Timeline, filtered to Documents — the same distinction the side panel's
+    // "Timeline" tab draws, and worth naming here for the same reason.
+    title: "Papers uploaded during this visit, and where to add another. Earlier papers are on the Timeline.",
+  },
 ];
 
 export function PhysicianApp(): JSX.Element {
@@ -311,7 +339,7 @@ export function PhysicianApp(): JSX.Element {
           only what the pill contains is theirs rather than the patient's. */}
       <AppNav
         dense
-        context="Physician review"
+        context="Doctor workspace"
         center={
           summary && context?.known ? (
             <nav className="phys-views" aria-label="Record views">
@@ -335,6 +363,9 @@ export function PhysicianApp(): JSX.Element {
         }
         actions={
           <>
+            <Link to="/" className="btn sm" title="Back to home">
+              ← Home
+            </Link>
             <button
               type="button"
               className={`btn sm${queueVisible ? ' primary' : ''}`}
@@ -388,10 +419,11 @@ export function PhysicianApp(): JSX.Element {
       <main className="phys-main" ref={containerRef}>
         {error && <div className="phys-error">{error}</div>}
 
+        {/* Not "select a patient" — the queue is already ordered, so the screen says who.
+            Still reachable by 1–9 and by the sidebar; this only stops the doctor having to
+            work the ordering out for themselves. */}
         {!summary && !error && (
-          <div className="source-empty">
-            Select a patient from the queue, or press <kbd>1</kbd>–<kbd>9</kbd>.
-          </div>
+          <NextPatient entries={queue} onOpen={(ref) => void open(ref)} />
         )}
 
         {summary && context?.known && context.overview && (
@@ -488,6 +520,12 @@ export function PhysicianApp(): JSX.Element {
             onOpenEncounter={() => setView('timeline')}
           />
         )}
+        {/* A paper handed across the desk, or one that arrived after the intake ended.
+            Same route, same pipeline, same verification lane — see DocumentIntake. */}
+        {summary && view === 'documents' && activeRef && (
+          <DocumentIntake sessionRef={activeRef} onUploaded={() => open(activeRef)} />
+        )}
+
         {summary && view === 'documents' && (
           <div className="lt">
             {documents.length === 0 && (

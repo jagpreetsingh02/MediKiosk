@@ -16,6 +16,88 @@
   gap: var(--mk-space-4);
 }
 
+.pp-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--mk-space-4);
+}
+
+/* The one action on this screen that WRITES rather than reads, so it is not a text link like
+   Home and Sign out beside it. It is also not `.btn-secondary`: at patient density that is a
+   full-width-feeling slab sized for a thumb at arm's length, which is right inside a card and
+   wrong in a header row, where it becomes the largest object on the screen. A compact pill —
+   the tab row's own geometry — puts it between the two. */
+.pp-start {
+  padding: 0.5em 1.1em;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid var(--mk-accent-ink);
+  background: var(--mk-accent-soft);
+  color: var(--mk-ink);
+  font-size: var(--mk-text-sm);
+  font-weight: var(--mk-weight-bold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pp-start:hover,
+.pp-start:focus-visible {
+  background: var(--mk-glass-fill-hover);
+}
+
+/* The visit offer on the signed-out screen. A sentence rather than a second big button:
+   signing in is the primary path here, and two equal-weight actions on a screen that already
+   forked once is a fork too many. */
+.pp-or {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--mk-space-3);
+  margin: 0;
+  color: var(--mk-ink-muted);
+}
+
+/* On a phone the title and three actions on one row leave "Your record" wrapping mid-phrase
+   with the actions squeezed against it. Below this width the actions become their own row —
+   there is nothing competing for the vertical space, and the heading stays a heading. */
+@media (max-width: 640px) {
+  .pp-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--mk-space-3);
+  }
+
+  .pp-head__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+/* The panel switcher — "your visits" was the only view before; this is the patient-density
+   equivalent of the physician workspace's view pill (`AppNav`'s centre slot), just placed in
+   the body rather than the header, since the header here already carries sign-out. */
+.pp-tabs {
+  display: flex;
+  gap: var(--mk-space-2);
+  flex-wrap: wrap;
+}
+
+.pp-tab {
+  padding: 0.5em 1.1em;
+  border-radius: var(--mk-radius-pill);
+  border: 1px solid var(--mk-glass-edge-top);
+  background: var(--mk-glass-fill);
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+  cursor: pointer;
+}
+
+.pp-tab.active {
+  background: var(--mk-accent-soft);
+  color: var(--mk-ink);
+  border-color: var(--mk-accent-ink);
+  font-weight: var(--mk-weight-bold);
+}
+
 .pp-visits {
   display: flex;
   flex-direction: column;
@@ -75,15 +157,128 @@
   max-width: none;
 }
 
-/* The returning-patient link on the hero. Inline and quiet — it is for people who have
-   already been seen, not the front door's primary action. */
-.hx-inline-link {
-  color: var(--mk-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* ─────────────────────────────────────────────── papers, and adding one */
+
+/* A section title inside a tab. Quieter than `kiosk-title`, which is the screen's own
+   heading and must stay the only thing at that size on the page. */
+.pp-section-title {
+  font-size: var(--mk-text-lg);
+  font-weight: var(--mk-weight-bold);
+  margin: 0 0 var(--mk-space-3);
 }
 
-.hx-inline-link:hover,
-.hx-inline-link:focus-visible {
+.pp-records {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-6);
+}
+
+.pp-records__add {
+  padding-top: var(--mk-space-5);
+  border-top: 1px solid var(--mk-light-12);
+}
+
+/* When the upload has the tab to itself there is nothing above it, so the rule that
+   separated it from the list of existing papers has nothing to separate. */
+.pp-records__add[data-solo] {
+  padding-top: 0;
+  border-top: none;
+}
+
+.pp-records__sent {
+  margin-top: var(--mk-space-4);
+  color: var(--mk-ink);
+}
+
+.pp-papers,
+.pp-changelist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One card per document, and one per confirmed visit. Same material as `.pp-visit` — three
+   lists of the patient's own record should not be three different objects. */
+.pp-paper,
+.pp-change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-3);
+  padding: var(--mk-space-5);
+  border-radius: var(--mk-radius-lg);
+  background: var(--mk-glass-fill);
+  border: 1px solid var(--mk-glass-edge-top);
+  backdrop-filter: blur(var(--mk-glass-blur));
+}
+
+.pp-paper__when,
+.pp-change__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pp-paper__when strong,
+.pp-change__when strong {
+  font-size: var(--mk-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-change__what {
+  font-size: var(--mk-text-lg);
+  line-height: 1.4;
+}
+
+.pp-change__count {
+  margin: 0;
+  color: var(--mk-ink-muted);
+  font-size: var(--mk-text-sm);
+}
+
+.pp-paper__lines,
+.pp-change__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mk-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-paper__lines li,
+.pp-change__rows li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--mk-space-4);
+  border-left: 2px solid var(--mk-light-12);
+}
+
+.pp-paper__label,
+.pp-change__label {
+  line-height: 1.4;
+}
+
+.pp-paper__detail,
+.pp-change__detail,
+.pp-change__from {
+  font-size: var(--mk-text-sm);
+  color: var(--mk-ink-muted);
+  line-height: 1.4;
+}
+
+/* An unclear reading is never quiet. A patient who does not know a line was hard to read
+   cannot ask anyone to look at it again. */
+.pp-paper__unsure {
+  font-size: var(--mk-text-sm);
   color: var(--mk-accent-ink);
+}
+
+/* The button under each paper sits on its own line rather than inline with the readings,
+   so a page with one reading and a page with nine look like the same kind of card. */
+.pp-paper .btn-secondary {
+  align-self: flex-start;
 }

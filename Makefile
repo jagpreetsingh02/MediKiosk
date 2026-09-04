@@ -56,7 +56,8 @@ e2e:
 		&& node e2e/gate2.mjs && node e2e/gate3.mjs \
 		&& node e2e/guest-mode.mjs && node e2e/gate4.mjs \
 		&& node e2e/gate5.mjs \
-		&& node e2e/gate6-patient.mjs && node e2e/gate6-auditor.mjs
+		&& node e2e/gate6-patient.mjs && node e2e/gate6-auditor.mjs \
+		&& node e2e/two-doors.mjs
 
 api:
 	$(PY) -m uvicorn app.main:app --reload --port 8000
