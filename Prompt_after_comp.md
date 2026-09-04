@@ -1,12 +1,12 @@
-# MediKiosk — Immediate Implementation Prompt for Codex
+# Swastra — Immediate Implementation Prompt for Codex
 
-You have already audited the current MediKiosk repository.
+You have already audited the current Swastra repository.
 
 Now begin implementation.
 
 Do **not** redesign the application into another chatbot and do **not** perform another general audit unless necessary to execute the work below.
 
-The current product already has a good single-encounter foundation, but the visible application still does not communicate the real MediKiosk vision.
+The current product already has a good single-encounter foundation, but the visible application still does not communicate the real Swastra vision.
 
 The immediate goal is to transform it from:
 
@@ -111,7 +111,7 @@ Replace visual language such as:
 ```text
 AI Assistant
 Ask me anything
-Chat with MediKiosk
+Chat with Swastra
 ```
 
 with clinical-intake language such as:
@@ -183,7 +183,7 @@ Laboratory report
 
 This screen should immediately communicate:
 
-> This patient already has history in MediKiosk.
+> This patient already has history in Swastra.
 
 Do not expose real patient information.
 

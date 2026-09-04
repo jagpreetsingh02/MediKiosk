@@ -1,4 +1,4 @@
-# SIH26047 — MediKiosk
+# SIH26047 — Swastra
 ## Final Claude Code Build Prompt
 ### Upgrade the existing 28-question intake prototype into a hackathon-winning clinical intake platform
 
@@ -6,7 +6,7 @@
 
 ## 0. READ THIS FIRST
 
-You are working on an **existing MediKiosk codebase** for **Smart India Hackathon 2026, Problem Statement SIH26047**.
+You are working on an **existing Swastra codebase** for **Smart India Hackathon 2026, Problem Statement SIH26047**.
 
 The current website is **not empty**. It already has a basic patient intake flow where:
 
@@ -262,7 +262,7 @@ The first screen should make the product immediately understandable.
 Example:
 
 ```text
-MediKiosk
+Swastra
 Your health history, ready before you meet the doctor.
 
 [ Start Intake ]
@@ -810,7 +810,7 @@ Create a real consent screen, not one checkbox.
 Example:
 
 ```text
-MediKiosk requests permission to:
+Swastra requests permission to:
 
 [x] Collect today's symptom history
 [x] Use microphone for this session
@@ -1432,7 +1432,7 @@ Cut breadth before correctness.
 # 47. 90-SECOND HACKATHON DEMO TARGET
 
 ## 0–10 sec
-Open MediKiosk. Judge sees "Speak or tap in your preferred language." Select Tamil/Hindi/English.
+Open Swastra. Judge sees "Speak or tap in your preferred language." Select Tamil/Hindi/English.
 
 ## 10–30 sec
 Patient gives a synthetic complaint. System transcribes, extracts facts, asks adaptive follow-ups and shows mode switching.
@@ -1557,7 +1557,7 @@ Do **not** begin a full rewrite before showing this audit and plan.
 
 # 52. PRODUCT POSITIONING TO KEEP IN MIND
 
-MediKiosk should not be presented as:
+Swastra should not be presented as:
 
 > "An AI chatbot that asks medical questions."
 

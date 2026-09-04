@@ -2,7 +2,7 @@
  * Escalation, at the very top, impossible to scroll past.
  *
  * When nothing fired it says so explicitly rather than rendering nothing. A blank space where
- * a warning would be reads as "checked, all clear", and MediKiosk does not make that claim —
+ * a warning would be reads as "checked, all clear", and Swastra does not make that claim —
  * the rules are recall-biased detectors, not a clean bill of health (Invariant 3).
  */
 import type { Escalation } from '../shared/api';

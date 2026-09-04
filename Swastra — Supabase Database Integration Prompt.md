@@ -1,16 +1,16 @@
-# MediKiosk — Supabase Database Integration
+# Swastra — Supabase Database Integration
 
-The MediKiosk project will now use **Supabase PostgreSQL as its primary persistent database**.
+The Swastra project will now use **Supabase PostgreSQL as its primary persistent database**.
 
 The Supabase project is already connected/available in this Claude Code environment.
 
 Do not create a new Supabase project.
 
-Do not throw away working MediKiosk code.
+Do not throw away working Swastra code.
 
 Do not restart the application architecture.
 
-Your job is to inspect the existing persistence layer and safely migrate/extend it so that **Supabase becomes the durable database for MediKiosk's longitudinal patient-memory architecture**.
+Your job is to inspect the existing persistence layer and safely migrate/extend it so that **Supabase becomes the durable database for Swastra's longitudinal patient-memory architecture**.
 
 ---
 
@@ -123,7 +123,7 @@ Patient
 └── Current Encounter
 ```
 
-When the same patient returns later, MediKiosk should be able to load:
+When the same patient returns later, Swastra should be able to load:
 
 - previous visits;
 - previous structured symptoms;
@@ -1207,7 +1207,7 @@ Investigate and fix all likely failure points:
 - microphone and speaker permissions/state are confused;
 - current UI exposes a voice icon that is not actually wired to ASR/TTS.
 
-Use a provider abstraction so the rest of MediKiosk is not coupled to one service:
+Use a provider abstraction so the rest of Swastra is not coupled to one service:
 
 ```text
 SpeechToTextBackend

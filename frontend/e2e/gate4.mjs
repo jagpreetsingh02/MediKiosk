@@ -108,7 +108,7 @@ for (const [label, path] of Object.entries(saved)) {
     pages.every((p) => p.includes('NOT a diagnosis')));
   check(`  ${label}: every page is numbered with the right total`,
     pages.every((p, i) => p.includes(`Page ${i + 1} of ${pages.length}`)));
-  check(`  ${label}: the MediKiosk wordmark is present`, body.includes('MediKiosk'));
+  check(`  ${label}: the Swastra wordmark is present`, body.includes('Swastra'));
 }
 
 // The patient copy must not carry our bookkeeping.

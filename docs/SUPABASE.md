@@ -1,6 +1,6 @@
 # Supabase as the durable store
 
-*How MediKiosk connects, which connection string to use, and who owns the schema.*
+*How Swastra connects, which connection string to use, and who owns the schema.*
 
 ---
 

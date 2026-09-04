@@ -1,4 +1,4 @@
-# MediKiosk runtime dependencies. Plain venv + pip, per the build brief.
+# Swastra runtime dependencies. Plain venv + pip, per the build brief.
 fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic>=2.8

@@ -35,7 +35,7 @@ from app.contracts.history import Demographics
 from app.contracts.projection import project
 from app.contracts.provenance import Modality
 from app.contracts.record import FactLedger
-from app.core.errors import MediKioskError, TraceabilityError
+from app.core.errors import SwastraError, TraceabilityError
 from app.modules.dialogue.answers import record_answer, record_derived
 from app.modules.dialogue.machine import DialogueMachine, DialogueState
 from app.modules.dialogue.voice import handle_spoken_answer
@@ -177,7 +177,7 @@ def run_script(script: Script) -> ScriptResult:
         for derived_question, value, _code in machine.derived_questions():
             record_derived(machine, ledger, derived_question, value)
 
-    except MediKioskError as exc:
+    except SwastraError as exc:
         # Anything reaching here is a genuine harness or contract failure. Model
         # unavailability no longer lands here: `handle_spoken_answer` degrades to touch, so
         # a rate-limited run now measures the DEGRADED path rather than aborting, which is
@@ -416,7 +416,7 @@ def render(report: Report, *, label: str | None = None) -> str:
     n = len(report.results)
     lines = [
         "═" * 78,
-        f"  MediKiosk evaluation — {label or f'{n} synthetic gold scripts'}",
+        f"  Swastra evaluation — {label or f'{n} synthetic gold scripts'}",
         _backend_line(),
         "═" * 78,
         "",
@@ -569,7 +569,7 @@ def main() -> int:
     configure_logging("WARNING")
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    parser = argparse.ArgumentParser(description="Run the MediKiosk gold-script evaluation.")
+    parser = argparse.ArgumentParser(description="Run the Swastra gold-script evaluation.")
     parser.add_argument("--only", help="Run scripts whose id contains this substring.")
     parser.add_argument(
         "--strict",

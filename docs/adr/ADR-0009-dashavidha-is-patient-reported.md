@@ -22,6 +22,6 @@ would spot it immediately, which is worse than not offering it); omit the sectio
 statement asks for it, and the patient-reportable subset genuinely saves consultation time).
 
 **Consequences.** The output is a *starting point for* a vaidya's examination, not a
-substitute. `data/terminology/dashavidha.json` is also a MediKiosk-local CodeSystem — AYUSH has
+substitute. `data/terminology/dashavidha.json` is also a Swastra-local CodeSystem — AYUSH has
 not published one — and it says so in its own `publisher` field. When AYUSH publishes, the
 ingestion path is unchanged and only the JSON is replaced.

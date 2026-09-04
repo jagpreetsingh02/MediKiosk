@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.core.errors import MediKioskError
+from app.core.errors import SwastraError
 from app.modules.dialogue.ontology import load_ontology
 from app.modules.documents.backends import get_ocr_backend
 from app.modules.documents.entities import extract_entities
@@ -69,7 +69,7 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
             data, filename=path.name, media_type=MEDIA_TYPES.get(path.suffix, "application/pdf")
         )
         confident, needs_check = extract_entities(result, sex="female")
-    except MediKioskError as exc:
+    except SwastraError as exc:
         score.ok = False
         score.error = str(exc)[:120]
         return score

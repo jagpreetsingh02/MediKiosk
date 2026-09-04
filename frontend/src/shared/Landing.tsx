@@ -62,7 +62,7 @@ export function Landing(): JSX.Element {
         </motion.div>
 
         <motion.h1 className="lx-title" variants={riseV}>
-          MediKiosk
+          Swastra
         </motion.h1>
 
         <motion.p className="lx-tagline" variants={riseV}>
@@ -77,7 +77,7 @@ export function Landing(): JSX.Element {
         </motion.div>
 
         {/* The argument: one patient, four moments, one continuous record. */}
-        <motion.ol className="lx-spine" variants={riseV} aria-label="What MediKiosk remembers">
+        <motion.ol className="lx-spine" variants={riseV} aria-label="What Swastra remembers">
           {SPINE.map((entry) => (
             <li key={`${entry.year}-${entry.label}`} className="lx-spine__row" data-kind={entry.kind}>
               <span className="lx-spine__year">{entry.year}</span>

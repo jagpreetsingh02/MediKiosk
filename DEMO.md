@@ -1,4 +1,4 @@
-# MediKiosk — the two-minute demo
+# Swastra — the two-minute demo
 
 Read `docs/DEMO-DAY.md` the morning of. This file is the script itself.
 

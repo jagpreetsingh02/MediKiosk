@@ -8,7 +8,7 @@ because the resource list is different and the reasoning needed re-checking agai
 Pydantic v2 throughout.
 
 **Decision.** Build with `fhir.resources.R4B` (4.3.0) models and stamp `fhirVersion: 4.0.1`.
-For every resource MediKiosk emits — Composition, Condition, MedicationStatement,
+For every resource Swastra emits — Composition, Condition, MedicationStatement,
 AllergyIntolerance, Observation, Patient, Consent, DocumentReference, Provenance, Flag,
 OperationOutcome — R4B is structurally identical to R4. `app/fhir/r4.py` is the single import
 point, and `R4B_ONLY_ELEMENTS` records the elements that exist in R4B but not 4.0.1 so a test
@@ -21,4 +21,4 @@ library is that it validates); emit R4B and say so (does not satisfy the ABDM IG
 **Consequences.** The claim on the wire has to be verified rather than trusted, which is what
 `tests/test_fhir_r4_surface.py` is for. The 25026 repo's version of this ADR covered
 ConceptMap and ValueSet; those are not emitted here, and the R5-vocabulary-leak concern it
-recorded does not apply to MediKiosk at all.
+recorded does not apply to Swastra at all.

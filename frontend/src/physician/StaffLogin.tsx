@@ -43,10 +43,10 @@ export function StaffLogin({ onSignedIn }: Props): JSX.Element {
   return (
     <div className="phys-login">
       <div className="phys-login-bg" aria-hidden="true">
-        <ConstellationField mode="dark" density={0.85} speed={0.6} opacity={0.9} />
+        <ConstellationField mode="light" density={0.85} speed={0.6} opacity={0.9} />
       </div>
       <div className="phys-login-card">
-        <h1 style={{ fontSize: 22, margin: '0 0 6px' }}>MediKiosk — physician review</h1>
+        <h1 style={{ fontSize: 22, margin: '0 0 6px' }}>Swastra — physician review</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55, margin: '0 0 20px' }}>
           Mock issuer. Tokens are locally signed and labelled <code>mock: true</code>.
         </p>

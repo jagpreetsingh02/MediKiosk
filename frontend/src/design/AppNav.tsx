@@ -34,10 +34,10 @@ interface Props {
 export function AppNav({ context, center, actions, dense = false }: Props) {
   return (
     <header className={`mk-nav${dense ? ' mk-nav--dense' : ''}`}>
-      <Link to="/" className="mk-nav__brand" aria-label="MediKiosk home">
+      <Link to="/" className="mk-nav__brand" aria-label="Swastra home">
         <BrandMark size={dense ? 26 : 32} />
         <span className="mk-nav__brand-text">
-          <span className="mk-nav__name">MediKiosk</span>
+          <span className="mk-nav__name">Swastra</span>
           {context && <span className="mk-nav__context">{context}</span>}
         </span>
       </Link>

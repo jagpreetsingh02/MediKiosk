@@ -20,7 +20,7 @@ ICD_MMS_SYSTEM = "http://id.who.int/icd/release/11/mms"
 NAMASTE_SYSTEM_BASE = "https://ayush.gov.in/fhir/CodeSystem/namaste"
 SNOMED_SYSTEM = "http://snomed.info/sct"
 LOINC_SYSTEM = "http://loinc.org"
-#: Dashavidha Pariksha parameters. A MediKiosk-local CodeSystem until AYUSH publishes one.
+#: Dashavidha Pariksha parameters. A Swastra-local CodeSystem until AYUSH publishes one.
 DASHAVIDHA_SYSTEM = "https://medikiosk.local/fhir/CodeSystem/dashavidha-pariksha"
 TEST_SYSTEM = "http://example.org/test-cs"  # fixtures ONLY
 
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     )
 
     # --- app ---
-    app_name: str = "medikiosk"
+    app_name: str = "swastra"
     environment: Literal["dev", "test", "prod"] = "dev"
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
@@ -116,7 +116,7 @@ class Settings(BaseSettings):
     #: service-role JWT.
     supabase_secret_key: str | None = None
     #: Where Supabase publishes the JWKS for its own Auth. Recorded for completeness;
-    #: MediKiosk verifies its own mock-ABHA tokens and does not use Supabase Auth (§5).
+    #: Swastra verifies its own mock-ABHA tokens and does not use Supabase Auth (§5).
     supabase_jwks_url: str | None = None
     #: Private bucket for prescription and report images.
     supabase_storage_bucket: str = "medical-documents"

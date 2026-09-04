@@ -99,7 +99,7 @@ def test_every_page_is_numbered_and_knows_the_total(clinician_pdf: bytes) -> Non
 def test_the_wordmark_and_encounter_identity_are_present(clinician_pdf: bytes) -> None:
     """What makes a printout filable: whose it is, and which visit."""
     body = "\n".join(_pages(clinician_pdf))
-    assert "MediKiosk" in body
+    assert "Swastra" in body
     assert "enc_pdf" in body, "no encounter reference — the page cannot be filed"
     assert "2026-01-18" in body, "no encounter date"
 

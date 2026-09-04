@@ -12,7 +12,7 @@
  * Three things earned a deliberate substitution, each for a reason beyond taste:
  *
  *   The badge pill. It held four stock portraits and "our path to natural wellness". It now
- *   holds the sentence that is not allowed to move: MediKiosk does not diagnose. That line is a
+ *   holds the sentence that is not allowed to move: Swastra does not diagnose. That line is a
  *   product rule, not copy — it must be above the fold on the first screen — and the badge is
  *   the element that sits above the fold on the first screen. Same pill, same faces, same type.
  *
@@ -64,9 +64,9 @@ export function Hero(): JSX.Element {
   return (
     <div className="hx">
       <nav className="hx-nav">
-        {/* The mark is MediKiosk's own — a pulse line closing into a ring — drawn at the
+        {/* The mark is Swastra's own — a pulse line closing into a ring — drawn at the
             original's dimensions and weight so the corner of the screen keeps its balance. */}
-        <Link to="/" className="hx-brand" aria-label="MediKiosk home">
+        <Link to="/" className="hx-brand" aria-label="Swastra home">
           <svg
             className="hx-brand__mark"
             viewBox="0 0 40 40"
@@ -92,7 +92,7 @@ export function Hero(): JSX.Element {
               strokeLinejoin="round"
             />
           </svg>
-          <span className="hx-brand__name">MediKiosk</span>
+          <span className="hx-brand__name">Swastra</span>
         </Link>
 
         <div className="hx-links liquid-glass">

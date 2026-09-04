@@ -1,4 +1,4 @@
-# MediKiosk migration plan
+# Swastra migration plan
 
 Date: 24 August 2026
 

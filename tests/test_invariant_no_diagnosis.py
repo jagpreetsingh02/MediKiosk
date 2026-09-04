@@ -31,7 +31,7 @@ def test_clinical_history_has_no_assessment_field() -> None:
     """The contract's *shape* forbids an assessment. Nothing to remember, nothing to forget."""
     offenders = _all_field_names(ClinicalHistory) & FORBIDDEN_CLINICAL_FIELDS
     assert not offenders, (
-        f"ClinicalHistory grew assessment-shaped field(s): {sorted(offenders)}. MediKiosk "
+        f"ClinicalHistory grew assessment-shaped field(s): {sorted(offenders)}. Swastra "
         "produces a history, never an assessment."
     )
 

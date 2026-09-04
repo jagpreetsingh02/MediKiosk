@@ -1,12 +1,12 @@
 """Domain errors. Every one of these maps to a FHIR OperationOutcome at the edge.
 
-Ported from SIH 25026 `app/core/errors.py`, extended with the MediKiosk invariant errors.
+Ported from SIH 25026 `app/core/errors.py`, extended with the Swastra invariant errors.
 """
 
 from __future__ import annotations
 
 
-class MediKioskError(Exception):
+class SwastraError(Exception):
     """Base class. `issue_code` is a FHIR IssueType code."""
 
     issue_code = "processing"
@@ -41,7 +41,7 @@ class MediKioskError(Exception):
 # ---------------------------------------------------------------- invariant violations
 
 
-class InvariantViolation(MediKioskError):
+class InvariantViolation(SwastraError):
     """An architectural invariant was breached. Never caught-and-continued anywhere."""
 
     issue_code = "business-rule"
@@ -66,14 +66,14 @@ class DeEscalationAttempt(InvariantViolation):
     """Invariant 3 — something tried to lower a triage priority. Red flags are additive."""
 
 
-class ConsentRequired(MediKioskError):
+class ConsentRequired(SwastraError):
     """Invariant 6 — capture attempted before granular consent was granted."""
 
     issue_code = "forbidden"
     http_status = 403
 
 
-class SessionExpired(MediKioskError):
+class SessionExpired(SwastraError):
     issue_code = "expired"
     http_status = 410
 
@@ -81,7 +81,7 @@ class SessionExpired(MediKioskError):
 # ---------------------------------------------------------------- terminology (ported)
 
 
-class UnknownCodeError(MediKioskError):
+class UnknownCodeError(SwastraError):
     """The guard refused: this code is not in a loaded CodeSystem at the pinned version."""
 
     issue_code = "code-invalid"
@@ -91,7 +91,7 @@ class NotSelectableError(UnknownCodeError):
     issue_code = "business-rule"
 
 
-class UnknownSystemError(MediKioskError):
+class UnknownSystemError(SwastraError):
     issue_code = "not-supported"
 
 
@@ -103,28 +103,28 @@ class VersionMismatchError(UnknownCodeError):
 # ---------------------------------------------------------------- access & transport
 
 
-class PolicyDenied(MediKioskError):
+class PolicyDenied(SwastraError):
     issue_code = "forbidden"
     http_status = 403
 
 
-class AuthError(MediKioskError):
+class AuthError(SwastraError):
     issue_code = "security"
     http_status = 401
 
 
-class ValidationError(MediKioskError):
+class ValidationError(SwastraError):
     issue_code = "invalid"
     http_status = 400
 
 
-class LLMContractError(MediKioskError):
+class LLMContractError(SwastraError):
     """LLM output failed Pydantic validation. A hard failure, never a free-text fallback."""
 
     issue_code = "processing"
     http_status = 502
 
 
-class UpstreamUnavailable(MediKioskError):
+class UpstreamUnavailable(SwastraError):
     issue_code = "transient"
     http_status = 503

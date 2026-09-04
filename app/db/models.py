@@ -102,7 +102,7 @@ class AuditEvent(Base):
     response_summary: Mapped[dict | None] = mapped_column(JSON)
     versions_used: Mapped[dict | None] = mapped_column(JSON)
     outcome: Mapped[str] = mapped_column(String(32), default="success")
-    #: MediKiosk addition: every AI call is auditable by model, version and prompt hash.
+    #: Swastra addition: every AI call is auditable by model, version and prompt hash.
     model_name: Mapped[str | None] = mapped_column(String(128))
     model_version: Mapped[str | None] = mapped_column(String(64))
     prompt_hash: Mapped[str | None] = mapped_column(String(64))

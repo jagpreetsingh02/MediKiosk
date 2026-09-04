@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.errors import MediKioskError
+from app.core.errors import SwastraError
 from app.fhir.r4 import OperationOutcome, OperationOutcomeIssue
 
 
@@ -29,7 +29,7 @@ def outcome(*issues: OperationOutcomeIssue) -> OperationOutcome:
 
 
 def outcome_from_error(
-    exc: MediKioskError, *, expression: list[str] | None = None
+    exc: SwastraError, *, expression: list[str] | None = None
 ) -> OperationOutcome:
     detail = exc.diagnostics
     if exc.details:

@@ -56,7 +56,7 @@ done
 cat <<BANNER
 
   ────────────────────────────────────────────────────────────────
-   MediKiosk is running
+   Swastra is running
 
      Kiosk (patient)       http://127.0.0.1:5173/
      Physician review      http://127.0.0.1:5173/physician

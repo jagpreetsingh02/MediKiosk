@@ -42,7 +42,7 @@ log = get_logger(__name__)
 
 class Priority(IntEnum):
     """Ordered so `max()` is the escalation operator. There is deliberately no level below
-    ROUTINE: MediKiosk never asserts that a patient is low-priority."""
+    ROUTINE: Swastra never asserts that a patient is low-priority."""
 
     ROUTINE = 0
     URGENT = 1

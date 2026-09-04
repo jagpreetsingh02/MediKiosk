@@ -1,4 +1,4 @@
-# MediKiosk
+# Swastra
 
 **Patient-facing clinical intake for SIH26047** — All India Institute of Ayurveda, Ministry of Ayush.
 
@@ -9,7 +9,7 @@ By the time they enter the consultation room, the physician's screen already sho
 **source-linked** clinical history and a chronological timeline of their prior records, ready to
 be reviewed, edited and confirmed.
 
-> **MediKiosk produces a history. It never produces a diagnosis.** No endpoint returns an
+> **Swastra produces a history. It never produces a diagnosis.** No endpoint returns an
 > assessment, a differential, or a disease probability. The physician diagnoses.
 
 ---

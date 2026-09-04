@@ -1,4 +1,4 @@
-# MediKiosk. Plain venv + pip, no uv, no poetry.
+# Swastra. Plain venv + pip, no uv, no poetry.
 
 VENV := .venv
 PY   := $(VENV)/bin/python

@@ -1,4 +1,4 @@
-# MediKiosk target architecture
+# Swastra target architecture
 
 Date: 24 August 2026
 

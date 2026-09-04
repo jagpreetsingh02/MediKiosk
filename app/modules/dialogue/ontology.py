@@ -247,7 +247,7 @@ def load_ontology(*, ayush: bool = False) -> Ontology:
     parts = [_load_file("core.yaml"), _load_file("ros.yaml")]
     if ayush:
         parts.append(_load_file("ayush.yaml"))
-    merged = _merge(parts, version=parts[0].version, title="MediKiosk clinical history")
+    merged = _merge(parts, version=parts[0].version, title="Swastra clinical history")
     _assert_unique(merged)
     return merged
 

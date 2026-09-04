@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { KioskShell } from '../design/KioskShell';
 import { ApiError, api, getToken, setToken } from '../shared/api';
 import { StateGlyph } from '../design/ui/StateGlyph';
+import ConstellationField from '../components/ui/constellation-field';
 
 type Review = Awaited<ReturnType<typeof api.auditReview>>;
 type TamperResult = Awaited<ReturnType<typeof api.auditTamperDemo>>;
@@ -94,20 +95,27 @@ export function AuditorScreen(): JSX.Element {
   if (!signedInAsAuditor) {
     return (
       <KioskShell wide>
-        <div className="ax">
-          <h1 className="kiosk-title">Auditor</h1>
-          <p className="kiosk-lead">
-            A read-only verifier over the hash-chained audit log and the provenance already
-            attached to every fact. It cannot create, edit or delete anything — see
-            <code> tests/test_auditor_role.py</code> for the proof, not just this sentence.
-          </p>
-          <div className="kiosk-actions">
-            <button type="button" className="btn-primary" onClick={signIn} disabled={busy}>
-              {busy ? 'Signing in…' : 'Continue as auditor'}
-            </button>
-            <button type="button" className="btn-quiet" onClick={() => navigate('/')}>
-              Back
-            </button>
+        <div className="ax ax--signin">
+          <div className="ax-bg" aria-hidden="true">
+            <ConstellationField mode="light" density={0.85} speed={0.6} opacity={0.9} />
+          </div>
+          {/* A solid card, for the same reason the clinician sign-in has one: this screen's
+              type is light-on-dark, and the ground behind it is now a pale gradient. */}
+          <div className="ax-signin-card">
+            <h1 className="kiosk-title">Auditor</h1>
+            <p className="kiosk-lead">
+              A read-only verifier over the hash-chained audit log and the provenance already
+              attached to every fact. It cannot create, edit or delete anything — see
+              <code> tests/test_auditor_role.py</code> for the proof, not just this sentence.
+            </p>
+            <div className="kiosk-actions">
+              <button type="button" className="btn-primary" onClick={signIn} disabled={busy}>
+                {busy ? 'Signing in…' : 'Continue as auditor'}
+              </button>
+              <button type="button" className="btn-quiet" onClick={() => navigate('/')}>
+                Back
+              </button>
+            </div>
           </div>
         </div>
       </KioskShell>

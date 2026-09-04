@@ -1,9 +1,9 @@
-# AGENT.md — working on MediKiosk
+# AGENT.md — working on Swastra
 
 Read this before changing anything. It is short on purpose; the long-form reasoning lives in
 `docs/`.
 
-MediKiosk is a patient-facing clinical intake platform for **SIH26047** (All India Institute of
+Swastra is a patient-facing clinical intake platform for **SIH26047** (All India Institute of
 Ayurveda, Ministry of Ayush). It produces a structured, source-linked clinical **history** for a
 physician to review before an OPD consultation. **It does not diagnose.**
 

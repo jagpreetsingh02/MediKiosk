@@ -3,7 +3,7 @@
 Changes on the way across (docs/PORTED.md): three columns added — `model_name`,
 `model_version`, `prompt_hash` — so Invariant 6's "every AI call is written to the audit log"
 is a property of the schema rather than of a convention; and the forbidden-key set widened to
-cover the free-text clinical fields MediKiosk handles that the terminology service never saw.
+cover the free-text clinical fields Swastra handles that the terminology service never saw.
 
 Each row stores `prev_hash` and its own `hash` over `prev_hash + canonical(row)`. Any edit to
 a historical row breaks every hash after it, and `/api/v1/audit/verify` reports the first
@@ -44,7 +44,7 @@ FORBIDDEN_KEYS = frozenset(
         "contained",
         "photo",
         "gender",
-        # MediKiosk additions: this service handles narrative, so the blast radius is wider.
+        # Swastra additions: this service handles narrative, so the blast radius is wider.
         "verbatim",
         "verbatim_translated",
         "transcript",

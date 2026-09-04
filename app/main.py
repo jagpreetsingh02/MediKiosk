@@ -1,4 +1,4 @@
-"""MediKiosk API. `uvicorn app.main:app --reload`.
+"""Swastra API. `uvicorn app.main:app --reload`.
 
 Startup does three things and says so in the log: create the schema (SQLite dev only; Alembic
 owns anything else), seed the terminology tables so the closed-vocabulary guard has something
@@ -28,7 +28,7 @@ from app.api import (
 )
 from app.auth import mock_idp
 from app.core.config import settings
-from app.core.errors import MediKioskError
+from app.core.errors import SwastraError
 from app.core.logging import configure_logging, get_logger
 from app.db.session import create_all, get_sessionmaker, wait_for_database
 from app.fhir.outcomes import outcome_from_error
@@ -115,7 +115,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="MediKiosk",
+    title="Swastra",
     version=__version__,
     description=(
         "Patient-facing clinical intake for SIH26047. Produces a structured, source-linked "
@@ -133,8 +133,8 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(MediKioskError)
-async def domain_error_handler(request: Request, exc: MediKioskError) -> JSONResponse:
+@app.exception_handler(SwastraError)
+async def domain_error_handler(request: Request, exc: SwastraError) -> JSONResponse:
     """Every domain error becomes a FHIR OperationOutcome. Ported behaviour from SIH 25026."""
     log.warning(
         "request.error",
@@ -164,7 +164,7 @@ app.include_router(mock_idp.router)
 @app.get("/")
 async def root() -> dict[str, Any]:
     return {
-        "name": "MediKiosk",
+        "name": "Swastra",
         "version": __version__,
         "docs": "/docs",
         "about": "/about",

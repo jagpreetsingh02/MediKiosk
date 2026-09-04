@@ -7,7 +7,7 @@ two rules carry across unchanged:
 * every `Coding` came out of `emit_coding()` — codes are retrieved, never generated;
 * nothing is emitted that does not exist in R4 4.0.1.
 
-A third rule is MediKiosk's own: **a `Provenance` resource for every clinical resource.** The
+A third rule is Swastra's own: **a `Provenance` resource for every clinical resource.** The
 provenance chain is not decoration here — it is the entire product. A Condition with no
 Provenance pointing at the utterance behind it should not exist in this bundle.
 """
@@ -46,7 +46,7 @@ from app.fhir.r4 import (
 #: bundle declares; it is not a code retrieved from a patient-facing lookup.
 LOINC_INTAKE_NOTE = ("http://loinc.org", "34117-2", "History and physical note")
 
-MEDIKIOSK_PROFILE = "https://medikiosk.local/fhir/StructureDefinition/IntakeSummary"
+SWASTRA_PROFILE = "https://medikiosk.local/fhir/StructureDefinition/IntakeSummary"
 
 
 def _uuid_ref() -> str:
@@ -107,10 +107,10 @@ def _provenance_for(
     return Provenance(
         target=[Reference(reference=target_ref)],
         recorded=datetime.now(UTC),
-        activity=_concept(f"{fact.tier.value} (MediKiosk provenance tier)"),
+        activity=_concept(f"{fact.tier.value} (Swastra provenance tier)"),
         agent=[
             {
-                "who": Reference(reference=device_ref, display="MediKiosk intake kiosk"),
+                "who": Reference(reference=device_ref, display="Swastra intake kiosk"),
                 "onBehalfOf": Reference(reference=patient_ref),
             }
         ],
@@ -161,10 +161,10 @@ def build_bundle(
             resource=Consent(
                 status="active",
                 scope=_concept("Patient privacy consent"),
-                category=[_concept("MediKiosk intake consent")],
+                category=[_concept("Swastra intake consent")],
                 patient=Reference(reference=patient_ref),
                 dateTime=datetime.now(UTC),
-                policyRule=_concept(f"MediKiosk consent policy {consent_ref}"),
+                policyRule=_concept(f"Swastra consent policy {consent_ref}"),
             ),
         )
     )
@@ -353,7 +353,7 @@ def build_bundle(
         subject=Reference(reference=patient_ref),
         date=datetime.now(UTC),
         author=[Reference(display=committed_by)],
-        title="MediKiosk pre-consultation intake history",
+        title="Swastra pre-consultation intake history",
         attester=[
             {
                 "mode": "legal",
@@ -369,7 +369,7 @@ def build_bundle(
             )
         ],
         text=_text(
-            "Patient-reported intake history captured by MediKiosk and confirmed by "
+            "Patient-reported intake history captured by Swastra and confirmed by "
             f"{committed_by}. Contains no assessment, diagnosis or treatment recommendation."
         ),
     )
@@ -382,7 +382,7 @@ def build_bundle(
             system="https://medikiosk.local/fhir/Bundle", value=f"bundle-{uuid.uuid4().hex[:12]}"
         ),
         entry=entries,
-        meta={"profile": [MEDIKIOSK_PROFILE]},
+        meta={"profile": [SWASTRA_PROFILE]},
     )
     return bundle
 

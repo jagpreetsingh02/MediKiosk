@@ -193,7 +193,7 @@ class _Doc(SimpleDocTemplate):
             topMargin=MARGIN + (6 * mm if demo else 0),
             bottomMargin=MARGIN + FOOTER_H,
             title=title,
-            author="MediKiosk",
+            author="Swastra",
             subject="Pre-consultation clinical history — not a diagnosis",
         )
         self.demo = demo
@@ -228,7 +228,7 @@ class _Doc(SimpleDocTemplate):
         canvas.drawString(MARGIN, y + 2.5 * mm, FOOTER_NOTICE)
 
         canvas.setFillColor(T.INK_FAINT)
-        canvas.drawString(MARGIN, y - 1 * mm, f"MediKiosk · report version {REPORT_VERSION}")
+        canvas.drawString(MARGIN, y - 1 * mm, f"Swastra · report version {REPORT_VERSION}")
         label = f"Page {canvas.getPageNumber()}"
         if self.total_pages:
             label += f" of {self.total_pages}"
@@ -236,7 +236,7 @@ class _Doc(SimpleDocTemplate):
         canvas.restoreState()
 
 
-def _wordmark(canvas_text: str = "MediKiosk") -> Table:
+def _wordmark(canvas_text: str = "Swastra") -> Table:
     """The mark, drawn as type rather than an image so it stays crisp and selectable."""
     st = _styles()
     return Table(
@@ -532,7 +532,7 @@ def render(payload: dict[str, Any], *, audience: str = "clinician", demo: bool =
 
     name = payload.get("header", {}).get("displayName") or payload.get("forWhom") or "Patient"
     kind = "clinical history" if audience == "clinician" else "your visit"
-    title = f"MediKiosk — {kind} — {name}"
+    title = f"Swastra — {kind} — {name}"
 
     def story() -> list:
         """A FRESH story for every build pass.
@@ -572,5 +572,5 @@ def render(payload: dict[str, Any], *, audience: str = "clinician", demo: bool =
 def filename_for(payload: dict[str, Any], *, audience: str, demo: bool) -> str:
     enc = (payload.get("header", {}).get("encounter") or {}).get("encounterRef")
     stamp = enc or datetime.now(UTC).strftime("%Y%m%d")
-    prefix = "medikiosk-demo" if demo else "medikiosk"
+    prefix = "swastra-demo" if demo else "swastra"
     return f"{prefix}-{audience}-{stamp}.pdf"

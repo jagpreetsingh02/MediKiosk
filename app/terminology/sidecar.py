@@ -45,7 +45,7 @@ class CodingResult:
 
 UNMAPPED_NOTE = (
     "No concept in the pinned CodeSystem matched this term. Recorded as an unmapped "
-    "patient-reported term. MediKiosk does not return a nearest match."
+    "patient-reported term. Swastra does not return a nearest match."
 )
 
 
@@ -62,7 +62,7 @@ async def code_reported_term(
         return CodingResult(True, None, system, 0, UNMAPPED_NOTE)
 
     # Only an exact normalised match is auto-applied. Anything looser is a candidate for a
-    # human, and MediKiosk has no review queue — so it stays unmapped.
+    # human, and Swastra has no review queue — so it stays unmapped.
     from app.terminology.store import normalize
 
     key = normalize(term)

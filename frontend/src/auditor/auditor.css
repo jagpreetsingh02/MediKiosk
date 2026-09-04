@@ -7,6 +7,46 @@
   gap: var(--mk-space-5);
 }
 
+/* The sign-in view's ground — the same Silk Blend constellation field the clinician sign-in
+   carries, so the two staff entrances read as one product. Fixed rather than absolute: this
+   view is nested inside the kiosk stage's 1080px column, and the ground should fill the
+   viewport behind it rather than that column. */
+.ax--signin {
+  position: relative;
+  flex: 1;
+  justify-content: center;
+}
+
+/* Deliberately NOT `position: fixed; inset: 0`: that painted over the shell's synthetic-data
+   disclaimer, whose warm translucent bar and light amber ink are built for a dark ground and
+   washed out completely on the pale gradient. That banner is the one piece of chrome that
+   must never blend in, so the ground starts below it — full-bleed horizontally out of the
+   stage's centred column, and pulled out past the stage's own padding vertically. */
+.ax--signin > .ax-bg {
+  position: absolute;
+  top: calc(var(--mk-space-12) * -1);
+  bottom: calc(var(--mk-space-20) * -1);
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ax--signin > .ax-signin-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  margin: 0 auto;
+  padding: var(--mk-space-8);
+  border-radius: var(--mk-radius-xl);
+  /* Solid, not glass — the ground behind it moves and is pale; this screen's type is
+     light-on-dark and needs an opaque surface to stay legible. Matches .phys-login-card. */
+  background: var(--mk-surface-solid);
+  border: 1px solid var(--mk-line-strong);
+  box-shadow: var(--mk-shadow-xl);
+}
+
 .ax-head {
   display: flex;
   flex-direction: column;

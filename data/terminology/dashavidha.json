@@ -3,7 +3,7 @@
   "name": "DashavidhaPariksha",
   "title": "Dashavidha Pariksha — tenfold examination parameters (Ayurveda)",
   "version": "0.1.0",
-  "publisher": "MediKiosk (LOCAL — not an AYUSH-published CodeSystem)",
+  "publisher": "Swastra (LOCAL — not an AYUSH-published CodeSystem)",
   "module": "AYUSH",
   "note": "Local codes pending an AYUSH-published CodeSystem. Codes are DATA, loaded through the ingester; no code string is ever constructed in Python.",
   "concepts": [

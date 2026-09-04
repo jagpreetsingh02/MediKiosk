@@ -3,7 +3,7 @@
 The point of the whole longitudinal build is invisible on an empty database: a patient home
 screen with nothing on it looks exactly like the single-encounter product it replaced. This
 seeds *Demo Patient* with two confirmed prior encounters, a prescription and a lab report, so
-the first thing anyone sees is that MediKiosk already knows this person.
+the first thing anyone sees is that Swastra already knows this person.
 
 Every date, name and value here is invented. The prescription and lab report are the same
 synthetic fixtures the OCR benchmark uses, so the extracted entities and their bounding boxes

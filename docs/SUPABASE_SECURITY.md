@@ -1,6 +1,6 @@
 # Supabase security model
 
-*What protects MediKiosk's data today, what does not, and what would have to change before
+*What protects Swastra's data today, what does not, and what would have to change before
 this touched a real patient.*
 
 Last reviewed 2026-08-24, against project `behevbfnhciglrmrdouj`.
@@ -65,7 +65,7 @@ intended state, not an outstanding finding: no policy *is* the policy.
 ## Why there are no per-row policies yet
 
 An RLS policy needs an identity in the database to write itself against — typically
-`auth.uid()` from Supabase Auth. MediKiosk's identity is a **mock ABHA JWT** minted by
+`auth.uid()` from Supabase Auth. Swastra's identity is a **mock ABHA JWT** minted by
 `app/auth/mock_idp.py` and verified by FastAPI. It is not a Supabase Auth user and there is no
 `auth.users` row behind it.
 
@@ -128,7 +128,7 @@ This section is the honest part. None of the below is implemented.
 `frontend/` and fails the build on a hit. The service-role key bypasses RLS completely, so
 shipping it to a browser would undo everything on this page in one line.
 
-MediKiosk's frontend does not use the Supabase JS client at all, and should not start: clinical
+Swastra's frontend does not use the Supabase JS client at all, and should not start: clinical
 writes go through FastAPI so that provenance, consent and ABAC apply to every one of them
 (§4 of the brief).
 

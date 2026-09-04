@@ -10,7 +10,7 @@ Two enforcement points:
 
 The check is on *field names and shapes*, not on prose: the patient is free to say "the doctor
 told me I have diabetes", and that is recorded as reported history under ``past_medical``. The
-line is that MediKiosk never *originates* an assessment of its own.
+line is that Swastra never *originates* an assessment of its own.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def assert_no_assessment(payload: Any, *, where: str = "response") -> None:
     if offenders:
         key, trail = offenders[0]
         raise DiagnosisAttempt(
-            f"{where} carries a field named {key!r} at {trail}. MediKiosk produces a "
+            f"{where} carries a field named {key!r} at {trail}. Swastra produces a "
             "history, never an assessment. The physician diagnoses."
         )
 

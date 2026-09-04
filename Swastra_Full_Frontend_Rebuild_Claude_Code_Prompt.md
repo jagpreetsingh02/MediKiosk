@@ -1,8 +1,8 @@
-# MediKiosk — Full Frontend Rebuild Prompt for Claude Code
+# Swastra — Full Frontend Rebuild Prompt for Claude Code
 
 ## Objective
 
-Completely redesign and rebuild the **entire MediKiosk frontend from scratch**.
+Completely redesign and rebuild the **entire Swastra frontend from scratch**.
 
 The current frontend is no longer the visual direction I want.
 
@@ -99,7 +99,7 @@ Inspect the existing frontend structure, then start rebuilding.
 
 # Core Product Principle
 
-The frontend must communicate that MediKiosk is:
+The frontend must communicate that Swastra is:
 
 > A multilingual longitudinal clinical-memory and pre-consultation intake platform.
 
@@ -173,7 +173,7 @@ Do not create random one-off visual styles on every page.
 
 # Visual Direction
 
-The visual identity should feel premium and unique to MediKiosk.
+The visual identity should feel premium and unique to Swastra.
 
 Use modern visual techniques only where they improve the experience:
 
@@ -998,7 +998,7 @@ Visually inspect it.
 
 # Final Standard
 
-When someone opens MediKiosk, they should immediately feel that this is a serious, premium, next-generation health-tech product.
+When someone opens Swastra, they should immediately feel that this is a serious, premium, next-generation health-tech product.
 
 The UI should create a strong first impression before any explanation is given.
 
@@ -1014,7 +1014,7 @@ Do not make it look like a chatbot.
 
 Do not make it look like a generic template.
 
-Create a visual identity that is distinctly MediKiosk.
+Create a visual identity that is distinctly Swastra.
 
 Use the connected design/Motion/Figma/UI tools to make it genuinely exceptional.
 

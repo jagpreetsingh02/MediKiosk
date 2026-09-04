@@ -114,7 +114,7 @@ await page.getByRole('button', { name: /Kamala Devi/ }).click();
 await page.getByRole('button', { name: /Fill demo code/ }).click();
 await page.getByRole('button', { name: /^Continue$/ }).click();
 
-// The patient memory screen — the one that says MediKiosk already knows this person. It sits
+// The patient memory screen — the one that says Swastra already knows this person. It sits
 // between login and consent, so the flow reaches consent through it, not instead of it.
 // Wait for the record to arrive, not merely for the panel: the loading state is a
 // .kiosk-lead too, and asserting against it raced the fetch.

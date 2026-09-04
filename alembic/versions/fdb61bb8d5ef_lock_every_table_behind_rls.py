@@ -10,7 +10,7 @@ The model here is deliberately the blunt one:
 
     RLS enabled, and NO policies at all.
 
-A table with RLS on and no policy denies every row to `anon` and `authenticated`. MediKiosk
+A table with RLS on and no policy denies every row to `anon` and `authenticated`. Swastra
 does not want per-row rules in the database yet, because it has no real identity in the
 database to write them against — the ABHA identity is a mock JWT verified by FastAPI, and
 inventing a parallel Supabase Auth identity to satisfy a policy expression would create the

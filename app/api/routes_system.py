@@ -43,7 +43,7 @@ async def about() -> dict[str, Any]:
         store_kind = "unavailable"
 
     return {
-        "name": "MediKiosk",
+        "name": "Swastra",
         "version": __version__,
         # Which database is actually behind this process. Reported here so a judge can check
         # it without reading a log, and so the frontend can show a badge — a demo running on

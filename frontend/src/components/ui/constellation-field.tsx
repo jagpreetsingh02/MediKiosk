@@ -41,7 +41,13 @@ const DEFAULTS = {
   brightness: 1,
 } as const;
 
-const LIGHT_PAPER = "#eef1f6";
+/** "Silk Blend" — a smooth pastel gradient with a faint film-grain overlay, used for the
+ *  light-mode ground instead of a flat paper colour. */
+const SILK_GRADIENT =
+  "linear-gradient(150deg, #DCEBF7 0%, #B9D4EC 33%, #F3D9E4 67%, #F7EFE3 100%)";
+const SILK_GRAIN_SVG =
+  "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.100'/></svg>\")";
+const LIGHT_PAPER = "#DCEBF7";
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -102,6 +108,22 @@ function useAutomaticMode(enabled: boolean) {
 
 function resolveBackground(mode: NeuformMode) {
   return mode === "light" ? LIGHT_PAPER : "#070914";
+}
+
+/** The full background rule for the iframe's own html/body — Silk Blend's gradient plus its
+ *  grain overlay in light mode (see the "ready-to-use CSS" this was lifted from verbatim),
+ *  a flat colour in dark mode. Kept separate from `resolveBackground`, which only returns a
+ *  single colour and is also used as the plain inline-style fallback on the host element. */
+function backgroundDeclaration(mode: NeuformMode): string {
+  if (mode === "light") {
+    return [
+      "background-color: #DCEBF7 !important",
+      `background-image: ${SILK_GRAIN_SVG}, ${SILK_GRADIENT} !important`,
+      "background-size: 120px 120px, auto !important",
+      "background-blend-mode: overlay, normal !important",
+    ].join("; ");
+  }
+  return `background: ${resolveBackground(mode)} !important`;
 }
 
 /** Verbatim source of src/shaders/neuform-isolated/sources/constellation-field.html (MengTo/threeui, MIT). */
@@ -497,7 +519,6 @@ function buildFocusedDocument(knobs: {
   opacity: number;
 }) {
   const { mode } = knobs;
-  const background = resolveBackground(mode);
   const targetJson = JSON.stringify([
     { selector: "#constellationCanvas", role: "background" },
   ]).replace(/</g, "\\u003c");
@@ -519,7 +540,7 @@ function buildFocusedDocument(knobs: {
     mode,
   });
   const focusStyle = `<style data-threeui-focus>
-html, body { width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: ${background} !important; }
+html, body { width: 100% !important; height: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; ${backgroundDeclaration(mode)}; }
 body { position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; }
 body > * { visibility: hidden !important; }
 body[data-threeui-ready] > [data-threeui-role] { visibility: visible !important; }

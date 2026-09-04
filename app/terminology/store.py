@@ -1,6 +1,6 @@
 """Terminology ingestion and lookup. **Adapted from SIH 25026 `app/terminology/store.py`.**
 
-The 25026 version ingested WHO ICD-11 over HTTP and NAMASTE from an Excel release. MediKiosk
+The 25026 version ingested WHO ICD-11 over HTTP and NAMASTE from an Excel release. Swastra
 does not need the release pipeline — it needs *a loaded table so the guard has something to
 verify against* — so this is the ingestion half only, reading the JSON files under
 `data/terminology/`.

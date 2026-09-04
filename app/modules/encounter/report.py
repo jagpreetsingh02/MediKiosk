@@ -8,7 +8,7 @@ return value of the whole system.
 
 WHAT IT IS ALLOWED TO SAY, which is the hard part.
 
-Invariant 1 is absolute: MediKiosk never diagnoses. So every number below is one of two
+Invariant 1 is absolute: Swastra never diagnoses. So every number below is one of two
 things, and never a third:
 
   * a **recorded observation** — a value that appeared on a document or was stated by the

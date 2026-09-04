@@ -1,4 +1,4 @@
-# MediKiosk — build status
+# Swastra — build status
 
 **SIH26047** · All India Institute of Ayurveda, Ministry of Ayush
 Target: working vertical slice demoing at the SRM internal hackathon, September 2026.

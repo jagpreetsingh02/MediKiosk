@@ -1,5 +1,5 @@
 /**
- * The patient memory screen — the first thing that says MediKiosk already knows this person.
+ * The patient memory screen — the first thing that says Swastra already knows this person.
  *
  * It sits between login and consent, and it is the single screen that distinguishes this
  * product from a form: before the patient answers anything, they see the visits,

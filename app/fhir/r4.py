@@ -7,7 +7,7 @@ across from the 25026 repo) and `tests/test_fhir_r4_surface.py`, which asserts w
 an element that does not exist in 4.0.1.
 
 The resource list differs from 25026: that service emitted terminology resources
-(ConceptMap, ValueSet, CodeSystem); MediKiosk emits a *clinical document* — a Composition-led
+(ConceptMap, ValueSet, CodeSystem); Swastra emits a *clinical document* — a Composition-led
 Bundle. Coding and CodeableConcept carry across unchanged because the closed-vocabulary guard
 does.
 """

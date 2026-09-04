@@ -1,4 +1,4 @@
-# MediKiosk gap analysis
+# Swastra gap analysis
 
 Date: 24 August 2026
 

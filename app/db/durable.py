@@ -40,7 +40,7 @@ from app.db.base import Base, ts_column
 
 
 class Patient(Base):
-    """A person with a history in MediKiosk.
+    """A person with a history in Swastra.
 
     EVERY patient in this repository is synthetic today (see docs/CURRENT_STATE.md), but
     `is_synthetic` is not a comment about that — it is a boundary the query layer enforces.

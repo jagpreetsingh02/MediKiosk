@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Preflight: is MediKiosk actually talking to Supabase, and is it locked down?
+"""Preflight: is Swastra actually talking to Supabase, and is it locked down?
 
 Run it before a demo. `make supabase-check`.
 
@@ -72,7 +72,7 @@ DURABLE_TABLES = (
 async def main() -> int:
     from app.core.config import settings
 
-    print("\nMediKiosk → Supabase preflight\n" + "─" * 58)
+    print("\nSwastra → Supabase preflight\n" + "─" * 58)
 
     # ---------------------------------------------------------------- 1. SQL
     print("\nDATABASE (SQLAlchemy — the path all clinical data takes)")

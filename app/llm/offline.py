@@ -144,7 +144,7 @@ def match_options(question: Question, utterance: str) -> list[tuple[str, str, fl
 class OfflineLLM:
     """Satisfies `LLMBackend`. Deterministic: same input, same output, forever."""
 
-    name = "medikiosk-offline-extractor"
+    name = "swastra-offline-extractor"
     version = "1.0.0"
     offline = True
 

@@ -1,4 +1,4 @@
-# MediKiosk current-code audit
+# Swastra current-code audit
 
 Date: 24 August 2026  
 Requirement source: `/Users/jagpreet/Downloads/SIH26047_CODEX_HANDOFF_FULL_CONTEXT_AND_AUDIT.md`

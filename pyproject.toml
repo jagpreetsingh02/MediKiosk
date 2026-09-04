@@ -1,7 +1,7 @@
 [project]
-name = "medikiosk"
+name = "swastra"
 version = "0.7.0"
-description = "MediKiosk — patient-facing clinical intake platform (SIH26047, AIIA / Ministry of Ayush)"
+description = "Swastra — patient-facing clinical intake platform (SIH26047, AIIA / Ministry of Ayush)"
 requires-python = ">=3.12"
 dynamic = ["dependencies"]
 

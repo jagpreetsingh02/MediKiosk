@@ -1,6 +1,6 @@
 """Invariant 2 — provenance or nothing. These tests are the invariant's teeth.
 
-If any of them is ever deleted or relaxed, the guarantee MediKiosk makes to a physician —
+If any of them is ever deleted or relaxed, the guarantee Swastra makes to a physician —
 "every line on this screen traces to something the patient actually said" — is gone.
 """
 

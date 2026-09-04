@@ -30,7 +30,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Request
 
-from app.core.errors import MediKioskError
+from app.core.errors import SwastraError
 from app.core.logging import get_logger
 
 log = get_logger(__name__)
@@ -54,7 +54,7 @@ _attempts: dict[str, tuple[int, float]] = {}
 _DUMMY = hashlib.pbkdf2_hmac("sha256", b"dummy", b"medikiosk-stub", 50_000)
 
 
-class TooManyAttempts(MediKioskError):
+class TooManyAttempts(SwastraError):
     http_status = 429
     issue_code = "throttled"
 
@@ -98,7 +98,7 @@ async def sign_in(request: Request, payload: Annotated[dict, Body()]) -> dict[st
     hmac.compare_digest(_hash(password), _DUMMY)
 
     log.info("account.sign_in_attempt", outcome="refused", hasIdentifier=bool(identifier))
-    raise MediKioskError(GENERIC_FAILURE, reason="invalid_credentials")
+    raise SwastraError(GENERIC_FAILURE, reason="invalid_credentials")
 
 
 @router.post("/register", status_code=202)

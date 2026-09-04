@@ -1,4 +1,4 @@
-# SIH26047 — MediKiosk build brief for Claude Code
+# SIH26047 — Swastra build brief for Claude Code
 
 Paste this as your opening message in a fresh Claude Code session, in an empty repo.
 Then let it work phase by phase. Do not let it jump ahead.
@@ -7,7 +7,7 @@ Then let it work phase by phase. Do not let it jump ahead.
 
 ## MISSION
 
-Build **MediKiosk**, a patient-facing clinical intake platform for Smart India Hackathon 2026
+Build **Swastra**, a patient-facing clinical intake platform for Smart India Hackathon 2026
 problem statement SIH26047, posed by the All India Institute of Ayurveda (Ministry of Ayush).
 
 A patient walks up before their OPD consultation. They authenticate with an ABHA ID, pick a
