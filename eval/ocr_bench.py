@@ -10,6 +10,17 @@ per backend and per fixture class:
 * **mean OCR confidence** and **verification-lane rate** — what fraction of entities the
   backend pushed to a human. High is not automatically bad: on a degraded scan, pushing
   everything to a human is the *correct* behaviour.
+
+And, since the handwriting lane exists, two more that matter more than any of the above:
+
+* **name resolution** — of the medicines on the page, how many did the constrained matcher
+  identify by name? This is the number the feature is *for*: raw characters are not the
+  product, an understandable medicine name is.
+* **confidently wrong** — how many medicines were presented with `needsVerification: false`
+  and a name that is not the right one. **This must be zero.** Every other number here is a
+  quality measure and this one is a safety measure: a medicine the system got wrong while
+  telling a patient it was sure is the failure the entire design exists to prevent, and it is
+  not traded off against recall at any exchange rate.
 """
 
 from __future__ import annotations
@@ -24,6 +35,7 @@ from app.core.errors import MediKioskError
 from app.modules.dialogue.ontology import load_ontology
 from app.modules.documents.backends import get_ocr_backend
 from app.modules.documents.entities import extract_entities
+from app.modules.documents.prescription import interpret
 
 FIXTURES = Path(__file__).resolve().parents[1] / "data" / "fixtures" / "documents"
 
@@ -45,11 +57,24 @@ class Score:
     dx_recall: float = 0.0
     mean_confidence: float = 0.0
     verification_rate: float = 0.0
+    #: Of the medicines on the page, how many did the constrained matcher name?
+    name_resolution: float = 0.0
+    #: Presented as certain, and wrong. The only number here with a hard bound.
+    confidently_wrong: int = 0
     details: dict[str, Any] = field(default_factory=dict)
 
 
 def _norm(text: str) -> str:
     return "".join(c for c in text.casefold() if c.isalnum())
+
+
+def _one_line(exc: Exception) -> str:
+    """A failure reason that fits in a table cell.
+
+    Hugging Face's gated-repo error is four lines long with a URL in the middle of it, which
+    turned one unavailable engine into a broken markdown table and a report nobody could read.
+    """
+    return " ".join(str(exc).split())[:110]
 
 
 def score_one(backend_name: str, path: Path, truth: dict) -> Score:
@@ -58,6 +83,8 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
         if "_degraded" in path.stem
         else "scan"
         if "_scan" in path.stem
+        else "handwritten"
+        if "handwritten" in path.stem
         else path.suffix.lstrip(".")
     )
     score = Score(backend=backend_name, fixture=path.stem.split("_")[0], variant=variant)
@@ -71,7 +98,7 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
         confident, needs_check = extract_entities(result, sex="female")
     except MediKioskError as exc:
         score.ok = False
-        score.error = str(exc)[:120]
+        score.error = _one_line(exc)
         return score
 
     everything = confident + needs_check
@@ -121,12 +148,53 @@ def score_one(backend_name: str, path: Path, truth: dict) -> Score:
     )
     score.dx_recall = round(dx_hits / len(want_dx), 4) if want_dx else 1.0
 
+    # --- the interpretation layer -------------------------------------------------------
+    #
+    # Scored against the CANONICAL names in the truth file, not against what the page says.
+    # "Augmtin" is what is written; "Augmentin" is what it is. The gap between those two
+    # columns is the entire job of `prescription.py`, and scoring against the wrong one would
+    # award marks for transcription and none for understanding.
+    reading = interpret(result)
+    wanted = [_norm(want["name"]) for want in want_meds]
+    resolved = [
+        _norm(str(med.medication_name))
+        for med in reading.medications
+        if med.medication_name
+    ]
+    named = sum(1 for want in wanted if any(want[:6] and want[:6] in got for got in resolved))
+    score.name_resolution = round(named / len(wanted), 4) if wanted else 1.0
+
+    # Confidently wrong: stated without a human, and not one of the medicines on the page.
+    score.confidently_wrong = sum(
+        1
+        for med in reading.medications
+        if not med.needs_verification
+        and med.medication_name
+        and not any(want[:6] and want[:6] in _norm(str(med.medication_name)) for want in wanted)
+    )
+
     score.details = {
         "medicationsFound": [e.text for e in got_meds],
         "investigationsFound": [e.text for e in got_inv],
         "needsVerification": len(needs_check),
+        "interpreted": [
+            {
+                "raw": med.raw_text,
+                "read": med.sentence(),
+                "needsVerification": med.needs_verification,
+            }
+            for med in reading.medications
+        ],
     }
     return score
+
+
+#: Every engine, on every fixture it can read. `trocr` is included even when it is not
+#: installed: a row reading "unavailable" is a *result* — it is the state a kiosk without the
+#: optional dependencies is in, and hiding it would make the report describe a machine nobody
+#: is running on.
+BACKENDS = ("textlayer", "tesseract", "trocr")
+SUFFIXES = (".pdf", "_scan.png", "_degraded.png", ".png")
 
 
 def run() -> list[Score]:
@@ -135,34 +203,56 @@ def run() -> list[Score]:
     for truth_path in sorted(FIXTURES.glob("*.truth.json")):
         base = truth_path.name.removesuffix(".truth.json")
         truth = json.loads(truth_path.read_text())
-        for suffix in (".pdf", "_scan.png", "_degraded.png"):
+        for suffix in SUFFIXES:
             path = FIXTURES / f"{base}{suffix}"
             if not path.exists():
                 continue
-            for backend in ("textlayer", "tesseract"):
+            for backend in BACKENDS:
+                engine = get_ocr_backend(backend)
+                if not engine.available:
+                    scores.append(
+                        Score(
+                            backend=backend,
+                            fixture=base.split("_")[0],
+                            variant=suffix.strip("._").replace(".png", ""),
+                            ok=False,
+                            error="not installed on this machine",
+                        )
+                    )
+                    continue
                 scores.append(score_one(backend, path, truth))
     return scores
 
 
 def render(scores: list[Score]) -> str:
     lines = [
-        "| backend | fixture | variant | ents | med recall | dose acc | inv recall | flag acc "
-        "| dx recall | mean conf | to human |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| backend | fixture | variant | ents | med recall | dose acc | named | inv recall "
+        "| flag acc | dx recall | mean conf | to human | CONFIDENTLY WRONG |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for s in scores:
         if not s.ok:
             lines.append(
-                f"| {s.backend} | {s.fixture} | {s.variant} | — | — | — | — | — | — | — | "
-                f"_{s.error}_ |"
+                f"| {s.backend} | {s.fixture} | {s.variant} | — | — | — | — | — | — | — | — "
+                f"| — | _{s.error}_ |"
             )
             continue
         lines.append(
             f"| {s.backend} | {s.fixture} | {s.variant} | {s.entities_found} "
-            f"| {s.med_recall:.2f} | {s.med_dose_accuracy:.2f} | {s.inv_recall:.2f} "
-            f"| {s.inv_flag_accuracy:.2f} | {s.dx_recall:.2f} | {s.mean_confidence:.2f} "
-            f"| {s.verification_rate:.0%} |"
+            f"| {s.med_recall:.2f} | {s.med_dose_accuracy:.2f} | {s.name_resolution:.2f} "
+            f"| {s.inv_recall:.2f} | {s.inv_flag_accuracy:.2f} | {s.dx_recall:.2f} "
+            f"| {s.mean_confidence:.2f} | {s.verification_rate:.0%} "
+            f"| **{s.confidently_wrong}** |"
         )
+    wrong = sum(s.confidently_wrong for s in scores if s.ok)
+    lines.append("")
+    lines.append(
+        f"**Confidently wrong across every engine and every fixture: {wrong}.** "
+        "This is the number with a hard bound; the rest are quality measures."
+        if wrong == 0
+        else f"**⚠ {wrong} medicines were presented as certain and were wrong.** "
+        "Nothing else in this table matters until that is zero."
+    )
     return "\n".join(lines)
 
 

@@ -446,3 +446,103 @@ def test_a_document_with_no_medicines_interprets_to_nothing_not_to_something() -
     reading = interpret(ocr)
     assert reading.medications == []
     assert reading.interpreted_text == ""
+
+
+# ------------------------------------------------------------------ the misread dose
+
+
+def test_a_strength_the_medicine_does_not_come_in_is_flagged_not_corrected() -> None:
+    """The most dangerous single error in the pipeline, and the only one nothing else catches.
+
+    Tesseract read "PCM 500 sos" off the handwritten fixture as "PCM 526 sos". The name
+    resolved perfectly, confidence was 0.80, and the line would have entered the record as
+    Paracetamol 526 with nothing anywhere suggesting a problem.
+    """
+    misread = parse_line("PCM 526 sos", ocr_confidence=0.8)
+    assert misread is not None
+    assert misread.strength_recognised is False
+    assert misread.needs_verification is True
+    # Flagged, never edited. 526 might be a compounded preparation or a strength this
+    # formulary is missing; nothing in this system may rewrite a dose.
+    assert "526" in misread.sentence()
+
+
+def test_a_strength_the_medicine_does_come_in_passes_cleanly() -> None:
+    clean = parse_line("PCM 500 sos", ocr_confidence=0.8)
+    assert clean is not None
+    assert clean.strength_recognised is True
+    assert clean.needs_verification is False
+
+
+def test_the_question_is_not_asked_when_it_cannot_be_answered() -> None:
+    """`None` is not `False`. An unresolved medicine has no strength list to check against,
+    and reporting that as "wrong strength" would be a fabricated warning."""
+    unknown = parse_line("Tab Xyzqw 200 BD", ocr_confidence=0.9)
+    assert unknown is not None
+    assert unknown.strength_recognised is None
+
+
+def test_a_duration_marker_never_becomes_part_of_the_drug_name() -> None:
+    """With BD misread as BP, nothing stopped the name run and the drug became
+    "Zerodol SP BP x"."""
+    reading = parse_line("Tab Zerodol SP BP x 3d", ocr_confidence=0.72)
+    assert reading is not None
+    assert "x" not in reading.name_match.raw.split()
+    assert reading.readable()["duration"] == "3 days"
+
+
+# ------------------------------------------------------------------ real handwriting
+
+
+def test_the_handwritten_fixture_is_read_without_inventing_anything() -> None:
+    """End to end on a page written with a real handwriting face, skewed, unevenly lit.
+
+    Whichever engine reads it, the bound asserted is the same and it is a *safety* bound, not
+    an accuracy one: nothing may be presented as certain unless it is right. Accuracy is
+    reported by `eval/ocr_bench.py`; correctness under uncertainty is enforced here.
+    """
+    from pathlib import Path
+
+    from app.modules.documents.backends import read_document
+    from app.modules.documents.prescription import interpret
+
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "fixtures"
+        / "documents"
+        / "prescription_handwritten.png"
+    )
+    ocr = read_document(fixture.read_bytes(), filename="hw.png", media_type="image/png")
+    reading = interpret(ocr)
+
+    assert reading.raw_ocr_text, "the transcription must survive whatever the reading is"
+    assert reading.medications, "a page of four medicines must not read as none"
+
+    for medication in reading.medications:
+        confident = not medication.needs_verification
+        if confident:
+            # Anything the system is willing to state without a human must be internally
+            # consistent: a real name, and a strength that medicine is actually made in.
+            assert medication.medication["name"] is not None
+            assert medication.strength_recognised is not False
+            assert medication.ocr_confidence > settings.ocr_low_confidence_threshold
+
+
+def test_the_handwritten_page_segments_into_at_least_its_written_lines() -> None:
+    from pathlib import Path
+
+    from app.modules.documents.preprocess import prepare
+    from app.modules.documents.segmentation import find_lines
+
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "fixtures"
+        / "documents"
+        / "prescription_handwritten.png"
+    )
+    prepared = prepare(fixture.read_bytes())
+    # Nine non-blank lines are written on it. Under-segmenting loses a medicine outright.
+    assert len(find_lines(prepared)) >= 9
+    assert abs(prepared.skew_degrees) > 0.5, "the page is skewed 1.6°; deskew must see it"

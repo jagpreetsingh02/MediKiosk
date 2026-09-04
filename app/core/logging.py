@@ -11,6 +11,14 @@ from app.core.config import settings
 
 _configured = False
 
+#: Libraries that log every HTTP request at INFO. `basicConfig` sets the ROOT level, so
+#: setting LOG_LEVEL=INFO — the default — turned them all on. With the handwriting model
+#: installed, one `make eval` run printed several hundred lines of Hugging Face CDN redirects
+#: interleaved with the benchmark table, and the table became unreadable. These are wire-level
+#: details of somebody else's client, not events in this system; they belong at DEBUG, and
+#: setting LOG_LEVEL=DEBUG still brings them back.
+_CHATTY = ("httpx", "httpcore", "urllib3", "huggingface_hub", "transformers", "filelock")
+
 
 def configure_logging(level: str | None = None) -> None:
     global _configured
@@ -21,6 +29,10 @@ def configure_logging(level: str | None = None) -> None:
         stream=sys.stdout,
         level=getattr(logging, (level or settings.log_level).upper(), logging.INFO),
     )
+    for name in _CHATTY:
+        logging.getLogger(name).setLevel(
+            logging.DEBUG if (level or settings.log_level).upper() == "DEBUG" else logging.WARNING
+        )
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,

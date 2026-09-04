@@ -1,0 +1,35 @@
+{
+  "medications": [
+    {
+      "name": "Augmentin",
+      "dose": "625",
+      "frequency": "BD",
+      "duration": "5d"
+    },
+    {
+      "name": "Paracetamol",
+      "dose": "500",
+      "frequency": "sos"
+    },
+    {
+      "name": "Pantoprazole",
+      "dose": "40",
+      "frequency": "OD"
+    },
+    {
+      "name": "Zerodol",
+      "dose": null,
+      "frequency": "BD",
+      "duration": "3d"
+    }
+  ],
+  "investigations": [],
+  "diagnoses": [],
+  "written_as": [
+    "Augmtin",
+    "PCM",
+    "Pantop",
+    "Zerodol"
+  ],
+  "note": "Handwritten with a real handwriting face, per-character rotation and jitter, baseline drift, variable pen pressure, page skew and an illumination gradient. Synthetic: no real doctor, no real patient."
+}

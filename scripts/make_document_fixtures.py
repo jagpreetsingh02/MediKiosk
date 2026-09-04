@@ -132,6 +132,138 @@ def _font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default(size)
 
 
+#: The prescription the whole handwriting lane exists for: shorthand a pharmacist reads
+#: without pausing and a printed-text OCR engine cannot read at all. Deliberately the worked
+#: example from the brief, so the fixture, the ADR and the tests all argue about one page.
+HANDWRITTEN = [
+    "Dr S. Menon  MBBS MD",
+    "City Clinic, Chennai",
+    "Date 04/09/2026",
+    "",
+    "Rx",
+    "Tab Augmtin 625 BD x 5d",
+    "PCM 500 sos",
+    "Pantop 40 OD bf",
+    "Tab Zerodol SP BD x 3d",
+    "",
+    "Review after 5 days",
+]
+
+#: Real handwriting faces, best first. A handwritten fixture rendered in Arial tests nothing
+#: — Tesseract reads Arial perfectly, which is precisely the result this fixture must not
+#: produce. The generator is a developer tool and only runs where these exist; the PNG it
+#: writes is committed, so the tests never need the font.
+HAND_FONTS = (
+    "/System/Library/Fonts/Supplemental/Bradley Hand Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Brush Script.ttf",
+    "/System/Library/Fonts/Supplemental/Chalkduster.ttf",
+    "/System/Library/Fonts/Supplemental/Comic Sans MS.ttf",
+)
+
+
+def _hand_font(size: int) -> ImageFont.FreeTypeFont | None:
+    for candidate in HAND_FONTS:
+        if Path(candidate).exists():
+            return ImageFont.truetype(candidate, size)
+    return None
+
+
+def write_handwritten(name: str = "prescription_handwritten") -> bool:
+    """A prescription written by hand, on paper, photographed.
+
+    Everything here is a property of real handwriting that breaks a printed-text OCR engine,
+    and each is applied per-character rather than per-line, because that is where the
+    difficulty actually lives:
+
+    * **baseline drift** — a hand-written line is not a line; it sags and recovers.
+    * **per-character rotation and jitter** — no two letters share a slant.
+    * **variable pen pressure** — rendered as ink darkness, which is what makes a local
+      threshold necessary rather than a global one.
+    * **a whole-page skew** — the sheet was not square to the camera.
+    * **an illumination gradient** — one side of the page is nearer the light.
+
+    Returns False where no handwriting font is installed, so the generator degrades to a
+    message rather than silently writing an Arial page and calling it handwriting.
+    """
+    font = _hand_font(34)
+    if font is None:
+        return False
+
+    width, height = 1240, 1754
+    page = Image.new("L", (width, height), 252)
+
+    y = 150
+    for line in HANDWRITTEN:
+        if not line:
+            y += 46
+            continue
+        x = 110.0
+        drift = 0.0
+        for character in line:
+            # Each glyph on its own small canvas so it can be rotated independently, then
+            # pasted. Rotating the whole line would keep the letters parallel to each other,
+            # which is the one thing handwriting never is.
+            box = max(int(font.size * 1.9), 12)
+            glyph = Image.new("L", (box, box), 0)
+            ImageDraw.Draw(glyph).text(
+                (box // 4, box // 4), character, font=font, fill=random.randint(150, 235)
+            )
+            glyph = glyph.rotate(
+                random.uniform(-7, 7), resample=Image.BICUBIC, fillcolor=0
+            )
+            drift += random.uniform(-0.9, 0.9)
+            drift = max(min(drift, 7.0), -7.0)  # a sagging line, not a staircase
+            position = (int(x) - box // 4, int(y + drift) - box // 4)
+            # Pasted as a mask so the strokes darken the paper instead of stamping a box
+            # over it — a rectangle of background around every letter would give the
+            # segmenter a grid to lock onto that no real page has.
+            page.paste(
+                Image.new("L", glyph.size, 0), position, Image.eval(glyph, lambda v: v)
+            )
+            advance = font.getlength(character) if character != " " else font.size * 0.42
+            x += advance * random.uniform(0.88, 1.02)
+        y += 62
+
+    page = page.rotate(-1.6, resample=Image.BICUBIC, fillcolor=252, expand=False)
+    page = page.filter(ImageFilter.GaussianBlur(radius=0.6))
+    shade = Image.linear_gradient("L").rotate(35, resample=Image.BICUBIC, fillcolor=128)
+    page = Image.blend(page, shade.resize((width, height)), 0.10)
+    pixels = page.load()
+    assert pixels is not None
+    for _ in range(int(width * height * 0.012)):
+        px, py = random.randrange(width), random.randrange(height)
+        pixels[px, py] = max(0, min(255, pixels[px, py] + random.randint(-45, 45)))
+
+    page.save(OUT / f"{name}.png")
+    (OUT / f"{name}.txt").write_text("\n".join(HANDWRITTEN) + "\n")
+    (OUT / f"{name}.truth.json").write_text(
+        json.dumps(
+            {
+                "medications": [
+                    {"name": "Augmentin", "dose": "625", "frequency": "BD", "duration": "5d"},
+                    {"name": "Paracetamol", "dose": "500", "frequency": "sos"},
+                    {"name": "Pantoprazole", "dose": "40", "frequency": "OD"},
+                    {"name": "Zerodol", "dose": None, "frequency": "BD", "duration": "3d"},
+                ],
+                "investigations": [],
+                "diagnoses": [],
+                # What the page LITERALLY says, which is not what the medicines are called.
+                # The gap between these two columns is the whole job of the interpretation
+                # layer, and scoring against the wrong one would score the wrong thing.
+                "written_as": ["Augmtin", "PCM", "Pantop", "Zerodol"],
+                "note": (
+                    "Handwritten with a real handwriting face, per-character rotation and "
+                    "jitter, baseline drift, variable pen pressure, page skew and an "
+                    "illumination gradient. Synthetic: no real doctor, no real patient."
+                ),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    return True
+
+
 def write_png(name: str, lines: list[str], *, degraded: bool) -> None:
     width, height = 1240, 1754  # A4 at 150 dpi
     image = Image.new("L", (width, height), 255)
@@ -295,6 +427,13 @@ def main() -> None:
         (OUT / f"{name}.txt").write_text("\n".join(lines) + "\n")
 
     historical = write_historical()
+    handwritten = write_handwritten()
+    if not handwritten:
+        print(
+            "SKIPPED prescription_handwritten.png: no handwriting font found. "
+            f"Install one of {HAND_FONTS[0]!r} or edit HAND_FONTS. The committed PNG is "
+            "unchanged."
+        )
 
     (OUT / "README.md").write_text(
         "# Document fixtures\n\n"
@@ -308,7 +447,9 @@ def main() -> None:
         "| `.truth.json` | ground truth | scoring for `eval/ocr_bench.py` |\n"
         "| `.txt` | plain text | fast unit tests |\n"
         "| `<name>_<YYYY-MM-DD>.pdf` | the same document dated for the seeded patient's "
-        "history | `app/modules/encounter/seed.py` |\n\n"
+        "history | `app/modules/encounter/seed.py` |\n"
+        "| `prescription_handwritten.png` | a real handwriting face, per-character jitter, "
+        "baseline drift, page skew, uneven light | the TrOCR lane end to end |\n\n"
         f"Historical variants: {', '.join(historical)}.\n\n"
         "The seed uses the dated variants because it cannot stamp its own encounter date "
         "onto entities extracted from a fixture: a physician can open the page, and a "

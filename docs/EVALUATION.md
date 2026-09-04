@@ -289,12 +289,14 @@ whose timing works.
 ## OCR backend comparison
 
 Separately measured by `python -m eval.ocr_bench` against `data/fixtures/documents/`
-(three document types × three quality levels, with ground truth).
+(three document types × three quality levels, plus a handwritten prescription, with
+ground truth).
 
-| Backend | Digital PDF | Clean scan | Degraded phone photo |
-|---|---|---|---|
-| `textlayer` | med recall 1.00, conf 0.99 | *fails honestly* — no text layer | *fails honestly* |
-| `tesseract` | med recall 1.00, conf 0.86 | med recall 1.00, conf 0.88 | med recall 0.75–1.00, conf 0.61–0.83 |
+| Backend | Digital PDF | Clean scan | Degraded phone photo | Handwritten |
+|---|---|---|---|---|
+| `textlayer` | med recall 1.00, conf 0.99 | *fails honestly* — no text layer | *fails honestly* | *fails honestly* |
+| `tesseract` | med recall 1.00, conf 0.86 | med recall 1.00, conf 0.88 | med recall 0.75–1.00, conf 0.61–0.83 | med recall 0.25, conf 0.57 |
+| `trocr` | *not verified* — see below | *not verified* | *not verified* | *not verified* |
 
 The number to look at is the **verification-lane rate**: the share of extracted entities
 routed to a human. It rises from 0% on a clean PDF to 60% on a degraded lab photo. That rise
@@ -305,6 +307,43 @@ into human review instead of into a wrong dosage in a patient's record.
 `textlayer` refusing images rather than returning zero entities is deliberate: silently
 returning nothing from a scan looks identical to "this document was blank".
 
+### The handwriting lane, and what is not measured
+
+**`khedim/Medical-Prescription-OCR` has not been run.** It is a gated Hugging Face repo and
+401s without an authorised token, so no number in this document describes the fine-tuned
+weights. Saying "handwriting OCR: 0.8x" here would be reporting a measurement nobody took.
+
+What *has* been measured, and on what:
+
+* **The pipeline around the model**, end to end, against the ungated
+  `microsoft/trocr-base-handwritten`: 11 lines segmented from `prescription_scan.png`, one
+  inference per crop on MPS, per-token confidences from the model's own transition scores.
+  That checkpoint is a generic handwriting model, not a prescription one, and it read 3 of
+  those 11 lines and 1 of the 12 on `prescription_handwritten.png`. **Both pages were refused
+  and fell back to Tesseract**, which is the yield guard working, and is also the honest
+  answer about the base checkpoint: it is not fit for this and the fine-tune is the reason
+  the feature exists.
+* **Line segmentation**, which is deterministic and needs no model. Exact on all three clean
+  scans (prescription 11/11, lab report 9/9, discharge 7/7); over-segments on degraded
+  photographs, which is the safe direction — a spare band is a crop that reads as empty, a
+  missing band is a medicine that never existed.
+* **Constrained name matching**, on 4 660 adversarial mutations of every generic and brand in
+  the dictionary. One auto-corrected to a different medicine, under two simultaneous
+  character deletions. The table is in
+  `docs/adr/ADR-0013-handwriting-is-read-line-by-line-and-named-by-a-closed-list.md`.
+* **The interpretation layer on real handwriting.** On `prescription_handwritten.png` —
+  rendered in a handwriting face with per-character jitter, baseline drift, page skew and an
+  illumination gradient — Tesseract's entity recall is **0.25** while the interpretation
+  layer's name resolution is **0.50**. The gap is the point of the layer: it recovers
+  medicines from lines the entity regex could not parse. Everything on that page went to a
+  human (verification rate 100%), which for a 0.57-confidence read is the correct outcome.
+
+**The number with a hard bound is `confidently wrong`:** medicines presented with
+`needsVerification: false` and a name that is not the right one. It is **0** across every
+engine, every fixture and every variant, and it is the one figure here that is not traded off
+against recall at any exchange rate. Every other column is a quality measure; that one is a
+safety measure.
+
 ---
 
 ## Reproducing
@@ -314,7 +353,8 @@ python -m eval.runner --both            # development + held-out + the gap
 python -m eval.runner --strict          # exits non-zero on any hard-target failure
 python -m eval.runner --holdout         # held-out only
 python -m eval.runner --only s01        # one script
-python -m eval.ocr_bench                # OCR backend comparison
+python -m eval.ocr_bench                # OCR backend comparison, incl. the handwriting lane
+pip install -r requirements-handwriting.txt   # and set HF_TOKEN, to include `trocr`
 ```
 
 `--strict` is wired into the test suite (`tests/test_eval_harness.py`), so a regression in

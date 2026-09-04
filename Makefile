@@ -5,7 +5,7 @@ PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 export PYTHONPATH := .
 
-.PHONY: help setup demo api web test lint fmt eval eval-strict eval-hosted ocr-bench fixtures check clean
+.PHONY: help setup setup-handwriting demo api web test lint fmt eval eval-strict eval-hosted ocr-bench fixtures check clean
 
 help:
 	@echo "make setup        create the venv and install everything"
@@ -15,7 +15,8 @@ help:
 	@echo "make eval         the 50 gold scripts plus the held-out set"
 	@echo "make eval-strict  the same on the offline extractor, non-zero on a hard-target failure"
 	@echo "make eval-hosted  the same against the hosted model — reports, never gates"
-	@echo "make ocr-bench    compare the two OCR backends against ground truth"
+	@echo "make ocr-bench    compare the three OCR backends against ground truth"
+	@echo "make setup-handwriting  add the optional TrOCR handwriting lane (large download)"
 	@echo "make check        lint + test + eval-strict  (run this before committing)"
 
 setup:
@@ -24,6 +25,15 @@ setup:
 	$(PIP) install -q -r requirements-dev.txt
 	cd frontend && npm install --silent
 	@echo "Ready. Now run: make demo"
+
+# Optional, and separate from `make setup` on purpose: torch and transformers are a large
+# download, and a kiosk without them loses the handwriting model and nothing else — every
+# path in that backend already ends at Tesseract. The MODEL is gated on Hugging Face, so this
+# also needs HF_TOKEN in .env; without one the kiosk falls back and /about says so.
+setup-handwriting:
+	$(PIP) install -r requirements-handwriting.txt
+	@echo "Installed. Set HF_TOKEN in .env for khedim/Medical-Prescription-OCR (gated repo),"
+	@echo "then check GET /about -> ocr.handwriting."
 
 demo:
 	./scripts/demo.sh

@@ -50,6 +50,11 @@ the shape of the record:
 2. **Smooth prose within a summary section** (`app/modules/summary/prose.py`). Output goes
    through the same token check; one unsupported word and the deterministic bullets are kept.
 
+A **third** model was added for handwriting (`app/modules/documents/trocr.py`), and it is
+the same bargain: it recognises characters on a single cropped line and decides nothing.
+What it sees, what is kept, and whether the page is trusted at all are rules around it, and
+every way it can fail ends at Tesseract. See ADR-0013.
+
 **Everything else is a rule**, including the parts that look like they want a model:
 
 | Task | Why a rule | Where |
@@ -57,6 +62,9 @@ the shape of the record:
 | Which question comes next | Reproducible, works offline, cannot skip the allergy question | `modules/dialogue/machine.py` |
 | Emergency detection | A missed escalation is the only unacceptable error; rules are auditable by a clinician | `redflags/engine.py` + `data/ontology/redflags.yaml` |
 | Prescription / lab parsing | A prescription line has a grammar; regex is exact, instant, and gives character offsets for the bbox | `modules/documents/entities.py` |
+| Dosing shorthand (BD → twice daily) | A definition, not a judgement, and identical on every prescription in India | `modules/documents/sig.py` + YAML |
+| Correcting a misread medicine name | Constrained matching against a closed list with a score, because a *generated* name is fluent and occasionally a different drug | `modules/documents/medications.py` |
+| Which text lines are on a page | A row either carries ink or it does not — a measurement, reproducible with no GPU | `modules/documents/segmentation.py` |
 | Out-of-range flagging | A range comparison, not an interpretation | `modules/documents/ranges.py` |
 | Summary assembly | Predictable structure is what makes a summary readable in 90 seconds | `modules/summary/assemble.py` |
 
@@ -77,6 +85,8 @@ writing a clinical string in a `.py` file, it belongs in `data/` instead.
 | `config/consent-scopes.yaml` | The five consent scopes and their audio scripts |
 | `config/policy.yaml` | ABAC roles, purposes and actions |
 | `data/terminology/*.json` | CodeSystems (ICD-11 subset, NAMASTE, Dashavidha) and reference ranges |
+| `data/terminology/prescription-abbreviations.yaml` | Sig codes — BD, TDS, SOS, HS, AC, 1-0-1. Exact lookup, no scoring |
+| `data/terminology/medications.json` | The closed list a misread medicine name may be corrected **to**. Not a CodeSystem; emits no codes |
 
 Terminology content is **data**, never code. No medical code string is written at a call site.
 
@@ -90,7 +100,9 @@ app/
                  projection.py (ledger -> history), no_diagnosis.py
   modules/
     dialogue/    Module A — ontology loader, deterministic machine, answers, voice
-    documents/   Module B — OCRBackend protocol + 2 impls, entities, ranges, timeline, pipeline
+    documents/   Module B — OCRBackend protocol + 3 impls (textlayer, tesseract, trocr),
+                 preprocess + segmentation (the handwriting lane), sig, medications,
+                 prescription, entities, ranges, timeline, pipeline
     summary/     Module C — assemble, prose, traceability (the gate), generate
     consent/     Module D — consent, session lifecycle + purge, HIS push
   redflags/      the rule engine (Invariant 3)

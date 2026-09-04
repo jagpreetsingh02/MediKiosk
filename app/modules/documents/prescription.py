@@ -31,7 +31,12 @@ from typing import Any
 
 from app.core.config import settings
 from app.modules.documents.backends import OCRResult
-from app.modules.documents.medications import NameMatch, infer_strength, match_name
+from app.modules.documents.medications import (
+    NameMatch,
+    infer_strength,
+    match_name,
+    strength_is_recognised,
+)
 from app.modules.documents.ranges import match_analyte
 from app.modules.documents.sig import (
     Normalised,
@@ -121,6 +126,10 @@ class InterpretedMedication:
     #: True when a human must look at this before it can be trusted.
     needs_verification: bool = True
     engine: str = ""
+    #: Whether the strength is one this medicine is actually dispensed in. `None` means the
+    #: question could not be asked — an unresolved medicine, or one with no strengths listed —
+    #: and is emphatically not `False`.
+    strength_recognised: bool | None = None
 
     @property
     def interpretation_confidence(self) -> float:
@@ -138,6 +147,12 @@ class InterpretedMedication:
         scores = [f.confidence for f in self.fields.values()]
         scores.append(self.name_match.confidence)
         return round(min(scores), 3)
+
+    @property
+    def medication_name(self) -> str | None:
+        """The resolved medicine name, or `None`. The single most-asked question of this
+        object, and worth not spelling `med.name_match.name` at every call site."""
+        return self.name_match.name
 
     def readable(self) -> dict[str, str | None]:
         """The flat, patient-facing shape: what to take, how much, how often, for how long."""
@@ -206,6 +221,7 @@ class InterpretedMedication:
             "ocrConfidence": round(self.ocr_confidence, 3),
             "interpretationConfidence": self.interpretation_confidence,
             "needsVerification": self.needs_verification,
+            "strengthRecognised": self.strength_recognised,
             "sentence": self.sentence(),
         }
 
@@ -301,7 +317,14 @@ def parse_line(
     # The name is the run of word-tokens before the first number or sig code.
     while index < len(tokens):
         token = tokens[index]
-        if BARE_NUMBER.match(token) or STRENGTH.match(token) or _is_sig_token(token):
+        if (
+            BARE_NUMBER.match(token)
+            or STRENGTH.match(token)
+            or _is_sig_token(token)
+            # "Tab Zerodol SP BP x 3d" — with BD misread as BP, nothing stopped the name run
+            # and the drug became "Zerodol SP BP x". A duration marker is never part of a name.
+            or DURATION_MARKER.match(token)
+        ):
             break
         if not any(ch.isalpha() for ch in token):
             break
@@ -364,6 +387,9 @@ def parse_line(
         fields=fields,
         engine=engine,
     )
+    strength = fields.get("strength")
+    if strength is not None:
+        medication.strength_recognised = strength_is_recognised(strength.raw, name_match)
     medication.needs_verification = _needs_verification(medication)
     return medication
 
@@ -467,8 +493,13 @@ def _needs_verification(medication: InterpretedMedication) -> bool:
     * the recogniser was not confident about the characters;
     * the interpretation itself rests on a weak field;
     * there is no schedule at all — a medicine with no idea of when to take it is not an
-      instruction a patient can follow, however well the name was read.
+      instruction a patient can follow, however well the name was read;
+    * the strength is not one this medicine is dispensed in. That is a MISREAD DOSE, and it
+      is the most dangerous thing this pipeline can produce: the name resolves, the
+      confidence is respectable, and nothing else anywhere would have flagged it.
     """
+    if medication.strength_recognised is False:
+        return True
     if medication.name_match.needs_confirmation:
         return True
     if medication.ocr_confidence <= settings.ocr_low_confidence_threshold:

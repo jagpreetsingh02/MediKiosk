@@ -277,6 +277,41 @@ def match_name(raw: str, *, ocr_confidence: float = 1.0) -> NameMatch:
 _NUMBER = re.compile(r"^\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-zA-Z/%]+)?\s*$")
 
 
+def strength_is_recognised(raw: str, match: NameMatch) -> bool | None:
+    """Is this a strength this medicine is actually dispensed in?
+
+    Returns `None` when the question cannot be asked — the medicine is unresolved, the number
+    is unparseable, or the dictionary has no strengths listed for it. `None` is not `False`
+    and the caller must not treat it as one.
+
+    This is the check that catches a **misread dose**, which is the most dangerous single
+    error the whole pipeline can make. Tesseract read "PCM 500 sos" off the handwritten
+    fixture as "PCM 526 sos": the name resolved perfectly, the confidence was 0.80, and the
+    line would have gone into the record as Paracetamol 526 with nothing anywhere suggesting
+    a problem. 526 is not a strength paracetamol comes in, and that fact is sitting in the
+    dictionary already.
+
+    It deliberately does NOT correct the number. Nothing in this system may edit a dose: 526
+    might be a compounded preparation, a strength the local formulary is missing, or simply a
+    number the doctor wrote. It raises a hand, and a human looks.
+    """
+    if not match.resolved:
+        return None
+    parsed = _NUMBER.match(raw or "")
+    if parsed is None:
+        return None
+    entry = next((e for e in load_medications() if e.generic == match.generic), None)
+    if entry is None or not entry.strengths:
+        return None
+    value = parsed.group("value")
+    known = {
+        parsed_known.group("value")
+        for known_strength in entry.strengths
+        if (parsed_known := _NUMBER.match(known_strength))
+    }
+    return value in known
+
+
 def infer_strength(raw: str, match: NameMatch) -> tuple[str, str] | None:
     """`625` + a resolved Augmentin → `("625 mg", "dictionary")`. Otherwise the raw text.
 

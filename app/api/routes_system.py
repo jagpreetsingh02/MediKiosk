@@ -15,6 +15,7 @@ from app.llm import registry as llm_registry
 from app.modules.consent.consent import load_policy as load_consent_policy
 from app.modules.dialogue.ontology import load_ontology
 from app.modules.documents.backends import available_backends
+from app.modules.documents.trocr import dependencies_available as trocr_dependencies_available
 from app.redflags.engine import load_rules
 from app.speech import registry as speech_registry
 
@@ -95,7 +96,28 @@ async def about() -> dict[str, Any]:
         },
         "llm": llm_registry.describe(),
         "speech": speech_registry.describe(),
-        "ocr": {"backends": available_backends(), "configured": settings.ocr_backend},
+        "ocr": {
+            "backends": available_backends(),
+            "configured": settings.ocr_backend,
+            # Named plainly rather than left to be inferred from `available: false`. A demo
+            # audience is entitled to know whether the handwriting claim on the slide is
+            # running on this machine, and `khedim/Medical-Prescription-OCR` is a GATED
+            # Hugging Face repo — a kiosk without a token falls back to Tesseract, which
+            # reads printed prescriptions well and handwriting poorly.
+            "handwriting": {
+                "model": settings.trocr_model_id,
+                "enabled": settings.handwriting_ocr_enabled,
+                "installed": trocr_dependencies_available(),
+                "tokenConfigured": settings.hf_token is not None,
+                "fallback": "tesseract",
+                "note": (
+                    "Handwriting recognition runs the model over individually segmented "
+                    "lines. If it is unavailable for any reason — dependencies, a gated "
+                    "download, an inference error, or a page it reads only in part — every "
+                    "photograph falls back to Tesseract and says so in the log."
+                ),
+            },
+        },
         "languages": SUPPORTED_LANGUAGES,
         "fhirVersion": FHIR_VERSION,
         "sessionStore": store_kind,

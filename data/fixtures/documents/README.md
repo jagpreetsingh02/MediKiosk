@@ -11,6 +11,7 @@ real doctor, no real registration number.
 | `.truth.json` | ground truth | scoring for `eval/ocr_bench.py` |
 | `.txt` | plain text | fast unit tests |
 | `<name>_<YYYY-MM-DD>.pdf` | the same document dated for the seeded patient's history | `app/modules/encounter/seed.py` |
+| `prescription_handwritten.png` | a real handwriting face, per-character jitter, baseline drift, page skew, uneven light | the TrOCR lane end to end |
 
 Historical variants: prescription_2025-02-14, lab_report_2024-06-03, lab_report_2025-02-10, lab_report_2026-01-18.
 
