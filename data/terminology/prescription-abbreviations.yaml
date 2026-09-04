@@ -13,6 +13,10 @@
 #
 # A clinician can edit this file without touching Python. That is the point of it.
 #
+# Every key is QUOTED. YAML 1.1 reads a bare ON, OFF, NO, Y and N as booleans, so the
+# timing entry `ON: {...}` parsed as the key `False` and took the whole table down with it
+# the first time this file was loaded. Quoting is not style here, it is correctness.
+#
 # `display` is what a patient reads. `clinical` is the phrase a physician expects. They are
 # different on purpose: "twice daily" and "1-0-1" are the same instruction, but only one of
 # them can be read aloud to a patient who has never seen a prescription before.
@@ -25,105 +29,110 @@ note: >-
   once daily rather than the right eye.
 
 frequency:
-  OD: {display: "once daily", clinical: "once daily", times_per_day: 1}
-  ODD: {display: "once daily", clinical: "once daily", times_per_day: 1}
-  QD: {display: "once daily", clinical: "once daily", times_per_day: 1}
-  BD: {display: "twice daily", clinical: "twice daily", times_per_day: 2}
-  BID: {display: "twice daily", clinical: "twice daily", times_per_day: 2}
-  BDS: {display: "twice daily", clinical: "twice daily", times_per_day: 2}
-  TDS: {display: "three times a day", clinical: "three times daily", times_per_day: 3}
-  TID: {display: "three times a day", clinical: "three times daily", times_per_day: 3}
-  QID: {display: "four times a day", clinical: "four times daily", times_per_day: 4}
-  QDS: {display: "four times a day", clinical: "four times daily", times_per_day: 4}
-  QHS: {display: "every night at bedtime", clinical: "every night at bedtime", times_per_day: 1}
-  OW: {display: "once a week", clinical: "once weekly", times_per_day: null}
-  BW: {display: "twice a week", clinical: "twice weekly", times_per_day: null}
-  QW: {display: "once a week", clinical: "once weekly", times_per_day: null}
-  ALT: {display: "every other day", clinical: "alternate days", times_per_day: null}
-  QOD: {display: "every other day", clinical: "alternate days", times_per_day: null}
-  Q4H: {display: "every 4 hours", clinical: "every 4 hours", times_per_day: 6}
-  Q6H: {display: "every 6 hours", clinical: "every 6 hours", times_per_day: 4}
-  Q8H: {display: "every 8 hours", clinical: "every 8 hours", times_per_day: 3}
-  Q12H: {display: "every 12 hours", clinical: "every 12 hours", times_per_day: 2}
+  "OD": {display: "once daily", clinical: "once daily", times_per_day: 1}
+  "ODD": {display: "once daily", clinical: "once daily", times_per_day: 1}
+  "QD": {display: "once daily", clinical: "once daily", times_per_day: 1}
+  "BD": {display: "twice daily", clinical: "twice daily", times_per_day: 2}
+  "BID": {display: "twice daily", clinical: "twice daily", times_per_day: 2}
+  "BDS": {display: "twice daily", clinical: "twice daily", times_per_day: 2}
+  "TDS": {display: "three times a day", clinical: "three times daily", times_per_day: 3}
+  "TID": {display: "three times a day", clinical: "three times daily", times_per_day: 3}
+  "QID": {display: "four times a day", clinical: "four times daily", times_per_day: 4}
+  "QDS": {display: "four times a day", clinical: "four times daily", times_per_day: 4}
+  "QHS": {display: "every night at bedtime", clinical: "every night at bedtime", times_per_day: 1}
+  "OW": {display: "once a week", clinical: "once weekly", times_per_day: null}
+  "BW": {display: "twice a week", clinical: "twice weekly", times_per_day: null}
+  "QW": {display: "once a week", clinical: "once weekly", times_per_day: null}
+  "ALT": {display: "every other day", clinical: "alternate days", times_per_day: null}
+  "QOD": {display: "every other day", clinical: "alternate days", times_per_day: null}
+  "Q4H": {display: "every 4 hours", clinical: "every 4 hours", times_per_day: 6}
+  "Q6H": {display: "every 6 hours", clinical: "every 6 hours", times_per_day: 4}
+  "Q8H": {display: "every 8 hours", clinical: "every 8 hours", times_per_day: 3}
+  "Q12H": {display: "every 12 hours", clinical: "every 12 hours", times_per_day: 2}
 
 # Not a frequency: "when you need it" has no number of times per day, and rendering SOS as a
 # schedule is how a patient ends up taking a rescue medicine four times a day.
 instruction:
-  SOS: {display: "only when you need it", clinical: "as needed"}
-  PRN: {display: "only when you need it", clinical: "as needed"}
-  STAT: {display: "straight away, one dose", clinical: "immediately, single dose"}
-  TAPER: {display: "reducing dose — follow the doctor's plan", clinical: "tapering dose"}
+  "SOS": {display: "only when you need it", clinical: "as needed"}
+  "PRN": {display: "only when you need it", clinical: "as needed"}
+  "STAT": {display: "straight away, one dose", clinical: "immediately, single dose"}
+  "TAPER": {display: "reducing dose — follow the doctor's plan", clinical: "tapering dose"}
 
 # When to take it relative to the day or to food. Kept apart from frequency because a line
 # routinely carries both ("BD bf" is twice daily AND before food) and collapsing them loses one.
 timing:
-  HS: {display: "at bedtime", clinical: "at bedtime"}
-  NOCTE: {display: "at night", clinical: "at night"}
-  MANE: {display: "in the morning", clinical: "in the morning"}
-  OM: {display: "in the morning", clinical: "in the morning"}
-  ON: {display: "at night", clinical: "at night"}
-  AC: {display: "before food", clinical: "before meals"}
-  PC: {display: "after food", clinical: "after meals"}
-  BF: {display: "before food", clinical: "before food"}
-  AF: {display: "after food", clinical: "after food"}
-  BBF: {display: "before breakfast", clinical: "before breakfast"}
-  PP: {display: "after food", clinical: "after meals"}
-  EMPTY_STOMACH: {display: "on an empty stomach", clinical: "on an empty stomach"}
+  "HS": {display: "at bedtime", clinical: "at bedtime"}
+  "NOCTE": {display: "at night", clinical: "at night"}
+  "MANE": {display: "in the morning", clinical: "in the morning"}
+  "OM": {display: "in the morning", clinical: "in the morning"}
+  # "ON" for "at night" is REMOVED, deliberately. It is a real notation, and it is also the
+  # commonest preposition in English: "Sample collected on 02/02/2026" parsed as a medicine
+  # called "Sample collected" to be taken at night. A one-token abbreviation that collides
+  # with an ordinary English word cannot be resolved without reading the rest of the line,
+  # and this table is exact-match-only by design. NOCTE and HS cover the same instruction
+  # unambiguously. The rule for anything added below: if it is also a word, leave it out.
+  "AC": {display: "before food", clinical: "before meals"}
+  "PC": {display: "after food", clinical: "after meals"}
+  "BF": {display: "before food", clinical: "before food"}
+  "AF": {display: "after food", clinical: "after food"}
+  "BBF": {display: "before breakfast", clinical: "before breakfast"}
+  "PP": {display: "after food", clinical: "after meals"}
+  "EMPTY_STOMACH": {display: "on an empty stomach", clinical: "on an empty stomach"}
 
 route:
-  PO: {display: "by mouth", clinical: "oral"}
-  ORAL: {display: "by mouth", clinical: "oral"}
-  IV: {display: "into a vein (drip or injection)", clinical: "intravenous"}
-  IM: {display: "injection into a muscle", clinical: "intramuscular"}
-  SC: {display: "injection under the skin", clinical: "subcutaneous"}
-  SL: {display: "under the tongue", clinical: "sublingual"}
-  PR: {display: "into the rectum", clinical: "rectal"}
-  PV: {display: "into the vagina", clinical: "vaginal"}
-  TOP: {display: "on the skin", clinical: "topical"}
-  TOPICAL: {display: "on the skin", clinical: "topical"}
-  NEB: {display: "breathed in through a nebuliser", clinical: "inhalation"}
-  INH: {display: "breathed in", clinical: "inhalation"}
-  OD_EYE: {display: "into the right eye", clinical: "right eye"}
-  OS: {display: "into the left eye", clinical: "left eye"}
-  OU: {display: "into both eyes", clinical: "both eyes"}
+  "PO": {display: "by mouth", clinical: "oral"}
+  "ORAL": {display: "by mouth", clinical: "oral"}
+  "IV": {display: "into a vein (drip or injection)", clinical: "intravenous"}
+  "IM": {display: "injection into a muscle", clinical: "intramuscular"}
+  "SC": {display: "injection under the skin", clinical: "subcutaneous"}
+  "SL": {display: "under the tongue", clinical: "sublingual"}
+  "PR": {display: "into the rectum", clinical: "rectal"}
+  "PV": {display: "into the vagina", clinical: "vaginal"}
+  "TOP": {display: "on the skin", clinical: "topical"}
+  "TOPICAL": {display: "on the skin", clinical: "topical"}
+  "NEB": {display: "breathed in through a nebuliser", clinical: "inhalation"}
+  "INH": {display: "breathed in", clinical: "inhalation"}
+  "OD_EYE": {display: "into the right eye", clinical: "right eye"}
+  "OS": {display: "into the left eye", clinical: "left eye"}
+  "OU": {display: "into both eyes", clinical: "both eyes"}
 
 form:
-  TAB: {display: "tablet", clinical: "tablet"}
-  TABS: {display: "tablet", clinical: "tablet"}
-  T: {display: "tablet", clinical: "tablet"}
-  CAP: {display: "capsule", clinical: "capsule"}
-  CAPS: {display: "capsule", clinical: "capsule"}
-  SYP: {display: "syrup", clinical: "syrup"}
-  SYR: {display: "syrup", clinical: "syrup"}
-  SUSP: {display: "suspension", clinical: "suspension"}
-  INJ: {display: "injection", clinical: "injection"}
-  OINT: {display: "ointment", clinical: "ointment"}
-  CREAM: {display: "cream", clinical: "cream"}
-  GEL: {display: "gel", clinical: "gel"}
-  DROPS: {display: "drops", clinical: "drops"}
-  SOLN: {display: "solution", clinical: "solution"}
-  POWDER: {display: "powder", clinical: "powder"}
-  SACHET: {display: "sachet", clinical: "sachet"}
-  LOTION: {display: "lotion", clinical: "lotion"}
-  SPRAY: {display: "spray", clinical: "spray"}
-  ROTACAP: {display: "rotacap (for an inhaler)", clinical: "rotacap"}
-  MDI: {display: "inhaler", clinical: "metered dose inhaler"}
+  "TAB": {display: "tablet", clinical: "tablet"}
+  "TABS": {display: "tablet", clinical: "tablet"}
+  "T": {display: "tablet", clinical: "tablet"}
+  "CAP": {display: "capsule", clinical: "capsule"}
+  "CAPS": {display: "capsule", clinical: "capsule"}
+  "SYP": {display: "syrup", clinical: "syrup"}
+  "SYR": {display: "syrup", clinical: "syrup"}
+  "SUSP": {display: "suspension", clinical: "suspension"}
+  "INJ": {display: "injection", clinical: "injection"}
+  "OINT": {display: "ointment", clinical: "ointment"}
+  "CREAM": {display: "cream", clinical: "cream"}
+  "GEL": {display: "gel", clinical: "gel"}
+  "DROPS": {display: "drops", clinical: "drops"}
+  "SOLN": {display: "solution", clinical: "solution"}
+  "POWDER": {display: "powder", clinical: "powder"}
+  "SACHET": {display: "sachet", clinical: "sachet"}
+  "LOTION": {display: "lotion", clinical: "lotion"}
+  "SPRAY": {display: "spray", clinical: "spray"}
+  "ROTACAP": {display: "rotacap (for an inhaler)", clinical: "rotacap"}
+  "MDI": {display: "inhaler", clinical: "metered dose inhaler"}
 
 # Duration units, so "x 5d" and "x 5 days" reach the same place.
 duration_unit:
-  D: {display: "days", clinical: "days"}
-  DAY: {display: "days", clinical: "days"}
-  DAYS: {display: "days", clinical: "days"}
-  W: {display: "weeks", clinical: "weeks"}
-  WK: {display: "weeks", clinical: "weeks"}
-  WKS: {display: "weeks", clinical: "weeks"}
-  WEEK: {display: "weeks", clinical: "weeks"}
-  WEEKS: {display: "weeks", clinical: "weeks"}
-  M: {display: "months", clinical: "months"}
-  MO: {display: "months", clinical: "months"}
-  MON: {display: "months", clinical: "months"}
-  MONTH: {display: "months", clinical: "months"}
-  MONTHS: {display: "months", clinical: "months"}
+  "D": {display: "days", clinical: "days"}
+  "DAY": {display: "days", clinical: "days"}
+  "DAYS": {display: "days", clinical: "days"}
+  "W": {display: "weeks", clinical: "weeks"}
+  "WK": {display: "weeks", clinical: "weeks"}
+  "WKS": {display: "weeks", clinical: "weeks"}
+  "WEEK": {display: "weeks", clinical: "weeks"}
+  "WEEKS": {display: "weeks", clinical: "weeks"}
+  "M": {display: "months", clinical: "months"}
+  "MO": {display: "months", clinical: "months"}
+  "MON": {display: "months", clinical: "months"}
+  "MONTH": {display: "months", clinical: "months"}
+  "MONTHS": {display: "months", clinical: "months"}
 
 # The morning-afternoon-night grid, which is how a prescription in India most often writes a
 # schedule. Read positionally, so this maps a SLOT COUNT to the labels for those slots.

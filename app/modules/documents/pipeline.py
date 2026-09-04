@@ -24,6 +24,7 @@ from app.core.errors import ValidationError
 from app.core.logging import get_logger
 from app.modules.documents.backends import OCRResult, get_ocr_backend, read_document
 from app.modules.documents.entities import ExtractedEntity, extract_entities, page_summary
+from app.modules.documents.prescription import PrescriptionReading, interpret
 from app.modules.documents.timeline import build_timeline, order_timeline
 
 log = get_logger(__name__)
@@ -50,6 +51,8 @@ class IngestResult:
     needs_verification: list[dict[str, Any]] = field(default_factory=list)
     entities: list[ExtractedEntity] = field(default_factory=list)
     ocr: OCRResult | None = None
+    #: The prescription read twice — literally, and for meaning. Never merged.
+    reading: PrescriptionReading | None = None
 
     def extracted_items(self) -> list[dict[str, Any]]:
         """Everything OCR found, in one list the patient can read back.
@@ -96,6 +99,12 @@ class IngestResult:
             "lowConfidenceCount": len(self.needs_verification),
             "extracted": self.extracted_items(),
             "documentKind": classify_document(self.extracted_items()),
+            # The three keys the handwriting lane is judged on, and they travel together on
+            # purpose: a client that renders `interpretedText` without `rawOcrText` beside it
+            # has removed the only means anyone has of checking the interpretation.
+            "rawOcrText": self.reading.raw_ocr_text if self.reading else "",
+            "interpretedText": self.reading.interpreted_text if self.reading else "",
+            "medications": [m.to_dict() for m in self.reading.medications] if self.reading else [],
         }
 
     def document_ref(self) -> DocumentRef:
@@ -247,6 +256,7 @@ def ingest(
     doc_id = document_id or f"doc_{uuid.uuid4().hex[:10]}"
 
     confident, needs_check = extract_entities(ocr, sex=sex)
+    reading = interpret(ocr)
 
     facts: list[Fact] = []
     fact_index: dict[int, str] = {}
@@ -266,6 +276,10 @@ def ingest(
         entities=len(confident),
         needs_verification=len(needs_check),
         facts=len(facts),
+        medications_interpreted=len(reading.medications),
+        medications_unresolved=sum(
+            1 for m in reading.medications if not m.name_match.resolved
+        ),
     )
 
     return IngestResult(
@@ -279,6 +293,7 @@ def ingest(
         needs_verification=[{**e.to_dict(), "entityIndex": i} for i, e in enumerate(needs_check)],
         entities=confident,
         ocr=ocr,
+        reading=reading,
     )
 
 

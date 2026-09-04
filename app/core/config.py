@@ -172,6 +172,27 @@ class Settings(BaseSettings):
     #: measured against the image the physician is looking at.
     trocr_render_dpi: int = 200
 
+    # --- prescription interpretation (Module B, stage 9) ---
+    #: Auto-correct a misread medicine name only at or above this similarity. Calibrated on
+    #: the worked example: "Augmtin" scores 0.875 against Augmentin, which is the weakest
+    #: correction still obviously right to a pharmacist. Measured, not guessed — and measured
+    #: against the adversarial sweep in tests/test_prescription_interpretation.py, which
+    #: mutates every name in the dictionary and asserts none of them auto-corrects to a
+    #: DIFFERENT medicine.
+    rx_name_auto_similarity: float = 0.86
+    #: …and only when it beats the best *different* drug by this much. Without a margin,
+    #: "Amlo" would auto-correct to Amlodipine at 0.90 while Amoxicillin sat at 0.89.
+    rx_name_margin: float = 0.06
+    #: …and only when the recogniser was reasonably sure of the characters. A strong match on
+    #: characters nobody read confidently is a strong match on a guess.
+    rx_name_min_ocr_confidence: float = 0.55
+    #: Below this, not even worth showing as a suggestion.
+    rx_name_candidate_similarity: float = 0.70
+    rx_name_candidate_limit: int = 3
+    #: An interpretation whose weakest field falls below this goes to a human even when
+    #: the name was read perfectly. A confident drug with an uncertain dose is not safe.
+    rx_interpretation_confidence_floor: float = 0.75
+
     # --- terminology (coding sidecar) ---
     namaste_version: str = "1.0"
     icd_release_id: str = "2026-01"

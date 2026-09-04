@@ -181,29 +181,26 @@ def parse_date(text: str) -> tuple[date | None, str]:
 
 
 def _normalise_frequency(raw: str) -> str:
-    """Turn dosing shorthand into words a patient-facing screen can render."""
-    cleaned = raw.upper().replace(" ", "")
-    numeric = re.fullmatch(r"(\d)-(\d)-(\d)(?:-(\d))?", cleaned)
-    if numeric:
-        slots = [g for g in numeric.groups() if g is not None]
-        times = sum(1 for s in slots if s != "0")
-        labels = ["morning", "afternoon", "night", "bedtime"][: len(slots)]
-        taken = [label for label, s in zip(labels, slots, strict=False) if s != "0"]
-        return f"{times}× daily ({', '.join(taken)})" if taken else "as directed"
-    return {
-        "OD": "once daily",
-        "BD": "twice daily",
-        "BID": "twice daily",
-        "TDS": "three times daily",
-        "TID": "three times daily",
-        "QID": "four times daily",
-        "QDS": "four times daily",
-        "HS": "at bedtime",
-        "SOS": "as needed",
-        "PRN": "as needed",
-        "STAT": "immediately, once",
-        "OW": "once weekly",
-    }.get(cleaned, raw.strip())
+    """Dosing shorthand into words a patient-facing screen can render.
+
+    The table used to live here as a Python dict, which put clinical strings in a `.py` file
+    and meant a clinician could not correct "TDS" without a code change. It is now
+    `data/terminology/prescription-abbreviations.yaml`, read through `sig.py`.
+
+    Frequency, then timing, then instruction — because a prescription writes all three in the
+    same position and a patient screen has one line for them. `sig.interpret_schedule()` is
+    what keeps them apart where the structure matters; this is the flattened view.
+    """
+    from app.modules.documents.sig import (
+        normalise_frequency,
+        normalise_instruction,
+        normalise_timing,
+    )
+
+    found = (
+        normalise_frequency(raw) or normalise_timing(raw) or normalise_instruction(raw)
+    )
+    return found.display if found else raw.strip()
 
 
 def _route_from(text: str) -> str | None:
@@ -288,21 +285,61 @@ def extract_from_block(
                 ("date", "name", "age", "sex", "patient", "ref", "dr", "reg", "opd", "uhid")
             )
         ):
-            found.append(
-                _entity(
-                    "medication",
-                    name,
-                    {
-                        "form": (medication.group("form") or "").strip(". ").upper() or None,
-                        "dose": medication.group("strength"),
-                        "frequencyRaw": medication.group("freq"),
-                        "frequency": _normalise_frequency(medication.group("freq") or ""),
-                        "duration": medication.group("duration"),
-                        "route": _route_from(text),
-                    },
-                )
+            entity = _entity(
+                "medication",
+                name,
+                {
+                    "form": (medication.group("form") or "").strip(". ").upper() or None,
+                    "dose": medication.group("strength"),
+                    "frequencyRaw": medication.group("freq"),
+                    "frequency": _normalise_frequency(medication.group("freq") or ""),
+                    "duration": medication.group("duration"),
+                    "route": _route_from(text),
+                },
             )
+            found.append(_interpret(entity, block))
     return found
+
+
+def _interpret(entity: ExtractedEntity, block: OCRBlock) -> ExtractedEntity:
+    """Run the medication line through the interpretation layer and record what it found.
+
+    The recorded `text` becomes the **canonical** name when — and only when — the constrained
+    matcher resolved it automatically. Two reasons, and the second is the load-bearing one:
+
+    1. "Metformin" is the medicine; "METFORMIN" is a rendering of it, and the longitudinal
+       medication history threads visits on the name.
+    2. The raw OCR string is not lost by doing this. It stays in `detail["ocrName"]`, and the
+       whole unedited line stays in `source_text`, which is what becomes the `DocumentSpan`
+       verbatim. Invariant 2 is untouched: the fact still cites the characters on the paper,
+       and the physician's evidence drawer still shows them.
+
+    An *unresolved* name is never substituted. The entity keeps exactly what OCR read and
+    goes to the verification lane, because writing a suggestion into the record as though it
+    were a reading is the failure this whole module is built to prevent.
+    """
+    from app.modules.documents.prescription import parse_line
+
+    reading = parse_line(
+        entity.source_text,
+        ocr_confidence=block.confidence,
+        engine=block.engine,
+    )
+    if reading is None:
+        return entity
+
+    entity.detail["interpretation"] = reading.to_dict()
+    entity.detail["needsVerification"] = reading.needs_verification
+    match = reading.name_match
+    if match.status in ("normalised", "abbreviation") and match.name:
+        entity.detail["ocrName"] = entity.text
+        entity.detail["nameSource"] = match.status
+        entity.text = match.name
+    if match.generic:
+        entity.detail["generic"] = match.generic
+    if match.brand:
+        entity.detail["brand"] = match.brand
+    return entity
 
 
 #: Header lines that carry the document's own date. A prescription dates every drug on it;
@@ -359,7 +396,15 @@ def extract_entities(
                     entity.detail["dateSourceLine"] = header_line
                 elif entity.observed_on is not None:
                     entity.detail["dateSource"] = "own_line"
-                if entity.handwritten or entity.confidence <= settings.ocr_low_confidence_threshold:
+                low = (
+                    entity.handwritten
+                    or entity.confidence <= settings.ocr_low_confidence_threshold
+                    # A medicine whose NAME could not be resolved against the dictionary goes
+                    # to a human even when OCR was confident about the characters. Confidence
+                    # that the strokes say "Xyzqw" is not confidence that Xyzqw is a medicine.
+                    or bool(entity.detail.get("needsVerification"))
+                )
+                if low:
                     needs_check.append(entity)
                 else:
                     confident.append(entity)
