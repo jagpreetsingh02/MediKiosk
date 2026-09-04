@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const [url, out, w, h, full] = process.argv.slice(2);
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2 });
+const errs = [];
+p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+p.on('pageerror', e => errs.push(String(e)));
+await p.goto(url, { waitUntil: 'networkidle' });
+await p.waitForTimeout(3200);
+await p.screenshot({ path: out, fullPage: full === 'full' });
+if (errs.length) console.log('CONSOLE ERRORS:\n' + errs.join('\n'));
+await b.close();

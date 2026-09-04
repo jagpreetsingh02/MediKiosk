@@ -8,37 +8,50 @@
  */
 
 :root {
-  /* --- palette ------------------------------------------------------------ */
-  --ink: #10171f;
-  --ink-2: #3c4a5a;
-  --ink-3: #6b7b8c;
+  /* --- palette ------------------------------------------------------------
+   * The legacy variables, retoned to Frostwork (see design/tokens.css). These
+   * sheets load FIRST and the v2 system wins every collision, so this block
+   * only governs the screens that have not been rebuilt yet — but a half-
+   * migrated app in two different palettes looks broken in a way that a
+   * half-migrated app in one palette does not.
+   *
+   * The important change is `--accent`: it was a blue, and a blue action next
+   * to a green "verified" chip is two colours competing to be the one that
+   * means something. Charcoal is what buys green and red their meaning.
+   */
+  --ink: #0e1014;
+  --ink-2: #2b2f36;
+  --ink-3: #545a64;
   --paper: #ffffff;
-  --paper-2: #f4f7fa;
-  --paper-3: #e6edf3;
-  --line: #cdd9e3;
+  --paper-2: #f5f6f8;
+  --paper-3: #eceef1;
+  --line: #d2d6dd;
 
-  --accent: #0b5fa5;
-  --accent-dark: #084a80;
-  --accent-soft: #e3f0fb;
+  --accent: #0e1014;
+  --accent-dark: #08090b;
+  --accent-soft: #eceef1;
 
-  --ok: #1a7f4b;
-  --ok-soft: #e2f5ea;
-  --warn: #a86a00;
-  --warn-soft: #fdf1dc;
+  /* The two clinical signals, matched to --mk-ok-* and --mk-alert-*. */
+  --ok: #0f7a44;
+  --ok-soft: #e3f5eb;
+  /* No third signal: `warn` is alert at lower intensity, so an un-migrated
+     component escalates rather than inventing a hue. */
+  --warn: #b3261e;
+  --warn-soft: #fdeceb;
   --danger: #b3261e;
-  --danger-soft: #fde8e6;
-  --immediate: #8f1a13;
+  --danger-soft: #fdeceb;
+  --immediate: #8c1c15;
 
   /* --- type --------------------------------------------------------------- */
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
+  --font: "Helvetica Neue", Helvetica, Inter, Arial, system-ui, "Noto Sans Devanagari",
     "Noto Sans Tamil", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* --- geometry ------------------------------------------------------------ */
-  --radius: 10px;
-  --radius-lg: 18px;
-  --shadow: 0 1px 2px rgba(16, 23, 31, 0.06), 0 4px 14px rgba(16, 23, 31, 0.07);
-  --shadow-lg: 0 8px 40px rgba(16, 23, 31, 0.16);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 2px rgba(14, 16, 20, 0.05), 0 4px 12px rgba(14, 16, 20, 0.06);
+  --shadow-lg: 0 24px 54px -16px rgba(14, 16, 20, 0.2);
 }
 
 * { box-sizing: border-box; }
@@ -68,10 +81,13 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 /* A permanent, unmissable reminder that the identity layer is a mock. A judge should never
  * have to ask whether the ABHA integration is real. */
 .mock-banner {
+  /* Hazard stripes in charcoal rather than the old amber-on-brown. It still
+     reads as tape across the top of the screen — which is the job — without
+     being the only saturated thing in a monochrome product. */
   background: repeating-linear-gradient(
-    45deg, #4a3000, #4a3000 12px, #5c3c00 12px, #5c3c00 24px
+    45deg, #16181d, #16181d 12px, #23262d 12px, #23262d 24px
   );
-  color: #ffd88a;
+  color: #e1e4e9;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;

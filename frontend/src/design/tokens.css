@@ -1,26 +1,42 @@
 /**
- * MediKiosk design tokens — "Clinical Aurora".
+ * MediKiosk design tokens — "Frostwork".
  *
- * TWO SURFACES THAT DELIBERATELY INVERT. The patient kiosk is light and luminous; the
- * physician workspace is dark and instrument-grade. That is not decoration, it is the brief's
- * requirement that the two surfaces feel nothing alike — and each direction is chosen for its
- * own room:
+ * ONE MATERIAL, TWO DENSITIES. The previous system inverted the two surfaces — luminous
+ * patient kiosk, dark physician workspace — and it worked, but it made the product read as
+ * two applications wearing the same name. Frostwork keeps the reason that split existed (a
+ * kiosk under hospital fluorescents must be light; a clinician wants more on screen) and
+ * moves the difference from *colour* to *density and scale*. Both surfaces are now cut from
+ * the same silver: white → frost → grey → silver, charcoal ink, and nothing else.
  *
- *   PATIENT   A kiosk stands under hospital fluorescents and is used by people in their
- *             sixties and seventies. Contrast sensitivity falls with age, and a dark UI in a
- *             bright room is the worst combination for it. Premium here means *luminous* —
- *             porcelain surfaces, deep indigo ink, generous type, soft depth.
+ * The material is glass over brushed metal:
  *
- *   PHYSICIAN A clinician reads dense evidence for hours on a laptop. Dark reduces glare
- *             over a long session and lets red flags and confidence states carry real weight
- *             without shouting.
+ *   GROUND    A monochrome gradient field, never flat paper. It drifts very slowly and
+ *             leans a few percent toward the cursor, so the page feels like a lit surface
+ *             rather than a screenshot.
+ *   GLASS     Translucent panels with a real reflective edge — a 1px gradient border that is
+ *             brighter along the top, the way an actual pane of glass catches a room light.
+ *   BRUTAL    Restrained radii, hairline rules, and buttons that physically depress. The
+ *             softness of the glass needs something rigid to sit against or the whole screen
+ *             turns to fog.
  *
- * The palette is rooted in Indian pigment tradition rather than generic health-tech blue:
- * indigo (the dye), jade (vitality), saffron (AYUSH, warmth, attention). Every colour pair
- * used for text is checked against WCAG AA at its intended size.
+ * COLOUR IS A CLINICAL SIGNAL, NOT DECORATION. There are exactly two hues in this system and
+ * both of them mean something a clinician acts on:
  *
- * NAMING. `--mk-` prefix throughout so these never collide with the legacy `kiosk.css` /
- * `physician.css` variables while both exist during the rebuild.
+ *   GREEN     verified · confirmed · resolved · in range · safe to proceed
+ *   RED       red flag · contradiction · rejected · critical · needs a human now
+ *
+ * Nothing else is allowed to be coloured. A green chip on this interface is information; on
+ * the previous one it was also the brand's primary action colour, which is precisely why it
+ * could not carry meaning. Making the action charcoal is what buys green its meaning back.
+ *
+ * CONTRAST IS NOT NEGOTIABLE AND GLASS IS WHERE IT GETS LOST. Every text pair here is checked
+ * against WCAG AA at its intended size, and the glass tokens are deliberately more opaque
+ * than they would be on a marketing site — a dosage read through a pretty pane is a dosage
+ * misread. Where an effect and a number disagree, the number wins.
+ *
+ * NAMING. `--mk-` prefix throughout, and every semantic name from the previous system is
+ * preserved so the retheme lands across ~800 existing token references without touching the
+ * components that use them.
  */
 
 /* ============================================================ primitives ===
@@ -28,68 +44,73 @@
  * semantic layer below, so a re-theme touches one block instead of forty files.
  */
 :root {
-  /* Indigo — the ink and the dark ground */
-  --mk-indigo-950: #070a16;
-  --mk-indigo-900: #0d1226;
-  --mk-indigo-850: #131a33;
-  --mk-indigo-800: #1a2342;
-  --mk-indigo-700: #253057;
-  --mk-indigo-600: #34406e;
-  --mk-indigo-500: #4a5789;
-  --mk-indigo-400: #6d7aa8;
-  --mk-indigo-300: #97a1c4;
-  --mk-indigo-200: #c2c9de;
-  --mk-indigo-100: #e0e4ef;
-  --mk-indigo-50: #eff1f8;
+  /* Charcoal — the ink and every structural line. Neutral-cool by a hair: a
+     dead-neutral grey next to white photographs as slightly yellow. */
+  --mk-char-950: #08090b;
+  --mk-char-900: #0e1014;
+  --mk-char-850: #16181d;
+  --mk-char-800: #1e2127;
+  --mk-char-700: #2b2f36;
+  --mk-char-600: #3d424b;
+  --mk-char-500: #545a64;
+  --mk-char-400: #6e747f;
+  --mk-char-300: #8f959f;
+  --mk-char-200: #b4b9c2;
+  --mk-char-100: #d3d7dd;
 
-  /* Porcelain — the light ground. Warm, not clinical grey. */
-  --mk-porcelain-0: #ffffff;
-  --mk-porcelain-50: #fcfbfa;
-  --mk-porcelain-100: #f7f5f2;
-  --mk-porcelain-200: #efece7;
-  --mk-porcelain-300: #e2ded7;
+  /* Frost — the light ground. Cool, faintly blue, so silver reads as metal
+     rather than as beige. */
+  --mk-frost-0: #ffffff;
+  --mk-frost-50: #fbfcfd;
+  --mk-frost-100: #f5f6f8;
+  --mk-frost-200: #eceef1;
+  --mk-frost-300: #e1e4e9;
+  --mk-frost-400: #d2d6dd;
+  --mk-frost-500: #bfc4cd;
 
-  /* Jade — primary action, vitality, "this is health" */
-  --mk-jade-700: #0b6b52;
-  --mk-jade-600: #0f8a68;
-  --mk-jade-500: #14a67e;
-  --mk-jade-400: #2bc196;
-  --mk-jade-300: #5ed7b4;
-  --mk-jade-200: #a3e9d4;
-  --mk-jade-100: #d6f6ec;
+  /* Silver — the specular ramp. Used only in gradients and reflective edges,
+     never as a fill: a flat silver panel is just grey. */
+  --mk-silver-lit: #ffffff;
+  --mk-silver-mid: #e8eaee;
+  --mk-silver-deep: #cfd4dc;
+  --mk-silver-shade: #b6bcc6;
 
-  /* Saffron — AYUSH, attention, warmth. Never used for destructive. */
-  --mk-saffron-700: #a35d05;
-  --mk-saffron-600: #c67608;
-  --mk-saffron-500: #e2900f;
-  --mk-saffron-400: #f2ab3c;
-  --mk-saffron-300: #f8c877;
-  --mk-saffron-200: #fce3b4;
-  --mk-saffron-100: #fef4e2;
+  /* ---- the two signals, and there are only two ---- */
 
-  /* Coral — red flags only. Deliberately warm rather than fire-engine red: a
-     clinical alert must read as urgent without making the whole app frightening. */
-  --mk-coral-700: #a32020;
-  --mk-coral-600: #c73434;
-  --mk-coral-500: #e04b4b;
-  --mk-coral-400: #f07070;
-  --mk-coral-300: #f8a3a3;
-  --mk-coral-200: #fcd0d0;
-  --mk-coral-100: #fdeaea;
+  /* Verified · confirmed · resolved · in range. Deep enough to hold AA as text
+     on frost, which a mint green cannot do. */
+  --mk-ok-700: #0a5c33;
+  --mk-ok-600: #0f7a44;
+  --mk-ok-500: #159756;
+  --mk-ok-400: #34b374;
+  --mk-ok-200: #a9e0c3;
+  --mk-ok-100: #e3f5eb;
+  --mk-ok-glow: rgba(21, 151, 86, 0.28);
 
-  /* Lilac — provenance and evidence. A third hue so "where did this come from"
-     is never confused with "this is good" or "this is wrong". */
-  --mk-lilac-600: #6b4ec7;
-  --mk-lilac-500: #8367dd;
-  --mk-lilac-400: #a189ea;
-  --mk-lilac-300: #c3b4f3;
-  --mk-lilac-100: #ece6fc;
+  /* Red flag · contradiction · rejected · critical. One red, used at one
+     meaning — a second "warning" hue would let the first one soften. */
+  --mk-alert-700: #8c1c15;
+  --mk-alert-600: #b3261e;
+  --mk-alert-500: #d13529;
+  --mk-alert-400: #e35b4f;
+  --mk-alert-200: #f4bdb8;
+  --mk-alert-100: #fdeceb;
+  --mk-alert-glow: rgba(209, 53, 41, 0.3);
 
   /* ======================================================== typography === */
-  --mk-font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque',
+  /* Neue Machina is the display voice: headings, the wordmark, numerals, and
+     technical labels. It is licensed per-project and is NOT in this repo — see
+     the @font-face block at the foot of this file. Until the licensed files are
+     dropped into /public/fonts, Space Grotesk stands in: self-hosted, offline,
+     and the closest free face in character (geometric, squared terminals, a
+     mechanical single-storey 'a'). The stack degrades in that order. */
+  --mk-font-display: 'Neue Machina', 'Space Grotesk Variable', 'Space Grotesk',
     ui-sans-serif, system-ui, sans-serif;
-  --mk-font-ui: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui,
-    -apple-system, 'Segoe UI', sans-serif;
+  /* Helvetica for everything a patient or clinician actually reads. Chosen for
+     its neutrality: it argues with nothing, which is what body copy in a
+     clinical record should do. */
+  --mk-font-ui: 'Helvetica Neue', Helvetica, 'Inter', Arial, ui-sans-serif,
+    system-ui, sans-serif;
   --mk-font-indic: 'Noto Sans Devanagari', 'Noto Sans Tamil', var(--mk-font-ui);
   --mk-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 
@@ -112,10 +133,14 @@
   --mk-leading-normal: 1.5;
   --mk-leading-relaxed: 1.65;
 
-  --mk-tracking-tight: -0.025em;
-  --mk-tracking-snug: -0.015em;
+  /* Neue Machina and Space Grotesk are both wide by nature; display sizes need
+     a firmer negative track than the old face did to stop headings sprawling. */
+  --mk-tracking-tight: -0.032em;
+  --mk-tracking-snug: -0.018em;
   --mk-tracking-normal: 0;
-  --mk-tracking-wide: 0.06em;
+  --mk-tracking-wide: 0.08em;
+  /* For the small uppercase technical labels that carry the brutalist accent. */
+  --mk-tracking-caps: 0.14em;
 
   --mk-weight-normal: 400;
   --mk-weight-medium: 500;
@@ -139,23 +164,78 @@
   --mk-space-24: 6rem;
 
   /* =========================================================== radius === */
-  --mk-radius-xs: 6px;
-  --mk-radius-sm: 10px;
-  --mk-radius-md: 14px;
-  --mk-radius-lg: 20px;
-  --mk-radius-xl: 28px;
-  --mk-radius-2xl: 36px;
+  /* Cut down hard from the previous ramp (which topped out at 36px). A 36px
+     radius is the house style of consumer SaaS and it fights everything else
+     here: glass wants a crisp edge to catch light along, and the brutalist
+     half of this language has no rounding at all. The ceiling is 20. */
+  --mk-radius-xs: 2px;
+  --mk-radius-sm: 4px;
+  --mk-radius-md: 8px;
+  --mk-radius-lg: 12px;
+  --mk-radius-xl: 16px;
+  --mk-radius-2xl: 20px;
   --mk-radius-pill: 999px;
 
   /* ======================================================== elevation === */
-  /* Shadows carry a hint of the indigo ground rather than neutral black, which
-     is what stops layered light surfaces looking dusty. */
-  --mk-shadow-xs: 0 1px 2px rgba(13, 18, 38, 0.06);
-  --mk-shadow-sm: 0 2px 8px rgba(13, 18, 38, 0.07), 0 1px 2px rgba(13, 18, 38, 0.05);
-  --mk-shadow-md: 0 8px 24px -6px rgba(13, 18, 38, 0.12), 0 2px 6px rgba(13, 18, 38, 0.06);
-  --mk-shadow-lg: 0 20px 48px -12px rgba(13, 18, 38, 0.18), 0 4px 12px rgba(13, 18, 38, 0.07);
-  --mk-shadow-xl: 0 32px 72px -16px rgba(13, 18, 38, 0.24), 0 8px 20px rgba(13, 18, 38, 0.09);
-  --mk-shadow-focus: 0 0 0 4px var(--mk-focus-ring);
+  /* Every shadow has a real vertical offset and a soft blur — a zero-offset
+     halo is a glow, not a shadow, and it makes a panel look printed on rather
+     than lifted off. Tinted with the charcoal ground so stacked light surfaces
+     do not go dusty. */
+  --mk-shadow-xs: 0 1px 2px rgba(14, 16, 20, 0.05);
+  --mk-shadow-sm: 0 2px 6px rgba(14, 16, 20, 0.06), 0 1px 2px rgba(14, 16, 20, 0.04);
+  --mk-shadow-md: 0 10px 26px -8px rgba(14, 16, 20, 0.14), 0 2px 6px rgba(14, 16, 20, 0.05);
+  --mk-shadow-lg: 0 24px 54px -16px rgba(14, 16, 20, 0.2), 0 4px 12px rgba(14, 16, 20, 0.06);
+  --mk-shadow-xl: 0 40px 90px -24px rgba(14, 16, 20, 0.26), 0 8px 20px rgba(14, 16, 20, 0.08);
+  --mk-shadow-focus: 0 0 0 3px var(--mk-focus-ring);
+  /* The tactile pair: a raised key and the same key pressed. The inset on the
+     pressed state is what sells the button as a physical object. */
+  --mk-shadow-key:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 0 rgba(14, 16, 20, 0.06),
+    0 4px 10px -2px rgba(14, 16, 20, 0.12);
+  --mk-shadow-key-pressed:
+    inset 0 2px 4px rgba(14, 16, 20, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  /* ============================================================ glass === */
+  /* Read these as one material with three thicknesses. `--mk-glass-blur` is a
+     token so the whole system can be thinned at once on a weak GPU, and the
+     reflective edge is a gradient border rather than a flat rgba line because
+     a uniform white edge reads as a stroke and a graded one reads as a bevel. */
+  --mk-glass-blur: saturate(150%) blur(22px);
+  --mk-glass-blur-heavy: saturate(160%) blur(34px);
+  --mk-glass-blur-light: saturate(130%) blur(12px);
+
+  --mk-glass-thin: rgba(255, 255, 255, 0.46);
+  --mk-glass: rgba(255, 255, 255, 0.62);
+  --mk-glass-thick: rgba(255, 255, 255, 0.82);
+  /* For panels that carry small text or numbers. Text on glass is where
+     contrast dies, and this is the floor a dosage may be read against. */
+  --mk-glass-solid: rgba(255, 255, 255, 0.94);
+
+  --mk-glass-edge: rgba(255, 255, 255, 0.9);
+  --mk-glass-edge-dim: rgba(255, 255, 255, 0.36);
+  --mk-glass-rim: rgba(14, 16, 20, 0.1);
+  /* The reflective border, applied via border-image. Bright along the top-left
+     where the light is, fading to the charcoal rim underneath. */
+  --mk-glass-border: linear-gradient(
+    150deg,
+    var(--mk-glass-edge) 0%,
+    var(--mk-glass-edge-dim) 34%,
+    rgba(14, 16, 20, 0.06) 68%,
+    rgba(14, 16, 20, 0.12) 100%
+  );
+  /* The specular sweep laid over a glass panel's own background. */
+  --mk-glass-sheen: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.08) 42%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  --mk-glass-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 18px 40px -18px rgba(14, 16, 20, 0.22),
+    0 2px 8px -2px rgba(14, 16, 20, 0.08);
 
   /* =========================================================== motion === */
   /* Durations are perceptual. Anything a finger triggers is under 200ms or it
@@ -166,6 +246,10 @@
   --mk-dur-normal: 240ms;
   --mk-dur-slow: 380ms;
   --mk-dur-slower: 560ms;
+  /* The route/section crossfade. Inside the 250–500ms band the brief asks for,
+     and deliberately at the short end: a transition a user waits for is a
+     transition they start to resent on the fourth navigation. */
+  --mk-dur-route: 320ms;
 
   --mk-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --mk-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -182,64 +266,94 @@
   --mk-z-base: 0;
   --mk-z-sticky: 10;
   --mk-z-header: 20;
+  --mk-z-nav: 30;
   --mk-z-drawer: 40;
   --mk-z-modal: 50;
   --mk-z-toast: 60;
+
+  /* ======================================== cursor & scroll channels ===
+   * Written by `useCursorField` and `useScrollProgress` on the elements that
+   * opt in, and defaulted here so every rule that reads them renders correctly
+   * before any pointer has moved and on devices where they never will.
+   *
+   *   --mk-mx / --mk-my   pointer position within the element, 0–1
+   *   --mk-mdist          distance from the element's centre, 0–1
+   *   --mk-scroll         page scroll progress, 0–1, smoothed
+   */
+  --mk-mx: 0.5;
+  --mk-my: 0.5;
+  --mk-mdist: 1;
+  --mk-scroll: 0;
 }
 
 /* ==================================================== PATIENT SURFACE ===
- * Light, luminous, touch-first. This is the default because the kiosk is the
- * front door of the product.
+ * Light, luminous, touch-first. The default, because the kiosk is the front
+ * door of the product.
  */
 :root,
 [data-surface='kiosk'] {
   color-scheme: light;
 
-  --mk-bg: var(--mk-porcelain-100);
-  /* The ambient wash. Two very soft radial pools of jade and saffron over
-     porcelain — enough to stop a full-bleed screen reading as flat paper,
-     nowhere near enough to compete with content. */
+  --mk-bg: var(--mk-frost-100);
+  /* The ambient ground. Monochrome only: two soft specular pools that track
+     the cursor, over a fixed silver diagonal. The pools are pure white and a
+     cool grey — no hue anywhere, so the two clinical signals stay the only
+     coloured things on the page. */
   --mk-bg-ambient:
-    radial-gradient(1100px 620px at 12% -8%, rgba(20, 166, 126, 0.09), transparent 62%),
-    radial-gradient(900px 560px at 92% 4%, rgba(226, 144, 15, 0.08), transparent 58%),
-    radial-gradient(700px 700px at 50% 108%, rgba(107, 78, 199, 0.05), transparent 60%);
+    radial-gradient(
+      1200px 800px at calc(var(--mk-mx) * 100%) calc(var(--mk-my) * 100%),
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 255, 255, 0) 58%
+    ),
+    radial-gradient(
+      900px 700px at calc(100% - var(--mk-mx) * 60%) calc(8% + var(--mk-my) * 24%),
+      rgba(186, 194, 208, 0.3),
+      rgba(186, 194, 208, 0) 62%
+    ),
+    linear-gradient(168deg, #ffffff 0%, #f2f4f7 46%, #e4e7ec 100%);
 
-  --mk-surface: var(--mk-porcelain-0);
-  --mk-surface-raised: var(--mk-porcelain-0);
-  --mk-surface-sunken: var(--mk-porcelain-200);
-  --mk-surface-muted: var(--mk-porcelain-50);
-  /* Glass, used sparingly: the sticky header and the option-sheet backdrop. */
-  --mk-surface-glass: rgba(255, 255, 255, 0.78);
-  --mk-glass-blur: saturate(180%) blur(20px);
+  --mk-surface: var(--mk-frost-0);
+  --mk-surface-raised: var(--mk-frost-0);
+  --mk-surface-sunken: var(--mk-frost-200);
+  --mk-surface-muted: var(--mk-frost-50);
+  --mk-surface-glass: var(--mk-glass);
 
-  --mk-ink: var(--mk-indigo-900);
-  --mk-ink-strong: var(--mk-indigo-950);
-  --mk-ink-muted: var(--mk-indigo-600);
-  --mk-ink-subtle: var(--mk-indigo-500);
-  --mk-ink-inverse: var(--mk-porcelain-0);
+  --mk-ink: var(--mk-char-700);
+  --mk-ink-strong: var(--mk-char-900);
+  --mk-ink-muted: var(--mk-char-500);
+  --mk-ink-subtle: var(--mk-char-400);
+  --mk-ink-inverse: var(--mk-frost-0);
 
-  --mk-line: var(--mk-porcelain-300);
-  --mk-line-strong: var(--mk-indigo-200);
-  --mk-line-hairline: rgba(13, 18, 38, 0.07);
+  --mk-line: var(--mk-frost-400);
+  --mk-line-strong: var(--mk-char-200);
+  --mk-line-hairline: rgba(14, 16, 20, 0.08);
 
-  --mk-accent: var(--mk-jade-600);
-  --mk-accent-hover: var(--mk-jade-700);
-  --mk-accent-soft: var(--mk-jade-100);
-  --mk-accent-ink: var(--mk-jade-700);
+  /* THE ACTION IS CHARCOAL, NOT A HUE. This is the single change that lets
+     green and red mean something: with no coloured brand accent competing for
+     attention, a green chip on this page is a clinical statement rather than a
+     decoration that happens to match the buttons. */
+  --mk-accent: var(--mk-char-900);
+  --mk-accent-hover: var(--mk-char-950);
+  --mk-accent-soft: var(--mk-frost-200);
+  --mk-accent-ink: var(--mk-char-900);
   --mk-accent-contrast: #ffffff;
 
-  --mk-warm: var(--mk-saffron-600);
-  --mk-warm-soft: var(--mk-saffron-100);
-  --mk-warm-ink: var(--mk-saffron-700);
+  /* `warm` was saffron and meant "attention". In a two-signal system there is
+     no third state: something either needs a human (alert) or it does not.
+     It resolves to graphite so any un-migrated component reads as neutral
+     rather than inventing a colour. */
+  --mk-warm: var(--mk-char-600);
+  --mk-warm-soft: var(--mk-frost-200);
+  --mk-warm-ink: var(--mk-char-700);
 
-  --mk-danger: var(--mk-coral-600);
-  --mk-danger-soft: var(--mk-coral-100);
-  --mk-danger-ink: var(--mk-coral-700);
+  --mk-danger: var(--mk-alert-600);
+  --mk-danger-soft: var(--mk-alert-100);
+  --mk-danger-ink: var(--mk-alert-700);
 
-  --mk-evidence: var(--mk-lilac-600);
-  --mk-evidence-soft: var(--mk-lilac-100);
+  --mk-evidence: var(--mk-char-600);
+  --mk-evidence-soft: var(--mk-frost-200);
 
-  --mk-focus-ring: rgba(20, 166, 126, 0.35);
+  --mk-focus-ring: rgba(14, 16, 20, 0.32);
 
   /* Touch targets. The kiosk minimum is 60px, well above the 44px guideline,
      because the user may be elderly, standing, and unfamiliar with the device. */
@@ -251,75 +365,139 @@
 }
 
 /* ================================================== PHYSICIAN SURFACE ===
- * Dark, dense, keyboard-first. Applied with `data-surface='clinical'` on the
- * physician root, so the two can coexist during the rebuild and in screenshots.
+ * Same silver, more of it per square inch. The previous system made this
+ * surface dark; the brief asks for white → grey → silver, and the reasoning
+ * holds up: a physician cross-checks the clinical screen against the patient's
+ * own printed paper and against the kiosk beside them, and a dark UI between
+ * two white references costs a re-adaptation every glance. What a clinician
+ * actually needs from this surface is DENSITY, and density is a type scale and
+ * a touch target, not a background colour.
  */
 [data-surface='clinical'] {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --mk-bg: var(--mk-indigo-950);
+  --mk-bg: var(--mk-frost-200);
+  /* Steeper than the kiosk's ground and anchored bottom-right, so the review
+     screen reads as a heavier, more machined version of the same material. */
   --mk-bg-ambient:
-    radial-gradient(1200px 700px at 8% -10%, rgba(20, 166, 126, 0.1), transparent 60%),
-    radial-gradient(1000px 600px at 96% 0%, rgba(107, 78, 199, 0.1), transparent 58%);
+    radial-gradient(
+      1000px 700px at calc(var(--mk-mx) * 100%) calc(var(--mk-my) * 70%),
+      rgba(255, 255, 255, 0.8),
+      rgba(255, 255, 255, 0) 56%
+    ),
+    linear-gradient(155deg, #ffffff 0%, #eef0f4 38%, #dfe3e9 72%, #d3d8e0 100%);
 
-  --mk-surface: var(--mk-indigo-900);
-  --mk-surface-raised: var(--mk-indigo-850);
-  --mk-surface-sunken: var(--mk-indigo-950);
-  --mk-surface-muted: var(--mk-indigo-850);
-  --mk-surface-glass: rgba(13, 18, 38, 0.72);
-  --mk-glass-blur: saturate(160%) blur(18px);
+  --mk-surface: var(--mk-frost-0);
+  --mk-surface-raised: var(--mk-frost-0);
+  --mk-surface-sunken: var(--mk-frost-200);
+  --mk-surface-muted: var(--mk-frost-50);
+  --mk-surface-glass: var(--mk-glass-thick);
 
-  --mk-ink: #e7ebf6;
-  --mk-ink-strong: #f7f9fd;
-  --mk-ink-muted: var(--mk-indigo-300);
-  --mk-ink-subtle: var(--mk-indigo-400);
-  --mk-ink-inverse: var(--mk-indigo-950);
+  --mk-ink: var(--mk-char-800);
+  --mk-ink-strong: var(--mk-char-950);
+  --mk-ink-muted: var(--mk-char-500);
+  --mk-ink-subtle: var(--mk-char-400);
+  --mk-ink-inverse: var(--mk-frost-0);
 
-  --mk-line: var(--mk-indigo-800);
-  --mk-line-strong: var(--mk-indigo-700);
-  --mk-line-hairline: rgba(255, 255, 255, 0.07);
+  --mk-line: var(--mk-frost-400);
+  --mk-line-strong: var(--mk-char-200);
+  --mk-line-hairline: rgba(14, 16, 20, 0.09);
 
-  --mk-accent: var(--mk-jade-400);
-  --mk-accent-hover: var(--mk-jade-300);
-  --mk-accent-soft: rgba(20, 166, 126, 0.16);
-  --mk-accent-ink: var(--mk-jade-300);
-  --mk-accent-contrast: var(--mk-indigo-950);
+  --mk-accent: var(--mk-char-900);
+  --mk-accent-hover: var(--mk-char-950);
+  --mk-accent-soft: var(--mk-frost-200);
+  --mk-accent-ink: var(--mk-char-900);
+  --mk-accent-contrast: #ffffff;
 
-  --mk-warm: var(--mk-saffron-400);
-  --mk-warm-soft: rgba(226, 144, 15, 0.16);
-  --mk-warm-ink: var(--mk-saffron-300);
+  --mk-warm: var(--mk-char-600);
+  --mk-warm-soft: var(--mk-frost-200);
+  --mk-warm-ink: var(--mk-char-700);
 
-  --mk-danger: var(--mk-coral-400);
-  --mk-danger-soft: rgba(224, 75, 75, 0.16);
-  --mk-danger-ink: var(--mk-coral-300);
+  --mk-danger: var(--mk-alert-600);
+  --mk-danger-soft: var(--mk-alert-100);
+  --mk-danger-ink: var(--mk-alert-700);
 
-  --mk-evidence: var(--mk-lilac-400);
-  --mk-evidence-soft: rgba(131, 103, 221, 0.18);
+  --mk-evidence: var(--mk-char-600);
+  --mk-evidence-soft: var(--mk-frost-200);
 
-  --mk-focus-ring: rgba(43, 193, 150, 0.45);
+  --mk-focus-ring: rgba(14, 16, 20, 0.36);
 
-  --mk-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --mk-shadow-md: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
-  --mk-shadow-lg: 0 24px 56px -14px rgba(0, 0, 0, 0.62);
-  --mk-shadow-xl: 0 36px 80px -18px rgba(0, 0, 0, 0.7);
-
-  /* A clinician uses a mouse and a keyboard, and wants more on screen. */
+  /* A clinician uses a mouse and a keyboard, and wants more on screen. This —
+     not the background — is what makes the surface feel like an instrument. */
   --mk-touch-min: 38px;
   --mk-touch-lg: 44px;
   --mk-body-size: var(--mk-text-sm);
 }
 
 /* ============================================== semantic status colours ===
- * Used by badges, confidence bands and red flags on both surfaces. Defined
- * once against the semantic layer so they follow whichever surface is active.
+ * Wired to the two signal ramps directly, NOT to `--mk-accent`. Under the old
+ * system `ok` was an alias of the brand accent, so "verified" and "this is a
+ * button" were the same green and neither could be read as the other. They are
+ * now independent, which is the whole reason the accent went monochrome.
  */
 :root {
-  --mk-status-ok-bg: var(--mk-accent-soft);
-  --mk-status-ok-fg: var(--mk-accent-ink);
-  --mk-status-warn-bg: var(--mk-warm-soft);
-  --mk-status-warn-fg: var(--mk-warm-ink);
-  --mk-status-alert-bg: var(--mk-danger-soft);
-  --mk-status-alert-fg: var(--mk-danger-ink);
-  --mk-status-info-bg: var(--mk-evidence-soft);
-  --mk-status-info-fg: var(--mk-evidence);
+  --mk-status-ok-bg: var(--mk-ok-100);
+  --mk-status-ok-fg: var(--mk-ok-700);
+  --mk-status-ok-line: var(--mk-ok-200);
+  --mk-status-ok-mark: var(--mk-ok-600);
+
+  /* There is no third signal. `warn` is an alias of alert at a lower intensity
+     so any component still asking for it escalates rather than invents a hue. */
+  --mk-status-warn-bg: var(--mk-alert-100);
+  --mk-status-warn-fg: var(--mk-alert-700);
+  --mk-status-warn-line: var(--mk-alert-200);
+  --mk-status-warn-mark: var(--mk-alert-500);
+
+  --mk-status-alert-bg: var(--mk-alert-100);
+  --mk-status-alert-fg: var(--mk-alert-700);
+  --mk-status-alert-line: var(--mk-alert-200);
+  --mk-status-alert-mark: var(--mk-alert-600);
+
+  /* Provenance and evidence are neutral. "Where did this come from" is not a
+     clinical state and must never be mistaken for one. */
+  --mk-status-info-bg: var(--mk-frost-200);
+  --mk-status-info-fg: var(--mk-char-700);
+  --mk-status-info-line: var(--mk-frost-400);
+  --mk-status-info-mark: var(--mk-char-500);
+}
+
+/* =============================================================== fonts ===
+ * Neue Machina, self-hosted. The licence is per-project and the files are NOT
+ * committed — drop `NeueMachina-Regular.woff2`, `-Medium`, `-Ultrabold` into
+ * `frontend/public/fonts/` and every heading in the product picks them up with
+ * no code change. Until then `src: local(...)` fails, the `@font-face` is
+ * skipped, and the stack falls through to Space Grotesk, which is bundled.
+ *
+ * `font-display: swap` and not `block`: a kiosk that shows nothing where its
+ * heading should be, while a font that may not exist is waited for, is worse
+ * than a kiosk that shows the fallback.
+ */
+@font-face {
+  font-family: 'Neue Machina';
+  src:
+    local('Neue Machina Regular'),
+    url('/fonts/NeueMachina-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Machina';
+  src:
+    local('Neue Machina Medium'),
+    url('/fonts/NeueMachina-Medium.woff2') format('woff2');
+  font-weight: 500 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Neue Machina';
+  src:
+    local('Neue Machina Ultrabold'),
+    url('/fonts/NeueMachina-Ultrabold.woff2') format('woff2');
+  font-weight: 700 800;
+  font-style: normal;
+  font-display: swap;
 }
