@@ -318,6 +318,26 @@ async def promote(
         document_rows[source.document_id] = document_row
         result.documents += 1
 
+        # A row on the timeline for the upload ITSELF, not just the entities read off it —
+        # this is what makes "when did I add this paper" a fact the timeline can answer,
+        # separate from "what does the paper say" (the entity-derived rows below). It also
+        # fills in `LongitudinalTimeline.tsx`'s "Documents" filter chip, which has named this
+        # kind since it was written but never had anything to show.
+        db.add(
+            TimelineEventRecord(
+                patient_id=patient.id,
+                encounter_id=encounter.id,
+                event_ref=_ref("evt"),
+                occurred_on=source.uploaded_at.date(),
+                date_precision="exact",
+                kind="document",
+                label=f"Uploaded: {source.filename}",
+                detail=f"{document_row.document_kind} · read by {source.ocr_backend}",
+                source_document_ref=source.document_id,
+            )
+        )
+        result.timeline_events += 1
+
         for payload in source.entities_json or []:
             # A low-confidence entity that no human accepted must not become durable truth.
             if payload.get("entityIndex") is not None and not source.verified_by:

@@ -242,6 +242,57 @@ async def test_a_documented_medicine_is_not_recorded_as_currently_taken(db_sessi
     assert result.medications == len(rows)
 
 
+async def test_a_document_upload_gets_its_own_timeline_row(db_session) -> None:
+    """The timeline should be able to answer "when did I add this paper", not only "what does
+    it say" — a `kind="document"` row per upload, distinct from the rows the entities on that
+    page produce. Uses the same `SessionDocument` shape `routes_documents.py` writes on a real
+    upload, since promotion reads `SessionDocument` rows, not the ledger, for this.
+    """
+    from app.db.durable import TimelineEventRecord
+    from app.db.models import SessionDocument
+
+    row = await _session(db_session, abha_ref="abha:upload_ts")
+    ledger = FactLedger(row.session_ref)
+    tap(ledger, "chief_complaint.text", "checkup")
+    uploaded_at = datetime(2026, 3, 1, 9, 30, tzinfo=UTC)
+    db_session.add(
+        SessionDocument(
+            session_id=row.id,
+            document_id="doc_upload_ts",
+            filename="lab_report.pdf",
+            media_type="application/pdf",
+            pages=1,
+            ocr_backend="textlayer",
+            mean_confidence=0.9,
+            entities_json=[],
+            uploaded_at=uploaded_at,
+        )
+    )
+    await db_session.flush()
+
+    result = await _promote(db_session, row, ledger)
+    await db_session.flush()
+
+    events = list(
+        (
+            await db_session.execute(
+                select(TimelineEventRecord).where(
+                    TimelineEventRecord.encounter_id
+                    == select(Encounter.id)
+                    .where(Encounter.encounter_ref == result.encounter_ref)
+                    .scalar_subquery(),
+                    TimelineEventRecord.kind == "document",
+                )
+            )
+        ).scalars().all()
+    )
+    assert len(events) == 1, "one upload should produce exactly one document-kind timeline row"
+    upload_event = events[0]
+    assert upload_event.occurred_on == uploaded_at.date()
+    assert "lab_report.pdf" in upload_event.label
+    assert upload_event.source_document_ref == "doc_upload_ts"
+
+
 async def test_medication_history_threads_one_drug_across_visits(seeded_patient) -> None:
     db, patient = seeded_patient
     threads = await H.medication_history(db, patient.id)

@@ -94,7 +94,10 @@ async def patient_overview(
     return {"known": True, **await H.overview(db, patient)}
 
 
-@router.get("/{patient_ref}/timeline", dependencies=[Depends(require_action("session.read"))])
+@router.get(
+    "/{patient_ref}/timeline",
+    dependencies=[Depends(require_any_action("session.read", "report.read_own"))],
+)
 async def patient_timeline(
     db: DbSession,
     patient_ref: str,
@@ -114,7 +117,8 @@ async def patient_timeline(
 
 
 @router.get(
-    "/{patient_ref}/medications", dependencies=[Depends(require_action("session.read"))]
+    "/{patient_ref}/medications",
+    dependencies=[Depends(require_any_action("session.read", "report.read_own"))],
 )
 async def patient_medications(
     db: DbSession, patient_ref: str, identity: CurrentIdentity
@@ -252,7 +256,7 @@ async def durable_fact_evidence(
 
 @router.get(
     "/{patient_ref}/documents/{document_ref}/file",
-    dependencies=[Depends(require_action("document.read"))],
+    dependencies=[Depends(require_any_action("document.read", "document.read_own"))],
 )
 async def document_file(
     db: DbSession,

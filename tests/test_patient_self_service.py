@@ -196,3 +196,52 @@ async def test_the_synthetic_boundary_still_holds_for_self_service(db_session) -
     assert all(e.patient_id == real.id for e in rows_real.encounters)
     assert not ({e.encounter_ref for e in rows.encounters}
                 & {e.encounter_ref for e in rows_real.encounters})
+
+
+# ─────────────────────────── the timeline, medications and document routes
+
+
+def test_timeline_and_medications_are_reachable_by_a_patients_own_action() -> None:
+    """`/timeline` and `/medications` used to be `session.read` only — clinician-only.
+
+    They now also accept `report.read_own`, the same action `/brief`, `/brief/patient` and
+    `/encounters` already use for exactly this reason: `_resolve()` is what proves ownership,
+    not the action name, so widening the action is safe as long as `_resolve()` still runs —
+    which it does, unconditionally, at the top of every one of these handlers.
+    """
+    source = (APP / "api" / "routes_patient.py").read_text(encoding="utf-8")
+    for route, marker in (
+        ("/{patient_ref}/timeline", "async def patient_timeline"),
+        ("/{patient_ref}/medications", "async def patient_medications"),
+    ):
+        handler_start = source.index(marker)
+        # The dependency lives in the `@router.get(...)` call immediately above the handler.
+        preceding = source[:handler_start]
+        decorator_start = preceding.rindex("@router.get")
+        decorator = preceding[decorator_start:handler_start]
+        assert 'require_any_action("session.read", "report.read_own")' in decorator, (
+            f"{route} is no longer gated by require_any_action(session.read, report.read_own) "
+            "— a patient token would be refused before _resolve() ever runs"
+        )
+
+
+def test_document_file_is_reachable_by_a_patients_own_action() -> None:
+    """Mirrors the kiosk verification lane's `document.read_own` (see `config/policy.yaml`),
+    so a patient can open the original page behind a timeline or medication entry after the
+    encounter is confirmed, not only during capture.
+    """
+    source = (APP / "api" / "routes_patient.py").read_text(encoding="utf-8")
+    handler_start = source.index("async def document_file")
+    preceding = source[:handler_start]
+    decorator = preceding[preceding.rindex("@router.get") : handler_start]
+    assert 'require_any_action("document.read", "document.read_own")' in decorator
+
+
+def test_patient_role_actually_holds_report_read_own_and_document_read_own() -> None:
+    """The two actions the tests above rely on are real grants in the policy file, not typos."""
+    import yaml
+
+    policy = yaml.safe_load((APP.parent / "config" / "policy.yaml").read_text())
+    patient_actions = set(policy["roles"]["patient"]["actions"])
+    assert "report.read_own" in patient_actions
+    assert "document.read_own" in patient_actions

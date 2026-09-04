@@ -315,6 +315,7 @@ async def medication_history(
                 "dose": row.dose,
                 "frequency": row.frequency,
                 "observedOn": row.observed_on.isoformat() if row.observed_on else None,
+                "recordedAt": row.recorded_at.isoformat() if row.recorded_at else None,
                 "documentRef": row.source_document_ref,
                 "encounterRef": encounter.encounter_ref if encounter else None,
                 "encounterOn": (
